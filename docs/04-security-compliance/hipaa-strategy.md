@@ -85,6 +85,17 @@ Rules:
 
 If PHI is not required, it must be excluded.
 
+### HIPAA & RAG Agents
+
+Agents that have potential access to Protected Health Information (PHI) must:
+
+- Use **retrieval-augmented generation (RAG)** only with filtered and scoped PHI access
+- Never expose PHI in LLM prompts without explicit consent and masking
+- Store no PHI in prompt logs or external telemetry
+- Include redaction logic for sensitive fields
+- Validate all RAG outputs against compliance policies post-generate
+- Include audit trails for RAG retrieval events
+
 ---
 
 ## Vendor Eligibility and BAAs
