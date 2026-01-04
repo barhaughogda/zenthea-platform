@@ -1,0 +1,28 @@
+{
+  "name": "ai-platform-monorepo-starter",
+  "private": true,
+  "description": "AI-Platform Monorepo Starter",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test": "turbo run test",
+    "eval:ai": "turbo run eval:ai",
+    "type-check": "turbo run type-check",
+    "validate:backups": "turbo run validate:backups"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.4.2",
+    "eslint-plugin-import": "^2.31.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

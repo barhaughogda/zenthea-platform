@@ -1,0 +1,14 @@
+{
+  "name": "@starter/maintenance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate:backups": "node src/validate-backups.js",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^20.17.10"
+  }
+}
