@@ -5,6 +5,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
     "test": "npx tsx src/governance.test.ts"
   },
