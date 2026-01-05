@@ -129,6 +129,23 @@ export interface ToolAuditLog {
 }
 
 /**
+ * Structured, metadata-only telemetry event for tool invocation.
+ * 🚫 MUST NOT include PHI.
+ */
+export interface ToolGatewayEvent {
+  toolName: string;
+  tenantId: string;
+  actorId: string;
+  actorType: 'patient' | 'provider' | 'system' | 'unknown';
+  requestId: string;
+  idempotencyKeyHash: string; // SHA-256 hash of the key
+  decision: 'allowed' | 'denied' | 'rate_limited' | 'error';
+  errorCode?: string;
+  latencyMs: number;
+  timestamp: string;
+}
+
+/**
  * Interface for the Execution Gateway.
  */
 export interface IToolExecutionGateway {
@@ -140,4 +157,12 @@ export interface IToolExecutionGateway {
  */
 export interface IToolAuditLogger {
   log(event: ToolAuditLog): Promise<void>;
+}
+
+/**
+ * Interface for telemetry logging.
+ * Telemetry MUST NEVER contain PHI.
+ */
+export interface IToolTelemetryLogger {
+  emit(event: ToolGatewayEvent): Promise<void>;
 }

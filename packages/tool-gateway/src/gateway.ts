@@ -1,10 +1,14 @@
+import * as crypto from 'crypto';
 import { 
   IToolExecutionGateway, 
   ToolExecutionCommand, 
   ToolExecutionResult, 
-  IToolAuditLogger 
+  IToolAuditLogger,
+  IToolTelemetryLogger,
+  ToolGatewayEvent 
 } from './types';
 import { validateExecutionCommand } from './validation';
+import { ToolTelemetryLogger } from './audit';
 
 /**
  * Tool Execution Gateway
@@ -16,25 +20,47 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   private rateLimits = new Map<string, { attempts: number; windowStart: number }>();
 
   constructor(
-    private readonly auditLogger: IToolAuditLogger
+    private readonly auditLogger: IToolAuditLogger,
+    private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger()
   ) {}
 
   /**
    * Executes an approved tool command.
    */
   async execute(command: unknown): Promise<ToolExecutionResult> {
-    const startTime = new Date().toISOString();
+    const startTime = Date.now();
+    const startTimestamp = new Date().toISOString();
     let validatedCommand: ToolExecutionCommand | undefined;
+    let decision: ToolGatewayEvent['decision'] = 'allowed';
+    let errorCode: string | undefined;
 
     try {
       // 1. Validate the command defensively
-      validatedCommand = validateExecutionCommand(command);
+      try {
+        validatedCommand = validateExecutionCommand(command);
+      } catch (err: any) {
+        decision = 'error';
+        errorCode = 'VALIDATION_FAILED';
+        throw err;
+      }
 
       // 2. Rate Limiting
-      this.checkRateLimit(validatedCommand);
+      try {
+        this.checkRateLimit(validatedCommand);
+      } catch (err: any) {
+        decision = 'rate_limited';
+        errorCode = 'RATE_LIMITED';
+        throw err;
+      }
 
       // 3. Enforce Tool-specific rules (Ownership, etc.)
-      this.enforceToolRules(validatedCommand);
+      try {
+        this.enforceToolRules(validatedCommand);
+      } catch (err: any) {
+        decision = 'denied';
+        errorCode = this.mapErrorToCode(err);
+        throw err;
+      }
 
       // 4. Log receipt of the command
       await this.auditLogger.log({
@@ -45,7 +71,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         toolName: validatedCommand.tool.name,
         action: 'received',
         actor: validatedCommand.approval.approvedBy,
-        timestamp: startTime,
+        timestamp: startTimestamp,
         idempotencyKey: validatedCommand.idempotencyKey,
         payload: validatedCommand.parameters, // Audit store MAY contain PHI
         metadata: validatedCommand.metadata,
@@ -53,6 +79,11 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
       // 5. Dispatch to execution infrastructure (Mocked for now)
       const result = await this.dispatchToExecutor(validatedCommand);
+
+      if (result.status === 'failure') {
+        decision = 'error';
+        errorCode = result.error?.code;
+      }
 
       // 6. Log completion
       await this.auditLogger.log({
@@ -72,6 +103,11 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       return result;
 
     } catch (error: any) {
+      if (decision === 'allowed') {
+        decision = 'error';
+        errorCode = this.mapErrorToCode(error);
+      }
+
       // Log failure if we have enough context
       if (validatedCommand) {
         await this.auditLogger.log({
@@ -92,12 +128,34 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         commandId: (command as any)?.commandId || 'unknown',
         status: 'failure',
         error: {
-          code: this.mapErrorToCode(error),
+          code: errorCode || this.mapErrorToCode(error),
           message: error.message,
           retryable: false, 
         },
         timestamp: new Date().toISOString(),
       };
+    } finally {
+      // 7. Emit structured telemetry (Metadata only - NO PHI)
+      const latencyMs = Date.now() - startTime;
+      
+      const telemetryEvent: ToolGatewayEvent = {
+        toolName: validatedCommand?.tool.name || (command as any)?.tool?.name || 'unknown',
+        tenantId: validatedCommand?.tenantId || (command as any)?.tenantId || 'unknown',
+        actorId: validatedCommand?.approval.approvedBy || (command as any)?.approval?.approvedBy || 'unknown',
+        actorType: this.resolveActorType(validatedCommand),
+        requestId: validatedCommand?.metadata.correlationId || (command as any)?.metadata?.correlationId || 'unknown',
+        idempotencyKeyHash: this.hashIdempotencyKey(validatedCommand?.idempotencyKey || (command as any)?.idempotencyKey),
+        decision,
+        errorCode,
+        latencyMs,
+        timestamp: startTimestamp,
+      };
+
+      // We await to ensure "exactly once" and catch any issues during development,
+      // though in production this might be fire-and-forget.
+      await this.telemetryLogger.emit(telemetryEvent).catch(err => {
+        console.error('Failed to emit telemetry:', err);
+      });
     }
   }
 
@@ -241,5 +299,27 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   private generateId(): string {
     // Simple placeholder for UUID since I don't want to add dependencies unnecessarily
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+
+  private hashIdempotencyKey(key?: string): string {
+    if (!key) return 'none';
+    return crypto.createHash('sha256').update(key).digest('hex');
+  }
+
+  private resolveActorType(command?: ToolExecutionCommand): ToolGatewayEvent['actorType'] {
+    if (!command) return 'unknown';
+    
+    // If automated, it's a system actor
+    if (command.approval.approvalType === 'automated') return 'system';
+    
+    // In the current context of Slice 04, most human approvals are patients 
+    // using the patient portal, but we mark as unknown if we can't be sure.
+    // A more robust implementation would include actorType in the approval object.
+    const toolName = command.tool.name;
+    const isPatientTool = toolName.startsWith('chat.') || 
+                          toolName.includes('Consent') || 
+                          toolName.includes('Appointment');
+                          
+    return isPatientTool ? 'patient' : 'unknown';
   }
 }
