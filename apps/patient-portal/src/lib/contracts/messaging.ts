@@ -6,7 +6,26 @@ export interface MessageData {
   // Add more fields based on MessageCard requirements
 }
 
+export interface UIConversation {
+  threadId: string;
+  otherUser: {
+    id: string;
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  lastMessage: {
+    content: string;
+    priority: 'low' | 'normal' | 'high' | 'urgent';
+    fromUserId: string;
+    createdAt: string;
+  };
+  unreadCount: number;
+}
+
 export interface MessagingService {
-  getMessages(): MessageData[];
-  getMessageHandlers(): Record<string, (..._args: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */[]) => void>;
+  getMessages(conversationId: string): Promise<MessageData[]>;
+  getConversations(patientId: string): Promise<UIConversation[]>;
+  getMessageHandlers(): Record<string, (..._args: unknown[]) => void>;
 }

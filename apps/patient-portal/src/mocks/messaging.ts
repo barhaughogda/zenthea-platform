@@ -1,6 +1,7 @@
-import { MessagingService, MessageData } from '../lib/contracts/messaging';
+import { MessagingService, MessageData, UIConversation } from '../lib/contracts/messaging';
 
 export const mockMessagingService: MessagingService = {
-  getMessages: (): MessageData[] => [],
+  getConversations: async (_patientId: string): Promise<UIConversation[]> => [],
+  getMessages: async (_conversationId: string): Promise<MessageData[]> => [],
   getMessageHandlers: () => ({}),
 };

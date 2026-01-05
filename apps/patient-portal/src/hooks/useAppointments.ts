@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useZentheaSession } from './useZentheaSession';
 import { useFeatureFlag } from '@/config/features';
-import { AppointmentAgentAdapter, MockAppointmentAdapter } from '@/lib/appointments/adapter';
+import { AppointmentAgentAdapter } from '@/lib/appointments/adapter';
 import { Appointment } from '@/lib/contracts/patient';
 import { mockAppointmentService } from '@/mocks/patient';
 

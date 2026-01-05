@@ -89,3 +89,12 @@ export const ConversationHistorySchema = z.object({
   nextCursor: z.string().optional(),
 });
 export type ConversationHistory = z.infer<typeof ConversationHistorySchema>;
+
+/**
+ * List of Conversations Response
+ */
+export const ConversationListSchema = z.object({
+  conversations: z.array(ConversationSchema),
+  nextCursor: z.string().optional(),
+});
+export type ConversationList = z.infer<typeof ConversationListSchema>;

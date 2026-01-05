@@ -138,7 +138,7 @@ function getStatusBgColor(status: ConsentInfo['status']) {
   }
 }
 
-function getStatusBadgeVariant(status: ConsentInfo['status']): any {
+function getStatusBadgeVariant(status: ConsentInfo['status']): 'default' | 'destructive' | 'secondary' | 'outline' {
   switch (status) {
     case 'active':
       return 'default';

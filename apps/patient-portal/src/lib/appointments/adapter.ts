@@ -1,5 +1,5 @@
 import { AppointmentBookingAgentClient, Appointment as SDKAppointment } from '@starter/appointment-booking-agent-sdk';
-import { Appointment as UIAppointment, AppointmentService } from '../contracts/patient';
+import { Appointment as UIAppointment } from '../contracts/patient';
 
 /**
  * Adapter translating Appointment Booking Agent SDK responses to the Patient Portal UI contract.
@@ -46,6 +46,14 @@ export class AppointmentAgentAdapter {
   private mapToUI(record: SDKAppointment): UIAppointment {
     const startDate = new Date(record.startTime);
     
+    const provider: UIAppointment['provider'] = typeof record.provider === 'string'
+      ? record.provider
+      : {
+          id: record.provider.id,
+          name: record.provider.name,
+          specialty: record.provider.specialty || 'General Medicine',
+        };
+
     return {
     id: record.id,
     _id: record.id, // Compatibility with Convex-style mapping in page.tsx
@@ -56,7 +64,7 @@ export class AppointmentAgentAdapter {
         minute: '2-digit',
         hour12: true 
       }),
-      provider: record.provider,
+      provider,
       type: record.type,
       title: record.title,
       status: record.status,

@@ -7,6 +7,8 @@ import {
   MessageSchema,
   ConversationHistory,
   ConversationHistorySchema,
+  ConversationList,
+  ConversationListSchema,
   StreamChunk,
   StreamChunkSchema,
 } from './types';
@@ -51,6 +53,23 @@ export class ChatAgentClient {
       method: 'GET',
     });
     return this.validate(ConversationSchema, data);
+  }
+
+  /**
+   * List all conversations for a tenant/patient
+   */
+  async listConversations(
+    options: { cursor?: string; limit?: number } = {}
+  ): Promise<ConversationList> {
+    const params = new URLSearchParams();
+    if (options.cursor) params.append('cursor', options.cursor);
+    if (options.limit) params.append('limit', options.limit.toString());
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const data = await this.request(`/conversations${queryString}`, {
+      method: 'GET',
+    });
+    return this.validate(ConversationListSchema, data);
   }
 
   /**
