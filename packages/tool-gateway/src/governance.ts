@@ -1,4 +1,5 @@
-import { AgentType, GovernanceReasonCode } from './types';
+import * as crypto from 'crypto';
+import { AgentType, GovernanceReasonCode, GovernancePolicySnapshot } from './types';
 
 export type ToolScope = 
   | 'consent.read' 
@@ -108,4 +109,51 @@ export class PolicyEvaluator {
       agentType: agent.type,
     };
   }
+}
+
+/**
+ * Normalizes and deep-sorts an object for deterministic hashing.
+ */
+function normalizeForHash(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    // For arrays, we sort them to ensure order independence
+    return obj.map(normalizeForHash).sort((a, b) => {
+      const sA = JSON.stringify(a);
+      const sB = JSON.stringify(b);
+      return sA.localeCompare(sB);
+    });
+  }
+  const sortedKeys = Object.keys(obj).sort();
+  const result: any = {};
+  for (const key of sortedKeys) {
+    result[key] = normalizeForHash(obj[key]);
+  }
+  return result;
+}
+
+/**
+ * Generates a metadata-only snapshot of the current governance policy.
+ * 🚫 STRICTLY NO PHI or sensitive identifiers.
+ */
+export function generatePolicySnapshot(version: string = '1.0.0'): GovernancePolicySnapshot {
+  const policy = {
+    agentRegistry: AGENT_REGISTRY,
+    toolScopeMapping: TOOL_SCOPE_MAPPING,
+  };
+
+  const normalized = normalizeForHash(policy);
+  const serialized = JSON.stringify(normalized);
+  const hash = crypto.createHash('sha256').update(serialized).digest('hex');
+
+  return {
+    snapshotId: crypto.randomUUID(),
+    policyVersion: version,
+    policyHash: hash,
+    agentCount: Object.keys(AGENT_REGISTRY).length,
+    toolCount: Object.keys(TOOL_SCOPE_MAPPING).length,
+    generatedAt: new Date().toISOString(),
+  };
 }

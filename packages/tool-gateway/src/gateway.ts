@@ -9,13 +9,14 @@ import {
   IGovernanceLogger,
   GovernanceControlResult,
   GovernanceReasonCode,
-  AgentType
+  AgentType,
+  IPolicySnapshotEmitter
 } from './types';
 import { validateExecutionCommand } from './validation';
 import { ToolTelemetryLogger } from './audit';
 import { toolGatewayMetrics } from './metrics';
 import { AbuseSignalEngine } from './abuse';
-import { PolicyEvaluator } from './governance';
+import { PolicyEvaluator, generatePolicySnapshot } from './governance';
 
 /**
  * Tool Execution Gateway
@@ -33,7 +34,8 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   constructor(
     private readonly auditLogger: IToolAuditLogger,
     private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger(),
-    private readonly governanceLogger?: IGovernanceLogger
+    private readonly governanceLogger?: IGovernanceLogger,
+    private readonly snapshotEmitter?: IPolicySnapshotEmitter
   ) {
     // Initialize Abuse Signal Engine with a metadata-only emitter
     this.abuseEngine = new AbuseSignalEngine((signal) => {
@@ -41,6 +43,32 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       // ⚠️ SECURITY: No PHI, actorId, or tenantId in the signal.
       console.log(`[AbuseSignal] [${signal.severity.toUpperCase()}] ${signal.ruleId} - Tool: ${signal.toolName || 'N/A'}, Actor: ${signal.actorType}, Observed: ${signal.observedCount}/${signal.threshold} (Window: ${signal.windowMs}ms)`);
     });
+
+    // Emit initial policy snapshot (Slice 06.4)
+    this.emitPolicySnapshot();
+  }
+
+  /**
+   * Generates and emits a governance policy snapshot.
+   * Non-blocking and error-isolated.
+   */
+  private emitPolicySnapshot() {
+    try {
+      const snapshot = generatePolicySnapshot();
+      
+      if (this.snapshotEmitter) {
+        // Fire and forget
+        this.snapshotEmitter.emit(snapshot).catch(err => {
+          console.error('[Governance] Failed to emit policy snapshot:', err);
+        });
+      } else {
+        // Metadata-only log as fallback
+        console.log(`[Governance] [PolicySnapshot] Version: ${snapshot.policyVersion}, Hash: ${snapshot.policyHash}, Agents: ${snapshot.agentCount}, Tools: ${snapshot.toolCount}`);
+      }
+    } catch (err) {
+      // ⚠️ CRITICAL: Failure must NOT block gateway startup.
+      console.error('[Governance] Fatal error during policy snapshot generation:', err);
+    }
   }
 
   /**

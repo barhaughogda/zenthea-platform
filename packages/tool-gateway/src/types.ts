@@ -222,3 +222,24 @@ export interface AbuseSignalEvent {
 export interface IAbuseSignalEmitter {
   emitSignal(event: AbuseSignalEvent): void;
 }
+
+/**
+ * Immutable, versioned snapshot of governance policy state.
+ * 🚫 STRICTLY NO PHI, actorId, tenantId, agentId, or requestId.
+ * Metadata only.
+ */
+export interface GovernancePolicySnapshot {
+  snapshotId: string;
+  policyVersion: string; // semver or date-based
+  policyHash: string; // SHA-256 of normalized policy
+  agentCount: number;
+  toolCount: number;
+  generatedAt: string;
+}
+
+/**
+ * Interface for policy snapshot emission.
+ */
+export interface IPolicySnapshotEmitter {
+  emit(snapshot: GovernancePolicySnapshot): Promise<void>;
+}
