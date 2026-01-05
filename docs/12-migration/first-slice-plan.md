@@ -1,22 +1,43 @@
 # First Migration Slice
 
-## Selected Slice
-Public Website + Website Builder
+## Slice Name
+Website Builder UI Migration
 
-## Why This Slice
-- Zero HIPAA risk
-- Exercises frontend composition
-- Tests app/package boundaries
-- Fast feedback
+## Scope
+- Website builder UI only
+- No PHI
+- No clinical workflows
+- No new backend services required
+- No auth integration required unless the legacy website builder depends on it
 
-## Steps
-1. Create apps/marketing
-2. Extract reusable UI into packages/ui
-3. Keep legacy repo untouched
-4. Validate build + CI
-5. Tag post-migration checkpoint
+## Objectives
+- Validate app composition in `/apps`
+- Validate shared UI reuse via `packages/ui`
+- Validate builds, CI, and guardrails under real migration pressure
+- Establish a repeatable migration workflow
+
+## Execution Steps
+1. Create `apps/website-builder`
+2. Copy website builder UI code from the legacy repo into the new app
+3. Replace any direct API calls with placeholders or local mocks (no new services in Slice 1)
+4. Extract reusable presentational components into `packages/ui` (only if clearly reusable)
+5. Ensure all imports follow monorepo conventions (no `.js` extensions in TS imports)
+6. Run sanity:
+   - `pnpm lint`
+   - `pnpm test`
+   - `pnpm typecheck`
+   - `pnpm build`
+7. Tag the slice completion
 
 ## Exit Criteria
-- App builds in platform
-- No guardrail violations
-- CI green
+- `apps/website-builder` builds in the platform repo
+- CI is green
+- No guardrail violations (service isolation, model isolation, tool execution boundary)
+- No secrets or environment leakage introduced
+
+## Rollback
+- Revert the slice commit(s)
+- Reset to `platform-baseline-v1.0.0`
+
+## Post-Slice Tag
+- `migration-slice-01-website-builder`
