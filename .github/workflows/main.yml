@@ -28,5 +28,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and Test
-        run: pnpm turbo run build test --filter=...[HEAD^1]
+      - name: Build and Validate
+        run: pnpm turbo run build lint typecheck test --filter=...[HEAD^1]
+
+      - name: AI Evaluations
+        run: pnpm eval:ai --filter=...[HEAD^1]

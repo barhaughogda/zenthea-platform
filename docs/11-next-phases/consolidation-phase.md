@@ -148,6 +148,19 @@ Deliverable:
 - If anything is missing, add it.
 - If it is already correct, record "No changes required".
 
+### Step 4 Results
+- **CI Workflows**: Updated. Added `build` to `ci.yml` and unified `main.yml` to include `lint`, `typecheck`, and `eval:ai`.
+- **Turbo Pipeline**: Verified. Pipelines exist for all tasks with correct dependency ordering (`^build`).
+- **Script Alignment**: Standardized on `typecheck` (renamed from `type-check`) across all 17 files to match documentation and CI requirements.
+- **Failures**: Verified fail-fast behavior; all tasks block merge.
+- **AI Evals**: Verified `eval:ai` is not bundled with unit tests.
+
+#### Fixes Applied
+- Added `build` step to `ci.yml` validation.
+- Added `lint`, `typecheck`, and `eval:ai` to `main.yml` for parity.
+- Renamed all `type-check` scripts and turbo tasks to `typecheck`.
+- Unified CI task naming with authoritative documentation.
+
 ---
 
 ## Step 5: Docs-to-Repo Alignment Sweep

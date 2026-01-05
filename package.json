@@ -9,7 +9,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "test": "turbo run test",
     "eval:ai": "turbo run eval:ai",
-    "type-check": "turbo run type-check",
+    "typecheck": "turbo run typecheck",
     "validate:backups": "turbo run validate:backups"
   },
   "devDependencies": {
