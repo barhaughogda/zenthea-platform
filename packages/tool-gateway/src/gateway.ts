@@ -91,7 +91,8 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
         const toolName = (command as any)?.tool?.name || 'unknown';
         const agentId = (command as any)?.agentId || 'unknown';
-        const agentType = this.policyEvaluator.evaluate(agentId, toolName).agentType;
+        const agentVersion = (command as any)?.agentVersion || 'unknown';
+        const agentType = this.policyEvaluator.evaluate(agentId, agentVersion, toolName).agentType;
         
         this.emitGovernanceControl(agentType, toolName, 'VALIDATION_FAILED');
 
@@ -99,7 +100,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       }
 
       // 1.5. Evaluate Agent Governance Policy (Slice 06.1)
-      const evaluation = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name);
+      const evaluation = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name);
       if (!evaluation.allowed) {
         decision = 'denied';
         errorCode = evaluation.reasonCode;
@@ -120,7 +121,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         decision = 'rate_limited';
         errorCode = 'RATE_LIMITED';
 
-        const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name).agentType;
+        const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name).agentType;
         this.emitGovernanceControl(agentType, validatedCommand.tool.name, 'RATE_LIMITED');
 
         throw err;
@@ -135,10 +136,10 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
         // Emit governance control if it matches a governance reason code
         if (errorCode === 'VALIDATION_FAILED' || errorCode === 'FEATURE_DISABLED') {
-          const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name).agentType;
+          const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name).agentType;
           this.emitGovernanceControl(agentType, validatedCommand.tool.name, errorCode as GovernanceReasonCode);
         } else if (errorCode === 'FORBIDDEN') {
-          const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name).agentType;
+          const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name).agentType;
           this.emitGovernanceControl(agentType, validatedCommand.tool.name, 'SCOPE_DENIED');
         }
 

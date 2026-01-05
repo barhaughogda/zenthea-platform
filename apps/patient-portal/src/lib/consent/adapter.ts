@@ -62,6 +62,7 @@ export class ConsentAgentAdapter implements ConsentService {
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
       agentId: 'patient-portal-agent',
+      agentVersion: '1.0.0',
       tool: { name: 'createConsent', version: '1.0.0' },
       parameters: {
         patientId,
@@ -105,6 +106,7 @@ export class ConsentAgentAdapter implements ConsentService {
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
       agentId: 'patient-portal-agent',
+      agentVersion: '1.0.0',
       tool: { name: 'updateConsentPreferences', version: '1.0.0' },
       parameters: {
         patientId,
@@ -144,6 +146,7 @@ export class ConsentAgentAdapter implements ConsentService {
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
       agentId: 'patient-portal-agent',
+      agentVersion: '1.0.0',
       tool: { name: 'revokeConsent', version: '1.0.0' },
       parameters: {
         patientId,
