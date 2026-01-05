@@ -229,6 +229,34 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  services/appointment-booking-agent:
+    dependencies:
+      '@starter/ai-runtime':
+        specifier: workspace:*
+        version: link:../../packages/ai-runtime
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@starter/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@starter/ai-eval':
+        specifier: workspace:*
+        version: link:../../packages/ai-eval
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.27)
+
   services/billing:
     dependencies:
       '@starter/observability':
@@ -246,6 +274,109 @@ importers:
         version: 5.9.3
 
   services/chat-agent:
+    dependencies:
+      '@starter/ai-runtime':
+        specifier: workspace:*
+        version: link:../../packages/ai-runtime
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@starter/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@starter/ai-eval':
+        specifier: workspace:*
+        version: link:../../packages/ai-eval
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.27)
+
+  services/clinical-documentation-agent:
+    dependencies:
+      '@starter/ai-runtime':
+        specifier: workspace:*
+        version: link:../../packages/ai-runtime
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@starter/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@starter/ai-eval':
+        specifier: workspace:*
+        version: link:../../packages/ai-eval
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.27)
+
+  services/consent-agent:
+    dependencies:
+      '@starter/ai-runtime':
+        specifier: workspace:*
+        version: link:../../packages/ai-runtime
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@starter/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@starter/ai-eval':
+        specifier: workspace:*
+        version: link:../../packages/ai-eval
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.27)
+
+  services/medical-advisor-agent:
+    dependencies:
+      '@starter/ai-runtime':
+        specifier: workspace:*
+        version: link:../../packages/ai-runtime
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@starter/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@starter/ai-eval':
+        specifier: workspace:*
+        version: link:../../packages/ai-eval
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.27)
+
+  services/patient-portal-agent:
     dependencies:
       '@starter/ai-runtime':
         specifier: workspace:*
