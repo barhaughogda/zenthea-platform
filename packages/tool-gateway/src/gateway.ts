@@ -31,12 +31,18 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   // Policy Evaluator (Slice 06.1)
   private readonly policyEvaluator = new PolicyEvaluator();
 
+  // Active Policy Snapshot Hash (Slice 07.3)
+  private readonly policySnapshotHash: string;
+
   constructor(
     private readonly auditLogger: IToolAuditLogger,
     private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger(),
     private readonly governanceLogger?: IGovernanceLogger,
     private readonly snapshotEmitter?: IPolicySnapshotEmitter
   ) {
+    // Generate active policy snapshot hash (Slice 07.3)
+    this.policySnapshotHash = generatePolicySnapshot().policyHash;
+
     // Initialize Abuse Signal Engine with a metadata-only emitter
     this.abuseEngine = new AbuseSignalEngine((signal) => {
       // Signals are SIGNALS ONLY. No enforcement occurs here.
@@ -240,6 +246,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         actorId: validatedCommand?.approval.approvedBy || (command as any)?.approval?.approvedBy || 'unknown',
         actorType: this.resolveActorType(validatedCommand),
         agentVersion: validatedCommand?.agentVersion || (command as any)?.agentVersion || 'unknown',
+        policySnapshotHash: this.policySnapshotHash,
         requestId: validatedCommand?.metadata.correlationId || (command as any)?.metadata?.correlationId || 'unknown',
         idempotencyKeyHash: this.hashIdempotencyKey(validatedCommand?.idempotencyKey || (command as any)?.idempotencyKey),
         decision,
@@ -470,6 +477,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         decision,
         agentType,
         agentVersion,
+        policySnapshotHash: this.policySnapshotHash,
         toolName,
         reasonCode,
         timestamp: new Date().toISOString(),
