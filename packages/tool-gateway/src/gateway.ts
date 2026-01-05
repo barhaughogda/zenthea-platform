@@ -10,6 +10,7 @@ import {
 import { validateExecutionCommand } from './validation';
 import { ToolTelemetryLogger } from './audit';
 import { toolGatewayMetrics } from './metrics';
+import { AbuseSignalEngine } from './abuse';
 
 /**
  * Tool Execution Gateway
@@ -19,11 +20,21 @@ import { toolGatewayMetrics } from './metrics';
 export class ToolExecutionGateway implements IToolExecutionGateway {
   // Simple in-memory rate limiting for demonstration/mock purposes
   private rateLimits = new Map<string, { attempts: number; windowStart: number }>();
+  
+  // Deterministic Abuse Signal Engine (Slice 04.3)
+  private readonly abuseEngine: AbuseSignalEngine;
 
   constructor(
     private readonly auditLogger: IToolAuditLogger,
     private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger()
-  ) {}
+  ) {
+    // Initialize Abuse Signal Engine with a metadata-only emitter
+    this.abuseEngine = new AbuseSignalEngine((signal) => {
+      // Signals are SIGNALS ONLY. No enforcement occurs here.
+      // ⚠️ SECURITY: No PHI, actorId, or tenantId in the signal.
+      console.log(`[AbuseSignal] [${signal.severity.toUpperCase()}] ${signal.ruleId} - Tool: ${signal.toolName || 'N/A'}, Actor: ${signal.actorType}, Observed: ${signal.observedCount}/${signal.threshold} (Window: ${signal.windowMs}ms)`);
+    });
+  }
 
   /**
    * Executes an approved tool command.
@@ -187,6 +198,9 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
           });
         }
       }
+
+      // 9. Process Abuse Signals (Deterministic, Non-blocking, Metadata-only)
+      this.abuseEngine.processEvent(telemetryEvent);
     }
   }
 
@@ -300,6 +314,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     if (error.message.startsWith('RATE_LIMITED')) return 'RATE_LIMITED';
     if (error.message.startsWith('CONSENT_REQUIRED')) return 'CONSENT_REQUIRED';
     if (error.message.startsWith('CONFLICT')) return 'CONFLICT';
+    if (error.message.startsWith('FEATURE_DISABLED')) return 'FEATURE_DISABLED';
     if (error.message.startsWith('UPSTREAM_UNAVAILABLE')) return 'UPSTREAM_UNAVAILABLE';
     return 'GATEWAY_ERROR';
   }

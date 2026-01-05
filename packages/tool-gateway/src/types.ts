@@ -166,3 +166,26 @@ export interface IToolAuditLogger {
 export interface IToolTelemetryLogger {
   emit(event: ToolGatewayEvent): Promise<void>;
 }
+
+/**
+ * Deterministic abuse signal event.
+ * SIGNALS ONLY. No enforcement.
+ * 🚫 STRICTLY NO PHI, actorId, or tenantId.
+ */
+export interface AbuseSignalEvent {
+  ruleId: string;
+  severity: 'low' | 'medium' | 'high';
+  toolName?: string;
+  actorType: ToolGatewayEvent['actorType'];
+  windowMs: number;
+  observedCount: number;
+  threshold: number;
+  timestamp: string;
+}
+
+/**
+ * Interface for abuse signal emission.
+ */
+export interface IAbuseSignalEmitter {
+  emitSignal(event: AbuseSignalEvent): void;
+}
