@@ -94,7 +94,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         const agentVersion = (command as any)?.agentVersion || 'unknown';
         const agentType = this.policyEvaluator.evaluate(agentId, agentVersion, toolName).agentType;
         
-        this.emitGovernanceControl(agentType, toolName, 'VALIDATION_FAILED');
+        this.emitGovernanceControl(agentType, agentVersion, toolName, 'VALIDATION_FAILED');
 
         throw err;
       }
@@ -107,11 +107,23 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
         this.emitGovernanceControl(
           evaluation.agentType, 
+          validatedCommand.agentVersion,
           validatedCommand.tool.name, 
           evaluation.reasonCode as GovernanceReasonCode
         );
 
         throw new Error(`FORBIDDEN: ${evaluation.reasonCode}`);
+      }
+
+      // Lifecycle Warning (Slice 07.2)
+      if (evaluation.warningCode) {
+        this.emitGovernanceControl(
+          evaluation.agentType,
+          validatedCommand.agentVersion,
+          validatedCommand.tool.name,
+          evaluation.warningCode,
+          'WARNING'
+        );
       }
 
       // 2. Rate Limiting
@@ -122,7 +134,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         errorCode = 'RATE_LIMITED';
 
         const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name).agentType;
-        this.emitGovernanceControl(agentType, validatedCommand.tool.name, 'RATE_LIMITED');
+        this.emitGovernanceControl(agentType, validatedCommand.agentVersion, validatedCommand.tool.name, 'RATE_LIMITED');
 
         throw err;
       }
@@ -137,10 +149,10 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         // Emit governance control if it matches a governance reason code
         if (errorCode === 'VALIDATION_FAILED' || errorCode === 'FEATURE_DISABLED') {
           const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name).agentType;
-          this.emitGovernanceControl(agentType, validatedCommand.tool.name, errorCode as GovernanceReasonCode);
+          this.emitGovernanceControl(agentType, validatedCommand.agentVersion, validatedCommand.tool.name, errorCode as GovernanceReasonCode);
         } else if (errorCode === 'FORBIDDEN') {
           const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.agentVersion, validatedCommand.tool.name).agentType;
-          this.emitGovernanceControl(agentType, validatedCommand.tool.name, 'SCOPE_DENIED');
+          this.emitGovernanceControl(agentType, validatedCommand.agentVersion, validatedCommand.tool.name, 'SCOPE_DENIED');
         }
 
         throw err;
@@ -227,6 +239,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         tenantId: validatedCommand?.tenantId || (command as any)?.tenantId || 'unknown',
         actorId: validatedCommand?.approval.approvedBy || (command as any)?.approval?.approvedBy || 'unknown',
         actorType: this.resolveActorType(validatedCommand),
+        agentVersion: validatedCommand?.agentVersion || (command as any)?.agentVersion || 'unknown',
         requestId: validatedCommand?.metadata.correlationId || (command as any)?.metadata?.correlationId || 'unknown',
         idempotencyKeyHash: this.hashIdempotencyKey(validatedCommand?.idempotencyKey || (command as any)?.idempotencyKey),
         decision,
@@ -447,13 +460,16 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
    */
   private emitGovernanceControl(
     agentType: AgentType,
+    agentVersion: string,
     toolName: string,
-    reasonCode: GovernanceReasonCode
+    reasonCode: GovernanceReasonCode,
+    decision: 'DENIED' | 'WARNING' = 'DENIED'
   ) {
     if (this.governanceLogger) {
       const result: GovernanceControlResult = {
-        decision: 'DENIED',
+        decision,
         agentType,
+        agentVersion,
         toolName,
         reasonCode,
         timestamp: new Date().toISOString(),
@@ -465,10 +481,18 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     }
 
     // Emit governance metrics (Slice 06.2)
-    toolGatewayMetrics.recordGovernanceDeny({
-      toolName,
-      agentType,
-      reasonCode,
-    });
+    if (decision === 'DENIED') {
+      toolGatewayMetrics.recordGovernanceDeny({
+        toolName,
+        agentType,
+        reasonCode,
+      });
+    } else {
+      toolGatewayMetrics.recordGovernanceWarning({
+        toolName,
+        agentType,
+        reasonCode,
+      });
+    }
   }
 }

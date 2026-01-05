@@ -46,6 +46,26 @@ export const toolGatewayMetrics = {
   },
 
   /**
+   * Records governance warnings (e.g., deprecated agents).
+   * Labels: toolName, agentType, reasonCode
+   */
+  recordGovernanceWarning(params: {
+    toolName: string;
+    agentType: AgentType;
+    reasonCode: GovernanceReasonCode;
+  }) {
+    try {
+      baseMetrics.increment('tool_gateway_governance_warnings_total', 1, {
+        toolName: params.toolName,
+        agentType: params.agentType,
+        reasonCode: params.reasonCode,
+      });
+    } catch (err) {
+      // Swallowed safely
+    }
+  },
+
+  /**
    * Records the total number of requests received by the gateway.
    * Labels: toolName, decision, actorType
    */
@@ -62,8 +82,6 @@ export const toolGatewayMetrics = {
       });
     } catch (err) {
       // Failures must be swallowed safely
-      // We use console.error only if we want to know about it during development
-      // but the requirement says "Failures must be swallowed safely".
     }
   },
 
