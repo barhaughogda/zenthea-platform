@@ -140,6 +140,7 @@ export interface ToolGatewayEvent {
   actorId: string;
   actorType: 'patient' | 'provider' | 'system' | 'unknown';
   agentVersion: string;
+  policySnapshotHash: string;
   requestId: string;
   idempotencyKeyHash: string; // SHA-256 hash of the key
   decision: 'allowed' | 'denied' | 'rate_limited' | 'error';
@@ -185,6 +186,7 @@ export interface GovernanceControlResult {
   toolName: string;
   agentType: AgentType;
   agentVersion: string;
+  policySnapshotHash: string;
   timestamp: string;
 }
 
