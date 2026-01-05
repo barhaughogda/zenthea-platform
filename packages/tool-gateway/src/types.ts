@@ -139,6 +139,7 @@ export interface ToolGatewayEvent {
   tenantId: string;
   actorId: string;
   actorType: 'patient' | 'provider' | 'system' | 'unknown';
+  agentVersion: string;
   requestId: string;
   idempotencyKeyHash: string; // SHA-256 hash of the key
   decision: 'allowed' | 'denied' | 'rate_limited' | 'error';
@@ -179,10 +180,11 @@ export interface PolicyEvaluation {
 }
 
 export interface GovernanceControlResult {
-  decision: 'DENIED';
+  decision: 'DENIED' | 'WARNING';
   reasonCode: GovernanceReasonCode;
   toolName: string;
   agentType: AgentType;
+  agentVersion: string;
   timestamp: string;
 }
 
