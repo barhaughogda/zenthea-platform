@@ -5,17 +5,18 @@ import {
   ToolExecutionResult, 
   IToolAuditLogger,
   IToolTelemetryLogger,
-  ToolGatewayEvent 
+  ToolGatewayEvent,
+  IGovernanceLogger,
+  GovernanceEvent 
 } from './types';
 import { validateExecutionCommand } from './validation';
 import { ToolTelemetryLogger } from './audit';
 import { toolGatewayMetrics } from './metrics';
 import { AbuseSignalEngine } from './abuse';
+import { PolicyEvaluator } from './governance';
 
 /**
  * Tool Execution Gateway
- * 
- * Coordinates the validation and mediated execution of tool commands.
  */
 export class ToolExecutionGateway implements IToolExecutionGateway {
   // Simple in-memory rate limiting for demonstration/mock purposes
@@ -23,10 +24,14 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   
   // Deterministic Abuse Signal Engine (Slice 04.3)
   private readonly abuseEngine: AbuseSignalEngine;
+  
+  // Policy Evaluator (Slice 06.1)
+  private readonly policyEvaluator = new PolicyEvaluator();
 
   constructor(
     private readonly auditLogger: IToolAuditLogger,
-    private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger()
+    private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger(),
+    private readonly governanceLogger?: IGovernanceLogger
   ) {
     // Initialize Abuse Signal Engine with a metadata-only emitter
     this.abuseEngine = new AbuseSignalEngine((signal) => {
@@ -54,6 +59,29 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         decision = 'error';
         errorCode = 'VALIDATION_FAILED';
         throw err;
+      }
+
+      // 1.5. Evaluate Agent Governance Policy (Slice 06.1)
+      const evaluation = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name);
+      if (!evaluation.allowed) {
+        decision = 'denied';
+        errorCode = evaluation.reasonCode;
+
+        // Emit governance event (metadata only - NO PHI)
+        if (this.governanceLogger) {
+          const governanceEvent: GovernanceEvent = {
+            agentType: evaluation.agentType,
+            toolName: validatedCommand.tool.name,
+            reasonCode: evaluation.reasonCode!,
+            timestamp: new Date().toISOString(),
+          };
+          // Fire and forget
+          this.governanceLogger.emit(governanceEvent).catch(err => {
+            console.error('Failed to emit governance event:', err);
+          });
+        }
+
+        throw new Error(`FORBIDDEN: ${evaluation.reasonCode}`);
       }
 
       // 2. Rate Limiting
@@ -140,7 +168,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         commandId: (command as any)?.commandId || 'unknown',
         status: 'failure',
         error: {
-          code: errorCode || this.mapErrorToCode(error),
+          code: decision === 'denied' ? 'FORBIDDEN' : (errorCode || this.mapErrorToCode(error)),
           message: error.message,
           retryable: false, 
         },

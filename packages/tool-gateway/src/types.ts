@@ -8,6 +8,7 @@ export const ToolExecutionCommandSchema = z.object({
   commandId: z.string().uuid(),
   proposalId: z.string().uuid(),
   tenantId: z.string(),
+  agentId: z.string(),
   tool: z.object({
     name: z.string(),
     version: z.string(),
@@ -146,6 +147,24 @@ export interface ToolGatewayEvent {
 }
 
 /**
+ * Agent Governance Types
+ */
+export type AgentType = 'patient-facing' | 'clinical' | 'platform' | 'unknown';
+
+export type GovernanceReasonCode = 'UNKNOWN_AGENT' | 'UNKNOWN_TOOL' | 'SCOPE_DENIED';
+
+/**
+ * Governance event for tool invocation denies.
+ * 🚫 STRICTLY NO PHI, tenantId, actorId, or requestId.
+ */
+export interface GovernanceEvent {
+  agentType: AgentType;
+  toolName: string;
+  reasonCode: GovernanceReasonCode;
+  timestamp: string;
+}
+
+/**
  * Interface for the Execution Gateway.
  */
 export interface IToolExecutionGateway {
@@ -165,6 +184,13 @@ export interface IToolAuditLogger {
  */
 export interface IToolTelemetryLogger {
   emit(event: ToolGatewayEvent): Promise<void>;
+}
+
+/**
+ * Interface for governance logging.
+ */
+export interface IGovernanceLogger {
+  emit(event: GovernanceEvent): Promise<void>;
 }
 
 /**

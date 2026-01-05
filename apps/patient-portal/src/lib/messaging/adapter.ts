@@ -89,6 +89,7 @@ export class MessagingAgentAdapter implements MessagingService {
       commandId: crypto.randomUUID(),
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
+      agentId: 'patient-portal-agent',
       tool: { name: 'chat.sendMessage', version: '1.0.0' },
       parameters: {
         patientId,
@@ -120,6 +121,7 @@ export class MessagingAgentAdapter implements MessagingService {
       commandId: crypto.randomUUID(),
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
+      agentId: 'patient-portal-agent',
       tool: { name: 'chat.createConversation', version: '1.0.0' },
       parameters: {
         patientId,
