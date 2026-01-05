@@ -57,6 +57,8 @@ export interface PatientProfileService {
 
 export interface Appointment {
   id: string;
+  _id?: string; // Compatibility with Convex-style mapping
+  scheduledAt?: number; // Compatibility with Convex-style mapping
   date?: string;
   time: string;
   provider: string | { id: string; name: string; specialty: string };
