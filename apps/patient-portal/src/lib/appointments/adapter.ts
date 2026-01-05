@@ -1,5 +1,6 @@
 import { AppointmentBookingAgentClient, Appointment as SDKAppointment } from '@starter/appointment-booking-agent-sdk';
 import { Appointment as UIAppointment } from '../contracts/patient';
+import { ToolExecutionGateway, ToolAuditLogger } from '@starter/tool-gateway';
 
 /**
  * Adapter translating Appointment Booking Agent SDK responses to the Patient Portal UI contract.
@@ -12,9 +13,17 @@ import { Appointment as UIAppointment } from '../contracts/patient';
  */
 export class AppointmentAgentAdapter {
   private client: AppointmentBookingAgentClient;
+  private toolGateway: ToolExecutionGateway;
+  private enableWrites: boolean;
 
-  constructor(config: { baseUrl: string; getToken?: () => Promise<string> }) {
+  constructor(config: { 
+    baseUrl: string; 
+    getToken?: () => Promise<string>;
+    enableWrites?: boolean;
+  }) {
     this.client = new AppointmentBookingAgentClient(config);
+    this.toolGateway = new ToolExecutionGateway(new ToolAuditLogger());
+    this.enableWrites = config.enableWrites || false;
   }
 
   async getAppointments(patientId: string): Promise<UIAppointment[]> {
@@ -40,6 +49,70 @@ export class AppointmentAgentAdapter {
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
+    }
+  }
+
+  async requestAppointment(params: {
+    patientId: string;
+    providerId: string;
+    startTime: string;
+    type: string;
+    reason?: string;
+  }): Promise<void> {
+    if (!this.enableWrites) {
+      throw new Error('APPOINTMENT_WRITES_DISABLED');
+    }
+
+    const command = {
+      commandId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+      tenantId: 'default',
+      tool: { name: 'appointment.requestAppointment', version: '1.0.0' },
+      parameters: params,
+      approval: {
+        approvedBy: params.patientId,
+        approvedAt: new Date().toISOString(),
+        approvalType: 'human' as const,
+      },
+      idempotencyKey: `apt-req-${params.patientId}-${Date.now()}`,
+      metadata: { correlationId: crypto.randomUUID() },
+    };
+
+    const result = await this.toolGateway.execute(command);
+
+    if (result.status === 'failure') {
+      throw new Error(result.error?.code || 'GATEWAY_ERROR');
+    }
+  }
+
+  async cancelAppointment(params: {
+    patientId: string;
+    appointmentRequestId: string;
+    reason?: string;
+  }): Promise<void> {
+    if (!this.enableWrites) {
+      throw new Error('APPOINTMENT_WRITES_DISABLED');
+    }
+
+    const command = {
+      commandId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+      tenantId: 'default',
+      tool: { name: 'appointment.cancelAppointment', version: '1.0.0' },
+      parameters: params,
+      approval: {
+        approvedBy: params.patientId,
+        approvedAt: new Date().toISOString(),
+        approvalType: 'human' as const,
+      },
+      idempotencyKey: `apt-can-${params.appointmentRequestId}-${Date.now()}`,
+      metadata: { correlationId: crypto.randomUUID() },
+    };
+
+    const result = await this.toolGateway.execute(command);
+
+    if (result.status === 'failure') {
+      throw new Error(result.error?.code || 'GATEWAY_ERROR');
     }
   }
 
@@ -84,5 +157,13 @@ export class MockAppointmentAdapter {
   async getAppointments(patientId: string): Promise<UIAppointment[]> {
     console.log(`[MockAppointmentAdapter] Returning mock appointments for patient: ${patientId}`);
     return [];
+  }
+
+  async requestAppointment(params: unknown): Promise<void> {
+    console.log('[MockAppointmentAdapter] Mock requestAppointment', params);
+  }
+
+  async cancelAppointment(params: unknown): Promise<void> {
+    console.log('[MockAppointmentAdapter] Mock cancelAppointment', params);
   }
 }

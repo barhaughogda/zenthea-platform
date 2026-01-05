@@ -68,11 +68,31 @@ export const SendMessageParamsSchema = z.object({
   content: z.string().min(1),
 });
 
+/**
+ * Appointment Tool Parameter Schemas
+ */
+
+export const RequestAppointmentParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  providerId: z.string().uuid(),
+  startTime: z.string().datetime(),
+  type: z.string().min(1),
+  reason: z.string().optional(),
+});
+
+export const CancelAppointmentParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  appointmentRequestId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
 export type CreateConsentParams = z.infer<typeof CreateConsentParamsSchema>;
 export type RevokeConsentParams = z.infer<typeof RevokeConsentParamsSchema>;
 export type UpdateConsentPreferencesParams = z.infer<typeof UpdateConsentPreferencesParamsSchema>;
 export type CreateConversationParams = z.infer<typeof CreateConversationParamsSchema>;
 export type SendMessageParams = z.infer<typeof SendMessageParamsSchema>;
+export type RequestAppointmentParams = z.infer<typeof RequestAppointmentParamsSchema>;
+export type CancelAppointmentParams = z.infer<typeof CancelAppointmentParamsSchema>;
 
 /**
  * Result of a tool execution.

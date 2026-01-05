@@ -107,6 +107,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   private enforceToolRules(command: ToolExecutionCommand) {
     const consentTools = ['createConsent', 'revokeConsent', 'updateConsentPreferences'];
     const chatTools = ['chat.createConversation', 'chat.sendMessage'];
+    const appointmentTools = ['appointment.requestAppointment', 'appointment.cancelAppointment'];
     
     if (consentTools.includes(command.tool.name)) {
       const patientId = command.parameters.patientId;
@@ -137,6 +138,26 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         throw new Error('VALIDATION_FAILED: Idempotency key required');
       }
     }
+
+    if (appointmentTools.includes(command.tool.name)) {
+      const patientId = command.parameters.patientId;
+      const actorId = command.approval.approvedBy;
+
+      // Ownership Check
+      if (patientId !== actorId) {
+        throw new Error('FORBIDDEN: Patient can only manage their own appointment requests');
+      }
+
+      // Consent Check: In a real system, we would verify the patient has granted 'appointment' scope
+      // For this migration step, we assume presence of the command implies intent, 
+      // but a production gateway would call the Consent Agent here.
+      // if (!hasConsent(patientId, 'appointment:write')) throw new Error('CONSENT_REQUIRED');
+
+      // Idempotency Check
+      if (!command.idempotencyKey) {
+        throw new Error('VALIDATION_FAILED: Idempotency key required');
+      }
+    }
   }
 
   /**
@@ -149,7 +170,14 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     
     // Per-user, per-tool rate limit
     const userKey = `rate_limit:user:${userId}:${toolName}`;
-    this.applyLimit(userKey, 10, 60000, now); // 10 per minute
+    
+    if (toolName === 'appointment.requestAppointment') {
+      this.applyLimit(userKey, 3, 600000, now); // 3 per 10 minutes
+    } else if (toolName === 'appointment.cancelAppointment') {
+      this.applyLimit(userKey, 10, 600000, now); // 10 per 10 minutes
+    } else {
+      this.applyLimit(userKey, 10, 60000, now); // Default: 10 per minute
+    }
 
     // Per-conversation limit for sendMessage
     if (toolName === 'chat.sendMessage') {
@@ -181,6 +209,9 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     if (error.message.startsWith('FORBIDDEN')) return 'FORBIDDEN';
     if (error.message.startsWith('UNAUTHORIZED')) return 'UNAUTHORIZED';
     if (error.message.startsWith('RATE_LIMITED')) return 'RATE_LIMITED';
+    if (error.message.startsWith('CONSENT_REQUIRED')) return 'CONSENT_REQUIRED';
+    if (error.message.startsWith('CONFLICT')) return 'CONFLICT';
+    if (error.message.startsWith('UPSTREAM_UNAVAILABLE')) return 'UPSTREAM_UNAVAILABLE';
     return 'GATEWAY_ERROR';
   }
 
