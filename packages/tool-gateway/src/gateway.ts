@@ -5,7 +5,6 @@ import {
   IToolAuditLogger 
 } from './types';
 import { validateExecutionCommand } from './validation';
-import { v4 as uuidv4 } from 'uuid'; // I'll check if uuid is available or use a simple placeholder
 
 /**
  * Tool Execution Gateway
@@ -13,6 +12,9 @@ import { v4 as uuidv4 } from 'uuid'; // I'll check if uuid is available or use a
  * Coordinates the validation and mediated execution of tool commands.
  */
 export class ToolExecutionGateway implements IToolExecutionGateway {
+  // Simple in-memory rate limiting for demonstration/mock purposes
+  private rateLimits = new Map<string, { attempts: number; windowStart: number }>();
+
   constructor(
     private readonly auditLogger: IToolAuditLogger
   ) {}
@@ -28,10 +30,13 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       // 1. Validate the command defensively
       validatedCommand = validateExecutionCommand(command);
 
-      // 2. Enforce Tool-specific rules (Ownership, etc.)
+      // 2. Rate Limiting
+      this.checkRateLimit(validatedCommand);
+
+      // 3. Enforce Tool-specific rules (Ownership, etc.)
       this.enforceToolRules(validatedCommand);
 
-      // 3. Log receipt of the command
+      // 4. Log receipt of the command
       await this.auditLogger.log({
         eventId: this.generateId(),
         tenantId: validatedCommand.tenantId,
@@ -41,13 +46,15 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         action: 'received',
         actor: validatedCommand.approval.approvedBy,
         timestamp: startTime,
+        idempotencyKey: validatedCommand.idempotencyKey,
+        payload: validatedCommand.parameters, // Audit store MAY contain PHI
         metadata: validatedCommand.metadata,
       });
 
-      // 4. Dispatch to execution infrastructure (Mocked for now)
+      // 5. Dispatch to execution infrastructure (Mocked for now)
       const result = await this.dispatchToExecutor(validatedCommand);
 
-      // 5. Log completion
+      // 6. Log completion
       await this.auditLogger.log({
         eventId: this.generateId(),
         tenantId: validatedCommand.tenantId,
@@ -57,6 +64,8 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         action: result.status === 'success' ? 'completed' : 'failed',
         actor: 'gateway',
         timestamp: new Date().toISOString(),
+        idempotencyKey: validatedCommand.idempotencyKey,
+        outcome: result.status === 'success' ? 'SUCCESS' : result.error?.code,
         metadata: { ...validatedCommand.metadata, executionId: result.executionId },
       });
 
@@ -97,6 +106,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
    */
   private enforceToolRules(command: ToolExecutionCommand) {
     const consentTools = ['createConsent', 'revokeConsent', 'updateConsentPreferences'];
+    const chatTools = ['chat.createConversation', 'chat.sendMessage'];
     
     if (consentTools.includes(command.tool.name)) {
       const patientId = command.parameters.patientId;
@@ -112,12 +122,65 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         throw new Error('VALIDATION_FAILED: Idempotency key required');
       }
     }
+
+    if (chatTools.includes(command.tool.name)) {
+      const patientId = command.parameters.patientId;
+      const actorId = command.approval.approvedBy;
+
+      // Ownership Check
+      if (patientId !== actorId) {
+        throw new Error('FORBIDDEN: Patient can only send their own messages');
+      }
+
+      // Idempotency Check
+      if (!command.idempotencyKey) {
+        throw new Error('VALIDATION_FAILED: Idempotency key required');
+      }
+    }
+  }
+
+  /**
+   * Simple rate limiting check.
+   */
+  private checkRateLimit(command: ToolExecutionCommand) {
+    const now = Date.now();
+    const userId = command.approval.approvedBy;
+    const toolName = command.tool.name;
+    
+    // Per-user, per-tool rate limit
+    const userKey = `rate_limit:user:${userId}:${toolName}`;
+    this.applyLimit(userKey, 10, 60000, now); // 10 per minute
+
+    // Per-conversation limit for sendMessage
+    if (toolName === 'chat.sendMessage') {
+      const convId = command.parameters.conversationId;
+      if (convId) {
+        const convKey = `rate_limit:conv:${convId}`;
+        this.applyLimit(convKey, 30, 60000, now); // 30 per minute per conversation
+      }
+    }
+  }
+
+  private applyLimit(key: string, maxAttempts: number, windowMs: number, now: number) {
+    const existing = this.rateLimits.get(key);
+
+    if (!existing || (now - existing.windowStart > windowMs)) {
+      this.rateLimits.set(key, { attempts: 1, windowStart: now });
+      return;
+    }
+
+    if (existing.attempts >= maxAttempts) {
+      throw new Error('RATE_LIMITED: Too many requests');
+    }
+
+    existing.attempts += 1;
   }
 
   private mapErrorToCode(error: any): string {
     if (error.name === 'ToolExecutionValidationError') return 'VALIDATION_FAILED';
     if (error.message.startsWith('FORBIDDEN')) return 'FORBIDDEN';
     if (error.message.startsWith('UNAUTHORIZED')) return 'UNAUTHORIZED';
+    if (error.message.startsWith('RATE_LIMITED')) return 'RATE_LIMITED';
     return 'GATEWAY_ERROR';
   }
 

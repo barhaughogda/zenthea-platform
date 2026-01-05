@@ -7,12 +7,12 @@ import { ToolAuditLog, IToolAuditLogger } from './types';
  */
 export class ToolAuditLogger implements IToolAuditLogger {
   async log(event: ToolAuditLog): Promise<void> {
-    // This is a placeholder for actual observability integration
-    console.log(`[ToolAuditLog] [${event.timestamp}] [${event.action}] Command: ${event.commandId}, Tenant: ${event.tenantId}, Tool: ${event.toolName}`);
+    // This is a placeholder for actual observability integration.
+    // ⚠️ SECURITY: Payload is NOT logged to console as it may contain PHI.
+    console.log(`[ToolAuditLog] [${event.timestamp}] [${event.action}] Command: ${event.commandId}, Tenant: ${event.tenantId}, Tool: ${event.toolName}, Outcome: ${event.outcome || 'N/A'}`);
     
-    // Implementation would go here:
-    // - Send to Datadog/CloudWatch
-    // - Store in DB
-    // - Emit via EventBridge
+    // Implementation would go here (Audit Store):
+    // - Send to secure, HIPAA-compliant storage (e.g., Convex auditLogs table)
+    // - Include event.payload here as the audit store MAY contain PHI.
   }
 }

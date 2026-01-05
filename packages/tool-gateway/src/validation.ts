@@ -3,7 +3,9 @@ import {
   ToolExecutionCommandSchema,
   CreateConsentParamsSchema,
   RevokeConsentParamsSchema,
-  UpdateConsentPreferencesParamsSchema
+  UpdateConsentPreferencesParamsSchema,
+  CreateConversationParamsSchema,
+  SendMessageParamsSchema
 } from './types';
 
 export class ToolExecutionValidationError extends Error {
@@ -36,6 +38,12 @@ export function validateExecutionCommand(command: unknown): ToolExecutionCommand
       break;
     case 'updateConsentPreferences':
       validateParams(UpdateConsentPreferencesParamsSchema, validatedCommand.parameters);
+      break;
+    case 'chat.createConversation':
+      validateParams(CreateConversationParamsSchema, validatedCommand.parameters);
+      break;
+    case 'chat.sendMessage':
+      validateParams(SendMessageParamsSchema, validatedCommand.parameters);
       break;
     default:
       // Unknown tool, but we might allow generic tools if not restricted

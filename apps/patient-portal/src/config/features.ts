@@ -21,6 +21,10 @@ export const FEATURES = {
   // Migration Phase Slice 02B - Step 5.1: Controlled Consent Write Enablement
   // Kill switch for all consent write operations. Default to false for safety.
   USE_CONSENT_WRITES: process.env.NEXT_PUBLIC_USE_CONSENT_WRITES === 'true' || false,
+
+  // Migration Phase Slice 02B - Step 5.2: Controlled Messaging Write Enablement
+  // Kill switch for all messaging write operations. Default to false for safety.
+  USE_CHAT_WRITES: process.env.NEXT_PUBLIC_USE_CHAT_WRITES === 'true' || false,
 };
 
 export type FeatureKey = keyof typeof FEATURES;

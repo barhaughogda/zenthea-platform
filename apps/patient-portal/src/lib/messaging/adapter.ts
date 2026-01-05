@@ -1,5 +1,6 @@
 import { ChatAgentClient, Conversation, Message as SDKMessage } from '@starter/chat-agent-sdk';
 import { MessagingService, UIConversation, MessageData } from '../contracts/messaging';
+import { ToolExecutionGateway, ToolAuditLogger } from '@starter/tool-gateway';
 
 /**
  * Adapter translating Chat Agent SDK responses to the Patient Portal UI contract.
@@ -12,9 +13,17 @@ import { MessagingService, UIConversation, MessageData } from '../contracts/mess
  */
 export class MessagingAgentAdapter implements MessagingService {
   private client: ChatAgentClient;
+  private toolGateway: ToolExecutionGateway;
+  private enableWrites: boolean;
 
-  constructor(config: { baseUrl: string; getToken?: () => Promise<string> }) {
+  constructor(config: { 
+    baseUrl: string; 
+    getToken?: () => Promise<string>;
+    enableWrites?: boolean;
+  }) {
     this.client = new ChatAgentClient(config);
+    this.toolGateway = new ToolExecutionGateway(new ToolAuditLogger());
+    this.enableWrites = config.enableWrites || false;
   }
 
   async getConversations(patientId: string): Promise<UIConversation[]> {
@@ -69,6 +78,71 @@ export class MessagingAgentAdapter implements MessagingService {
       });
       throw error;
     }
+  }
+
+  async sendMessage(patientId: string, conversationId: string, content: string): Promise<void> {
+    if (!this.enableWrites) {
+      throw new Error('CHAT_WRITES_DISABLED');
+    }
+
+    const command = {
+      commandId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+      tenantId: 'default',
+      tool: { name: 'chat.sendMessage', version: '1.0.0' },
+      parameters: {
+        patientId,
+        conversationId,
+        content,
+      },
+      approval: {
+        approvedBy: patientId,
+        approvedAt: new Date().toISOString(),
+        approvalType: 'human' as const,
+      },
+      idempotencyKey: `msg-${conversationId}-${Date.now()}`,
+      metadata: { correlationId: crypto.randomUUID() },
+    };
+
+    const result = await this.toolGateway.execute(command);
+
+    if (result.status === 'failure') {
+      throw new Error(result.error?.code || 'GATEWAY_ERROR');
+    }
+  }
+
+  async createConversation(patientId: string, recipientId: string, subject: string, initialMessage: string): Promise<string> {
+    if (!this.enableWrites) {
+      throw new Error('CHAT_WRITES_DISABLED');
+    }
+
+    const command = {
+      commandId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+      tenantId: 'default',
+      tool: { name: 'chat.createConversation', version: '1.0.0' },
+      parameters: {
+        patientId,
+        recipientId,
+        subject,
+        initialMessage,
+      },
+      approval: {
+        approvedBy: patientId,
+        approvedAt: new Date().toISOString(),
+        approvalType: 'human' as const,
+      },
+      idempotencyKey: `conv-${patientId}-${Date.now()}`,
+      metadata: { correlationId: crypto.randomUUID() },
+    };
+
+    const result = await this.toolGateway.execute(command);
+
+    if (result.status === 'failure') {
+      throw new Error(result.error?.code || 'GATEWAY_ERROR');
+    }
+
+    return result.data?.conversationId || crypto.randomUUID();
   }
 
   getMessageHandlers(): Record<string, (..._args: unknown[]) => void> {
@@ -162,6 +236,15 @@ export class MockMessagingAdapter implements MessagingService {
         timestamp: new Date(Date.now() - 3600000).toISOString()
       }
     ];
+  }
+
+  async sendMessage(patientId: string, conversationId: string, content: string): Promise<void> {
+    console.log(`[MockMessagingAdapter] Sending mock message for patient: ${patientId}, conversation: ${conversationId}`, { content });
+  }
+
+  async createConversation(patientId: string, recipientId: string, subject: string, initialMessage: string): Promise<string> {
+    console.log(`[MockMessagingAdapter] Creating mock conversation for patient: ${patientId}, recipient: ${recipientId}`, { subject, initialMessage });
+    return `mock-thread-${Math.random().toString(36).substring(7)}`;
   }
 
   getMessageHandlers(): Record<string, (..._args: unknown[]) => void> {

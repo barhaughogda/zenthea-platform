@@ -28,4 +28,6 @@ export interface MessagingService {
   getMessages(conversationId: string): Promise<MessageData[]>;
   getConversations(patientId: string): Promise<UIConversation[]>;
   getMessageHandlers(): Record<string, (..._args: unknown[]) => void>;
+  sendMessage(patientId: string, conversationId: string, content: string): Promise<void>;
+  createConversation(patientId: string, recipientId: string, subject: string, initialMessage: string): Promise<string>;
 }

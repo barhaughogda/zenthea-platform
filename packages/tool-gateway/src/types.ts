@@ -51,9 +51,28 @@ export const UpdateConsentPreferencesParamsSchema = z.object({
   scope: z.array(z.string()),
 });
 
+/**
+ * Chat Tool Parameter Schemas
+ */
+
+export const CreateConversationParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  recipientId: z.string().uuid(),
+  subject: z.string().min(1).max(200),
+  initialMessage: z.string().min(1),
+});
+
+export const SendMessageParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  conversationId: z.string().uuid(),
+  content: z.string().min(1),
+});
+
 export type CreateConsentParams = z.infer<typeof CreateConsentParamsSchema>;
 export type RevokeConsentParams = z.infer<typeof RevokeConsentParamsSchema>;
 export type UpdateConsentPreferencesParams = z.infer<typeof UpdateConsentPreferencesParamsSchema>;
+export type CreateConversationParams = z.infer<typeof CreateConversationParamsSchema>;
+export type SendMessageParams = z.infer<typeof SendMessageParamsSchema>;
 
 /**
  * Result of a tool execution.
@@ -84,6 +103,8 @@ export interface ToolAuditLog {
   payload?: any;
   actor: string;
   timestamp: string;
+  idempotencyKey?: string;
+  outcome?: string;
   metadata: Record<string, any>;
 }
 
