@@ -1,0 +1,2 @@
+/* eslint-disable */
+export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from "@starter/ui/src/components/select";
