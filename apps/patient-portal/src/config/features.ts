@@ -13,6 +13,10 @@ export const FEATURES = {
   // Migration Phase Slice 02B - Step 4.3: Messaging / Chat Agent Integration
   // Default to false (mock-enabled) to ensure reversibility
   USE_REAL_CHAT_AGENT: process.env.NEXT_PUBLIC_USE_REAL_CHAT_AGENT === 'true' || false,
+
+  // Migration Phase Slice 02B - Step 4.4: Medical Advisor Agent Integration
+  // Default to false (mock-enabled) to ensure reversibility
+  USE_REAL_MEDICAL_ADVISOR_AGENT: process.env.NEXT_PUBLIC_USE_REAL_MEDICAL_ADVISOR_AGENT === 'true' || false,
 };
 
 export type FeatureKey = keyof typeof FEATURES;
