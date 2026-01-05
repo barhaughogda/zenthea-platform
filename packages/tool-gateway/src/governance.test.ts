@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { PolicyEvaluator } from './governance';
+import { PolicyEvaluator, generatePolicySnapshot } from './governance';
 
 function testPolicyEvaluator() {
   const evaluator = new PolicyEvaluator();
@@ -33,11 +33,31 @@ function testPolicyEvaluator() {
   assert.strictEqual(scopeDeniedResult.agentType, 'clinical');
   console.log('✅ SCOPE_DENIED case passed');
 
-  console.log('All tests passed!');
+  console.log('All PolicyEvaluator tests passed!');
+}
+
+function testPolicySnapshots() {
+  console.log('Running PolicySnapshot tests...');
+
+  // 1. Hash stability
+  const snapshot1 = generatePolicySnapshot('1.0.0');
+  const snapshot2 = generatePolicySnapshot('1.0.0');
+
+  assert.strictEqual(snapshot1.policyHash, snapshot2.policyHash, 'Hashes should be identical for same policy');
+  assert.notStrictEqual(snapshot1.snapshotId, snapshot2.snapshotId, 'Snapshot IDs should be unique');
+  assert.strictEqual(snapshot1.agentCount > 0, true, 'Should count agents');
+  assert.strictEqual(snapshot1.toolCount > 0, true, 'Should count tools');
+
+  // 2. Metadata-only check (manual verification in code is enough, but checking fields exist)
+  assert.strictEqual(typeof snapshot1.policyHash, 'string');
+  assert.strictEqual(snapshot1.policyHash.length, 64); // SHA-256 hex length
+
+  console.log('✅ PolicySnapshot tests passed!');
 }
 
 try {
   testPolicyEvaluator();
+  testPolicySnapshots();
 } catch (error) {
   console.error('Test failed:', error);
   process.exit(1);
