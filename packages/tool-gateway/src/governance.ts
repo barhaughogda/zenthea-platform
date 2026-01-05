@@ -1,5 +1,12 @@
 import * as crypto from 'crypto';
-import { AgentType, GovernanceReasonCode, GovernancePolicySnapshot } from './types';
+import { 
+  AgentType, 
+  GovernanceReasonCode, 
+  GovernancePolicySnapshot, 
+  AgentLifecycleState, 
+  AgentVersion,
+  PolicyEvaluation
+} from './types';
 
 export type ToolScope = 
   | 'consent.read' 
@@ -28,52 +35,101 @@ export const TOOL_SCOPE_MAPPING: Record<string, ToolScope> = {
   'medical_advisor.getAdvice': 'medical_advisor.read',
 };
 
-interface AgentDeclaration {
-  type: AgentType;
+interface AgentVersionDeclaration {
+  version: AgentVersion;
+  lifecycleState: AgentLifecycleState;
   allowedScopes: ToolScope[];
 }
 
+interface AgentDeclaration {
+  type: AgentType;
+  versions: Record<AgentVersion, AgentVersionDeclaration>;
+}
+
 /**
- * Registry of known agents and their permitted scopes.
+ * Registry of known agents and their permitted scopes, versioned with lifecycle states.
  */
 export const AGENT_REGISTRY: Record<string, AgentDeclaration> = {
   'patient-portal-agent': {
     type: 'patient-facing',
-    allowedScopes: [
-      'consent.read', 
-      'consent.write', 
-      'chat.read', 
-      'chat.write', 
-      'appointment.read', 
-      'appointment.write', 
-      'medical_advisor.read'
-    ],
+    versions: {
+      '1.0.0': {
+        version: '1.0.0',
+        lifecycleState: 'active',
+        allowedScopes: [
+          'consent.read', 
+          'consent.write', 
+          'chat.read', 
+          'chat.write', 
+          'appointment.read', 
+          'appointment.write', 
+          'medical_advisor.read'
+        ],
+      },
+    },
   },
   'consent-agent': {
     type: 'clinical',
-    allowedScopes: ['consent.read', 'consent.write'],
+    versions: {
+      '1.0.0': {
+        version: '1.0.0',
+        lifecycleState: 'active',
+        allowedScopes: ['consent.read', 'consent.write'],
+      },
+    },
   },
   'chat-agent': {
     type: 'clinical',
-    allowedScopes: ['chat.read', 'chat.write'],
+    versions: {
+      '1.0.0': {
+        version: '1.0.0',
+        lifecycleState: 'active',
+        allowedScopes: ['chat.read', 'chat.write'],
+      },
+    },
   },
   'appointment-booking-agent': {
     type: 'clinical',
-    allowedScopes: ['appointment.read', 'appointment.write'],
+    versions: {
+      '1.0.0': {
+        version: '1.0.0',
+        lifecycleState: 'active',
+        allowedScopes: ['appointment.read', 'appointment.write'],
+      },
+    },
+  },
+  'test-agent': {
+    type: 'platform',
+    versions: {
+      'active-v1': {
+        version: 'active-v1',
+        lifecycleState: 'active',
+        allowedScopes: ['chat.read'],
+      },
+      'deprecated-v1': {
+        version: 'deprecated-v1',
+        lifecycleState: 'deprecated',
+        allowedScopes: ['chat.read'],
+      },
+      'disabled-v1': {
+        version: 'disabled-v1',
+        lifecycleState: 'disabled',
+        allowedScopes: ['chat.read'],
+      },
+      'retired-v1': {
+        version: 'retired-v1',
+        lifecycleState: 'retired',
+        allowedScopes: ['chat.read'],
+      },
+    },
   },
 };
 
-export interface PolicyEvaluation {
-  allowed: boolean;
-  reasonCode?: GovernanceReasonCode;
-  agentType: AgentType;
-}
-
 /**
- * Evaluates whether an agent is permitted to execute a specific tool.
+ * Evaluates whether an agent version is permitted to execute a specific tool.
  */
 export class PolicyEvaluator {
-  evaluate(agentId: string, toolName: string): PolicyEvaluation {
+  evaluate(agentId: string, agentVersion: string, toolName: string): PolicyEvaluation {
     const agent = AGENT_REGISTRY[agentId];
 
     // 1. Check if agent is registered
@@ -85,7 +141,31 @@ export class PolicyEvaluator {
       };
     }
 
-    // 2. Check if tool has a scope mapping
+    // 2. Check if agent version exists
+    const versionInfo = agent.versions[agentVersion];
+    if (!versionInfo) {
+      return {
+        allowed: false,
+        reasonCode: 'UNKNOWN_AGENT_VERSION',
+        agentType: agent.type,
+      };
+    }
+
+    // 3. Check Lifecycle State
+    if (versionInfo.lifecycleState === 'disabled' || versionInfo.lifecycleState === 'retired') {
+      return {
+        allowed: false,
+        reasonCode: 'LIFECYCLE_DENIED',
+        agentType: agent.type,
+      };
+    }
+
+    let warningCode: GovernanceReasonCode | undefined;
+    if (versionInfo.lifecycleState === 'deprecated') {
+      warningCode = 'DEPRECATED_AGENT';
+    }
+
+    // 4. Check if tool has a scope mapping
     const requiredScope = TOOL_SCOPE_MAPPING[toolName];
     if (!requiredScope) {
       return {
@@ -95,8 +175,8 @@ export class PolicyEvaluator {
       };
     }
 
-    // 3. Check if agent has the required scope
-    if (!agent.allowedScopes.includes(requiredScope)) {
+    // 5. Check if agent version has the required scope
+    if (!versionInfo.allowedScopes.includes(requiredScope)) {
       return {
         allowed: false,
         reasonCode: 'SCOPE_DENIED',
@@ -107,6 +187,7 @@ export class PolicyEvaluator {
     return {
       allowed: true,
       agentType: agent.type,
+      warningCode,
     };
   }
 }

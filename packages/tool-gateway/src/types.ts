@@ -9,6 +9,7 @@ export const ToolExecutionCommandSchema = z.object({
   proposalId: z.string().uuid(),
   tenantId: z.string(),
   agentId: z.string(),
+  agentVersion: z.string(),
   tool: z.object({
     name: z.string(),
     version: z.string(),
@@ -151,8 +152,15 @@ export interface ToolGatewayEvent {
  */
 export type AgentType = 'patient-facing' | 'clinical' | 'platform' | 'unknown';
 
+export type AgentLifecycleState = 'active' | 'deprecated' | 'disabled' | 'experimental' | 'retired';
+
+export type AgentVersion = string;
+
 export type GovernanceReasonCode = 
   | 'UNKNOWN_AGENT' 
+  | 'UNKNOWN_AGENT_VERSION'
+  | 'LIFECYCLE_DENIED'
+  | 'DEPRECATED_AGENT'
   | 'UNKNOWN_TOOL' 
   | 'SCOPE_DENIED'
   | 'FEATURE_DISABLED'
@@ -163,6 +171,13 @@ export type GovernanceReasonCode =
  * Governance control result for tool invocation denies.
  * 🚫 STRICTLY NO PHI, tenantId, actorId, or requestId.
  */
+export interface PolicyEvaluation {
+  allowed: boolean;
+  reasonCode?: GovernanceReasonCode;
+  warningCode?: GovernanceReasonCode;
+  agentType: AgentType;
+}
+
 export interface GovernanceControlResult {
   decision: 'DENIED';
   reasonCode: GovernanceReasonCode;

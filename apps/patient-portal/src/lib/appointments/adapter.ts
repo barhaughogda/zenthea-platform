@@ -68,6 +68,7 @@ export class AppointmentAgentAdapter {
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
       agentId: 'patient-portal-agent',
+      agentVersion: '1.0.0',
       tool: { name: 'appointment.requestAppointment', version: '1.0.0' },
       parameters: params,
       approval: {
@@ -100,6 +101,7 @@ export class AppointmentAgentAdapter {
       proposalId: crypto.randomUUID(),
       tenantId: 'default',
       agentId: 'patient-portal-agent',
+      agentVersion: '1.0.0',
       tool: { name: 'appointment.cancelAppointment', version: '1.0.0' },
       parameters: params,
       approval: {
