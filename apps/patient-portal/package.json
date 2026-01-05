@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@starter/ui": "workspace:*",
+    "@starter/tool-gateway": "workspace:*",
     "@starter/consent-agent-sdk": "workspace:*",
     "@starter/appointment-booking-agent-sdk": "workspace:*",
     "@starter/chat-agent-sdk": "workspace:*",

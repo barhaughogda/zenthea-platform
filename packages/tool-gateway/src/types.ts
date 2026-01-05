@@ -28,6 +28,34 @@ export const ToolExecutionCommandSchema = z.object({
 export type ToolExecutionCommand = z.infer<typeof ToolExecutionCommandSchema>;
 
 /**
+ * Tool-specific Parameter Schemas
+ */
+
+export const CreateConsentParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  purpose: z.enum(['TREATMENT', 'PAYMENT', 'OPERATIONS', 'RESEARCH', 'MARKETING', 'EMERGENCY']),
+  scope: z.array(z.string()),
+  jurisdiction: z.enum(['US-HIPAA', 'EU-GDPR', 'GLOBAL']),
+  expiresAt: z.string().datetime().optional(),
+});
+
+export const RevokeConsentParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  consentRecordId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const UpdateConsentPreferencesParamsSchema = z.object({
+  patientId: z.string().uuid(),
+  consentRecordId: z.string().uuid(),
+  scope: z.array(z.string()),
+});
+
+export type CreateConsentParams = z.infer<typeof CreateConsentParamsSchema>;
+export type RevokeConsentParams = z.infer<typeof RevokeConsentParamsSchema>;
+export type UpdateConsentPreferencesParams = z.infer<typeof UpdateConsentPreferencesParamsSchema>;
+
+/**
  * Result of a tool execution.
  */
 export interface ToolExecutionResult {

@@ -11,17 +11,19 @@ import { ConsentService } from '@/lib/contracts/consent';
 export function useConsents() {
   const { data: session } = useZentheaSession();
   const useRealAgent = useFeatureFlag('USE_REAL_CONSENT_AGENT');
+  const enableWrites = useFeatureFlag('ENABLE_CONSENT_WRITES');
 
   const consentService = useMemo<ConsentService>(() => {
     if (useRealAgent) {
       return new ConsentAgentAdapter({
         baseUrl: process.env.NEXT_PUBLIC_CONSENT_AGENT_URL || 'http://localhost:3001',
+        enableWrites,
         // In a real app, we would pass a token getter
         // getToken: async () => session?.user?.accessToken || '',
       });
     }
     return new MockConsentAdapter();
-  }, [useRealAgent]);
+  }, [useRealAgent, enableWrites]);
 
   return {
     consentService,

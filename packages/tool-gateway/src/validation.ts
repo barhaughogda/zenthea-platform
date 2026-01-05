@@ -1,4 +1,10 @@
-import { ToolExecutionCommand, ToolExecutionCommandSchema } from './types';
+import { 
+  ToolExecutionCommand, 
+  ToolExecutionCommandSchema,
+  CreateConsentParamsSchema,
+  RevokeConsentParamsSchema,
+  UpdateConsentPreferencesParamsSchema
+} from './types';
 
 export class ToolExecutionValidationError extends Error {
   constructor(public errors: any) {
@@ -18,10 +24,30 @@ export function validateExecutionCommand(command: unknown): ToolExecutionCommand
     throw new ToolExecutionValidationError(result.error.format());
   }
 
-  // Additional business-level defensive checks could go here
-  // For example:
-  // - Validating that the tool name is in an allowlist for the tenant
-  // - Checking if the idempotency key has been used recently
+  const validatedCommand = result.data;
+
+  // Validate tool-specific parameters
+  switch (validatedCommand.tool.name) {
+    case 'createConsent':
+      validateParams(CreateConsentParamsSchema, validatedCommand.parameters);
+      break;
+    case 'revokeConsent':
+      validateParams(RevokeConsentParamsSchema, validatedCommand.parameters);
+      break;
+    case 'updateConsentPreferences':
+      validateParams(UpdateConsentPreferencesParamsSchema, validatedCommand.parameters);
+      break;
+    default:
+      // Unknown tool, but we might allow generic tools if not restricted
+      break;
+  }
   
-  return result.data;
+  return validatedCommand;
+}
+
+function validateParams(schema: any, params: unknown) {
+  const result = schema.safeParse(params);
+  if (!result.success) {
+    throw new ToolExecutionValidationError(result.error.format());
+  }
 }

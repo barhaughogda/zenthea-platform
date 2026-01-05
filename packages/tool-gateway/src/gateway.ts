@@ -28,7 +28,10 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       // 1. Validate the command defensively
       validatedCommand = validateExecutionCommand(command);
 
-      // 2. Log receipt of the command
+      // 2. Enforce Tool-specific rules (Ownership, etc.)
+      this.enforceToolRules(validatedCommand);
+
+      // 3. Log receipt of the command
       await this.auditLogger.log({
         eventId: this.generateId(),
         tenantId: validatedCommand.tenantId,
@@ -41,11 +44,10 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         metadata: validatedCommand.metadata,
       });
 
-      // 3. Dispatch to execution infrastructure (Mocked for now)
-      // This is where integration with n8n or other executors would happen.
+      // 4. Dispatch to execution infrastructure (Mocked for now)
       const result = await this.dispatchToExecutor(validatedCommand);
 
-      // 4. Log completion
+      // 5. Log completion
       await this.auditLogger.log({
         eventId: this.generateId(),
         tenantId: validatedCommand.tenantId,
@@ -81,13 +83,42 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         commandId: (command as any)?.commandId || 'unknown',
         status: 'failure',
         error: {
-          code: error.name === 'ToolExecutionValidationError' ? 'VALIDATION_FAILED' : 'GATEWAY_ERROR',
+          code: this.mapErrorToCode(error),
           message: error.message,
-          retryable: false, // Defaulting to false for safety
+          retryable: false, 
         },
         timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  /**
+   * Enforces tool-specific rules before execution.
+   */
+  private enforceToolRules(command: ToolExecutionCommand) {
+    const consentTools = ['createConsent', 'revokeConsent', 'updateConsentPreferences'];
+    
+    if (consentTools.includes(command.tool.name)) {
+      const patientId = command.parameters.patientId;
+      const actorId = command.approval.approvedBy;
+
+      // Ownership Check: Patient can only act on their own records
+      if (patientId !== actorId) {
+        throw new Error('FORBIDDEN: Patient can only act on own records');
+      }
+
+      // Idempotency: In a real system, we'd check if idempotencyKey was already used
+      if (!command.idempotencyKey) {
+        throw new Error('VALIDATION_FAILED: Idempotency key required');
+      }
+    }
+  }
+
+  private mapErrorToCode(error: any): string {
+    if (error.name === 'ToolExecutionValidationError') return 'VALIDATION_FAILED';
+    if (error.message.startsWith('FORBIDDEN')) return 'FORBIDDEN';
+    if (error.message.startsWith('UNAUTHORIZED')) return 'UNAUTHORIZED';
+    return 'GATEWAY_ERROR';
   }
 
   /**
