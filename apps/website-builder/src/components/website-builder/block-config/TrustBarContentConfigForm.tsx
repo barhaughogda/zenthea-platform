@@ -37,11 +37,6 @@ import { ImageUpload } from '../ImageUpload';
 import { TrustBarItem } from '@/lib/website-builder/schema';
 import {
   TRUST_CATEGORIES,
-  INSURANCE_PRESETS,
-  ACCREDITATION_PRESETS,
-  COMPLIANCE_PRESETS,
-  AFFILIATION_PRESETS,
-  AWARD_PRESETS,
   RATING_SOURCES,
   TrustItemCategory,
   TrustBarPreset,

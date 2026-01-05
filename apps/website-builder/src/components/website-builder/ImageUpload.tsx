@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,7 @@ export function ImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update preview when value changes externally
-  React.useEffect(() => {
+  useEffect(() => {
     setPreview(value || null);
   }, [value]);
 
@@ -163,6 +163,7 @@ export function ImageUpload({
       >
         {preview ? (
           <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview}
               alt="Background preview"

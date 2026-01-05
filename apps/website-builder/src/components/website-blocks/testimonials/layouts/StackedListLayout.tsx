@@ -59,6 +59,7 @@ export function StackedListLayout({
           {/* Avatar */}
           <div className="flex-shrink-0">
             {testimonial.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={testimonial.imageUrl}
                 alt={testimonial.imageAlt || testimonial.name}

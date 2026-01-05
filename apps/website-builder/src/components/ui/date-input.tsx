@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -76,18 +77,15 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     const preferences = useOptionalProviderPreferences();
     const dateFormat = dateFormatOverride || preferences?.preferences.dateFormat || DEFAULT_DATETIME_PREFERENCES.dateFormat;
     
-    const [isOpen, setIsOpen] = React.useState(false);
-    const [displayValue, setDisplayValue] = React.useState('');
-    const [inputValue, setInputValue] = React.useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [inputValue, setInputValue] = useState('');
 
     // Convert ISO value to display format
-    React.useEffect(() => {
+    useEffect(() => {
       if (value) {
         const formatted = formatDateToFormat(value, dateFormat);
-        setDisplayValue(formatted);
         setInputValue(formatted);
       } else {
-        setDisplayValue('');
         setInputValue('');
       }
     }, [value, dateFormat]);
@@ -112,15 +110,10 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         if (parsed) {
           // Valid date - update the value
           onChange?.(parsed);
-          setDisplayValue(newValue);
-        } else {
-          // Invalid date - keep the input value but don't update the actual value
-          setDisplayValue(newValue);
         }
       } else {
         // Empty - clear the value
         onChange?.('');
-        setDisplayValue('');
       }
     };
 
@@ -131,16 +124,13 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         if (parsed) {
           // Valid date - format it properly
           const formatted = formatDateToFormat(parsed, dateFormat);
-          setDisplayValue(formatted);
           setInputValue(formatted);
         } else {
           // Invalid date - revert to last valid value
           if (value) {
             const formatted = formatDateToFormat(value, dateFormat);
-            setDisplayValue(formatted);
             setInputValue(formatted);
           } else {
-            setDisplayValue('');
             setInputValue('');
           }
         }

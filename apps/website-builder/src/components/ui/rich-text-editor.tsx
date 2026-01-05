@@ -17,10 +17,10 @@
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import Link from '@tiptap/extension-link';
+import { StarterKit } from '@tiptap/starter-kit';
+import { Underline } from '@tiptap/extension-underline';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Link } from '@tiptap/extension-link';
 import { cn } from '@/lib/utils';
 import {
   Bold,
@@ -494,12 +494,11 @@ function LinkButton({ editor, disabled }: LinkButtonProps) {
 export function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Start typing...',
   className,
   minHeight = EDITOR_MIN_HEIGHT,
   maxHeight = EDITOR_MAX_HEIGHT,
   disabled = false,
-}: RichTextEditorProps) {
+}: Omit<RichTextEditorProps, 'placeholder'>) {
   // Validate content length before processing
   const handleChange = useCallback((html: string) => {
     if (html.length > MAX_CONTENT_LENGTH) {

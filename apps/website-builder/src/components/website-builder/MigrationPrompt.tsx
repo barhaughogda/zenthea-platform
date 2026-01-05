@@ -68,11 +68,14 @@ export function MigrationPrompt({
   } | null>(null);
 
   // Check migration status
-  const migrationStatus = useQuery((api as any).websiteBuilder.checkMigrationStatus, {
-    tenantId,
-  });
+  const migrationStatus = useQuery(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api as any).websiteBuilder.checkMigrationStatus, 
+    { tenantId }
+  );
 
   // Migration mutation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const migrate = useMutation((api as any).websiteBuilder.migrateFromLandingPage);
 
   // Don't show if already migrated or no legacy config

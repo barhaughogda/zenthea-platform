@@ -14,12 +14,10 @@ const RETRY_DELAY = 100;
 const MAX_WAIT_TIME = 2000; // 2 seconds max
 
 export default function WebsitePreviewPage({
-  searchParams,
+  searchParams: _searchParams,
 }: {
-  searchParams?: Promise<any>;
+  searchParams?: Promise<Record<string, unknown>>;
 }) {
-  const resolvedSearchParams = searchParams ? (typeof (searchParams as any).then === 'function' ? React.use(searchParams) : searchParams) : {};
-  
   // Track if component has mounted to prevent hydration mismatches
   const [mounted, setMounted] = useState(false);
   

@@ -6,7 +6,7 @@
  */
 
 import 'server-only';
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary, type UploadApiOptions } from 'cloudinary';
 import { isCloudinaryConfigured } from './cloudinary';
 import { logger } from '@/lib/logger';
 
@@ -20,8 +20,10 @@ if (isCloudinaryConfigured()) {
   });
 }
 
+export type CloudinaryImageType = 'hero' | 'block' | 'general' | 'logo';
+
 export interface CloudinaryUploadOptions {
-  imageType?: 'hero' | 'block' | 'general' | 'logo';
+  imageType?: CloudinaryImageType;
   resourceType?: 'image' | 'video' | 'raw' | 'auto';
   folder?: string;
   publicId?: string;
@@ -49,7 +51,7 @@ export function validateCloudinaryConfig(): boolean {
 
 export function getCloudinaryFolder(
   tenantId: string,
-  imageType: 'hero' | 'block' | 'general' | 'logo' = 'general'
+  imageType: CloudinaryImageType = 'general'
 ): string {
   const sanitizedTenantId = tenantId.replace(/[^a-zA-Z0-9-_]/g, '');
   return `clients/${sanitizedTenantId}/website-builder/${imageType}`;
@@ -72,7 +74,7 @@ export async function uploadToCloudinary(
     buffer = file;
   }
 
-  const uploadOptions: any = {
+  const uploadOptions: UploadApiOptions = {
     folder,
     resource_type: options.resourceType || 'image',
     overwrite: false,

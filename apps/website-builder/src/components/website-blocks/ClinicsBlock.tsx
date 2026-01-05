@@ -46,7 +46,8 @@ export default function ClinicsBlock({
 
   // Fetch company opening hours summary
   const openingHoursSummary = useQuery(
-    (api as any).openingHours.getOpeningHoursSummary,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api as any).openingHours?.getOpeningHoursSummary,
     tenantId && !isPreview ? { tenantId } : 'skip'
   );
 

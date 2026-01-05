@@ -8,7 +8,6 @@
 
 import React, { Suspense, lazy, useMemo } from 'react';
 import { HeaderVariant, HeaderConfig } from '@/lib/website-builder/schema';
-import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 // =============================================================================

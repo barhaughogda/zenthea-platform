@@ -50,7 +50,7 @@ import {
   Award,
   LucideIcon,
 } from 'lucide-react';
-import { HowItWorksIcons, type HowItWorksIcon } from '@/lib/website-builder/schema';
+import { type HowItWorksIcon } from '@/lib/website-builder/schema';
 
 // =============================================================================
 // TYPES

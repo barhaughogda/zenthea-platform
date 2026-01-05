@@ -8,7 +8,7 @@
  * External links are now managed through the Footer Menu Editor columns.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { FooterSelector } from './FooterSelector';
 import { PageNavVisibilitySettings } from './PageNavVisibilitySettings';
 import { FooterMenuEditor } from './FooterMenuEditor';
@@ -245,7 +245,6 @@ export function FooterBlockPanel({
   onFooterChange,
   onFooterConfigChange,
   onSocialLinksChange,
-  onExternalLinksChange,
   onMenuColumnsChange,
   pages,
   onPagesChange,
@@ -257,7 +256,6 @@ export function FooterBlockPanel({
   const menuColumns = footerConfig?.menuColumns || [];
   
   // Determine footer variant
-  const isMinimalFooter = footerConfig?.variant === 'minimal';
   const isMultiColumnFooter = footerConfig?.variant === 'multi-column' || !footerConfig?.variant;
   
   // Check if footer has appearance customizations

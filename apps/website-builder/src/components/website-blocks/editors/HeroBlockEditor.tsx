@@ -7,7 +7,7 @@
  * Includes background, button appearance, and content controls.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { HeroBlockProps, heroBlockPropsSchema } from '@/lib/website-builder/schema';
 import { BlockEditorProps } from '../block-registry';
 import { Input } from '@/components/ui/input';
@@ -64,7 +64,7 @@ type ButtonAppearance = {
 export default function HeroBlockEditor({ props, onChange }: BlockEditorProps) {
   const heroProps = heroBlockPropsSchema.parse(props) as HeroBlockProps;
   
-  const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     content: true,
     primaryButton: true,
     secondaryButton: false,

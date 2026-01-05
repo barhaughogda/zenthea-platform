@@ -286,7 +286,7 @@ export function getBlockPropsSchema(type: BlockType): z.ZodSchema {
 export function parseBlockProps<T extends BlockType>(
   type: T,
   props: Record<string, unknown>
-): any {
+): unknown {
   const schema = getBlockPropsSchema(type);
   return schema.parse(props);
 }
@@ -305,7 +305,7 @@ export const blockInstanceSchema = z.object({
   id: z.string(),
   type: blockTypeSchema,
   enabled: z.boolean().default(true),
-  props: z.record(z.any()),
+  props: z.record(z.unknown()),
   appearance: blockAppearanceSchema.optional(),
 });
 

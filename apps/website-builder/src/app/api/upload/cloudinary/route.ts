@@ -4,10 +4,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getZentheaServerSession } from '@/lib/auth';
+import type { ZentheaSession } from '@/types';
 import {
   uploadToCloudinary,
   getCloudinaryFolder,
   validateCloudinaryConfig,
+  type CloudinaryImageType,
 } from '@/lib/images/cloudinary-upload';
 import { logger } from '@/lib/logger';
 
@@ -17,7 +19,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'ima
 /**
  * Check if user has permission to upload images
  */
-function hasUploadPermission(session: any): boolean {
+function hasUploadPermission(session: ZentheaSession): boolean {
   if (!session?.user) {
     return false;
   }
@@ -111,13 +113,13 @@ export async function POST(request: NextRequest) {
     const tenantId = session.user.tenantId || 'default'; 
 
     // 7. Get folder path
-    const folder = getCloudinaryFolder(tenantId, imageType as any);
+    const folder = getCloudinaryFolder(tenantId, imageType as CloudinaryImageType);
     logger.info('Uploading to folder:', folder);
 
     // 8. Upload to Cloudinary
     try {
       const uploadResult = await uploadToCloudinary(file, folder, {
-        imageType: imageType as any,
+        imageType: imageType as CloudinaryImageType,
         tags: [`tenant:${tenantId}`, `type:${imageType}`, 'website-builder'],
       });
 

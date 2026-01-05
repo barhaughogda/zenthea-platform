@@ -12,7 +12,6 @@ import type {
   FooterMenuColumn,
   FooterMenuSection,
   FooterMenuItem,
-  FooterColumn,
 } from './schema';
 
 // =============================================================================
@@ -279,9 +278,6 @@ export function resolveFooterWithPages(
   for (const page of pages) {
     pageMap.set(page.id, page);
   }
-
-  // Get pages that should appear in footer (enabled + showInFooter)
-  const footerPages = pages.filter(p => p.enabled && p.showInFooter);
 
   // Transform columns
   const resolvedColumns = footer.columns.map(column => {

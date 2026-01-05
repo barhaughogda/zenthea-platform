@@ -7,7 +7,7 @@
  * Includes button text, links, and appearance controls.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { CTABandBlockProps, ctaBandBlockPropsSchema } from '@/lib/website-builder/schema';
 import { BlockEditorProps } from '../block-registry';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,7 @@ type ButtonAppearance = {
 export default function CTABandBlockEditor({ props, onChange }: BlockEditorProps) {
   const ctaProps = ctaBandBlockPropsSchema.parse(props) as CTABandBlockProps;
   
-  const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     primaryButton: true,
     secondaryButton: false,
   });

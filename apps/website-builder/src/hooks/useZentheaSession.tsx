@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useUser, useOrganization, useAuth, useClerk } from '@clerk/nextjs'
+import { useUser, useOrganization, useAuth } from '@clerk/nextjs'
 import type { PermissionTree, ZentheaSession } from '@/types'
 
 /**
@@ -10,7 +10,7 @@ import type { PermissionTree, ZentheaSession } from '@/types'
  */
 export function useZentheaSession() {
   const { user, isLoaded: isUserLoaded } = useUser()
-  const { organization, membership, isLoaded: isOrgLoaded } = useOrganization()
+  const { membership, isLoaded: isOrgLoaded } = useOrganization()
   const { userId, orgId, orgRole, isLoaded: isAuthLoaded } = useAuth()
 
   const isLoaded = isUserLoaded && isOrgLoaded && isAuthLoaded
@@ -60,7 +60,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
  * Compatibility wrapper for next-auth's signIn
  * Redirects to the Clerk sign-in page
  */
-export async function signIn(provider?: string, options?: any) {
+export async function signIn(_provider?: string, _options?: Record<string, unknown>) {
   if (typeof window !== 'undefined') {
     // In a real migration, we might want to map some options to Clerk's redirect params
     window.location.href = '/sign-in'

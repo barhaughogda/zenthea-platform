@@ -167,6 +167,7 @@ export function WebsiteLogoUpload({
             className="relative w-full h-24 bg-surface-secondary rounded-lg border-2 border-border-primary overflow-hidden flex items-center justify-center"
             style={{ aspectRatio: '4 / 1' }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={value}
               alt="Website logo preview"

@@ -17,8 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  HowItWorksLayouts,
-  HowItWorksIconShapes,
   type HowItWorksLayout,
   type HowItWorksIconShape,
 } from '@/lib/website-builder/schema';

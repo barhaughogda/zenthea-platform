@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { HeroBlockProps, type BlockAppearance, type TextToken } from '@/lib/website-builder/schema';
+import { HeroBlockProps } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles, resolveTextToken } from './BlockSection';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,7 @@ export default function HeroBlock({
   } = props;
 
   // Normalize color values (handle uppercase VAR -> var)
-  const normalizeColor = (color: any): string => {
+  const normalizeColor = (color: string | null | undefined): string => {
     if (typeof color !== 'string') return String(color || '');
     const trimmed = color.trim();
     if (trimmed.toLowerCase().startsWith('var(--')) {

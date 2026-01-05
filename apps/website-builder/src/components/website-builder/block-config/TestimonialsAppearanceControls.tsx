@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TestimonialsLayouts, type TestimonialsLayout } from '@/lib/website-builder/schema';
+import { type TestimonialsLayout } from '@/lib/website-builder/schema';
 
 // =============================================================================
 // TYPES

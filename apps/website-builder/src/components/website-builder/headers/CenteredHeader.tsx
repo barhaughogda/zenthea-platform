@@ -23,7 +23,6 @@ import {
 
 export default function CenteredHeader({
   config,
-  tenantId,
   isPreview = false,
   tenantName = 'Clinic',
   theme,

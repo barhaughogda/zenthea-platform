@@ -7,7 +7,7 @@
  * Now fetches real opening hours from the opening hours system.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { ContactBlockProps } from '@/lib/website-builder/schema';
@@ -16,7 +16,7 @@ import { BlockSection, useAppearanceStyles } from './BlockSection';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Phone, Mail, MapPin, Clock, ExternalLink } from 'lucide-react';
-import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor, getTertiaryTextColor } from '@/lib/website-builder/theme-utils';
+import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor } from '@/lib/website-builder/theme-utils';
 
 export interface ContactBlockComponentProps extends BlockComponentProps<ContactBlockProps> {}
 
@@ -47,7 +47,8 @@ export default function ContactBlock({
 
   // Fetch company opening hours summary
   const openingHoursSummary = useQuery(
-    (api as any).openingHours.getOpeningHoursSummary,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api as any).openingHours?.getOpeningHoursSummary,
     tenantId && !isPreview ? { tenantId } : 'skip'
   );
 
@@ -70,14 +71,14 @@ export default function ContactBlock({
   const clinicName = tenantData?.name || 'Our Clinic';
 
   // Default hours for preview, or use real hours from query
-  const placeholderHours = [
+  const placeholderHours = useMemo(() => [
     { day: 'Monday - Friday', hours: '8:00 AM - 6:00 PM' },
     { day: 'Saturday', hours: '9:00 AM - 2:00 PM' },
     { day: 'Sunday', hours: 'Closed' },
-  ];
+  ], []);
 
   // Transform opening hours summary lines into the expected format
-  const hours = React.useMemo(() => {
+  const hours = useMemo(() => {
     if (isPreview || !openingHoursSummary?.lines) {
       return placeholderHours;
     }
@@ -93,7 +94,7 @@ export default function ContactBlock({
         hours: line.substring(colonIndex + 1).trim(),
       };
     });
-  }, [isPreview, openingHoursSummary]);
+  }, [isPreview, openingHoursSummary, placeholderHours]);
 
   const formatAddress = (address: { street: string; city: string; state: string; zipCode: string }) => {
     return `${address.street}, ${address.city}, ${address.state} ${address.zipCode}`;
@@ -132,7 +133,6 @@ export default function ContactBlock({
   const primaryColor = getPrimaryColor(theme);
   const primaryTextColor = getPrimaryTextColor(theme);
   const secondaryTextColor = getSecondaryTextColor(theme);
-  const tertiaryTextColor = getTertiaryTextColor(theme);
 
   // Get appearance styles (appearance text color overrides theme)
   const { textColor: appearanceTextColor } = useAppearanceStyles(appearance, theme);

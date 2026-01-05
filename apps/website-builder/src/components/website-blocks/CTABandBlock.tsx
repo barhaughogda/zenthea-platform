@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { CTABandBlockProps, DEFAULT_BLOCK_APPEARANCE, type BackgroundToken, type TextToken } from '@/lib/website-builder/schema';
+import { CTABandBlockProps, type BackgroundToken, type TextToken } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles, resolveBackgroundToken, resolveTextToken } from './BlockSection';
 import { Button } from '@/components/ui/button';

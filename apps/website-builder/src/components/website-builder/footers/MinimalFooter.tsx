@@ -5,11 +5,7 @@ import Link from 'next/link';
 import type { FooterConfig } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, MapPin, Phone } from 'lucide-react';
-import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor, getTertiaryTextColor, getBackgroundColor } from '@/lib/website-builder/theme-utils';
-import {
-  DEFAULT_FOOTER_BACKGROUND,
-  DEFAULT_FOOTER_TEXT,
-} from '@/lib/website-builder/color-defaults';
+import { getPrimaryColor, getPrimaryTextColor, getBackgroundColor } from '@/lib/website-builder/theme-utils';
 
 // =============================================================================
 // TYPES
@@ -71,8 +67,6 @@ export function MinimalFooter({
   // Theme colors (fallback)
   const themePrimaryColor = getPrimaryColor(theme);
   const themePrimaryTextColor = getPrimaryTextColor(theme);
-  const themeSecondaryTextColor = getSecondaryTextColor(theme);
-  const themeTertiaryTextColor = getTertiaryTextColor(theme);
 
   // Determine which colors to use based on useThemeColors flag
   const useThemeColors = config.useThemeColors ?? true;

@@ -231,7 +231,7 @@ export function HeaderSelector({
 
             {useThemeColors && (
               <p className="text-sm text-text-secondary text-center py-4">
-                Using global theme colors. Disable "Use theme colors" to customize header appearance.
+                Using global theme colors. Disable &quot;Use theme colors&quot; to customize header appearance.
               </p>
             )}
           </div>

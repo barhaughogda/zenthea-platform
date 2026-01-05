@@ -94,6 +94,7 @@ export function GridCardsLayout({
               style={{ borderTop: '1px solid var(--color-border-primary, #e5e7eb)' }}
             >
               {testimonial.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={testimonial.imageUrl}
                   alt={testimonial.imageAlt || testimonial.name}

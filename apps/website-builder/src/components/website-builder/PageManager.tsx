@@ -329,7 +329,6 @@ export function PageManager({
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Group pages by type
-  const homePage = pages.find(p => p.type === 'home');
   const standardPages = pages.filter(p => 
     ['services', 'team', 'locations', 'contact'].includes(p.type)
   );

@@ -28,7 +28,7 @@ function BlockLoader() {
   );
 }
 
-function BlockLoaderWithLog({ blockType }: { blockType: string }) {
+function BlockLoaderWithLog({ blockType: _blockType }: { blockType: string }) {
   // This component exists to provide a named component for Suspense fallback
   // The blockType prop is available for future logging/debugging if needed
   return <BlockLoader />;

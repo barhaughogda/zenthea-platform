@@ -1,9 +1,8 @@
 'use client';
 
-import useSWR from 'swr'
 import { useMemo } from 'react'
 import { useZentheaSession } from './useZentheaSession'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 
@@ -15,6 +14,7 @@ export function useClinics() {
   const tenantId = session?.user?.tenantId
   
   const clinicsData = useQuery(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api as any).clinics?.getClinicsByTenant,
     tenantId ? { tenantId } : 'skip'
   )
@@ -25,6 +25,7 @@ export function useClinics() {
   // Map Convex data to expected format if needed
   const clinics = useMemo(() => {
     if (!clinicsData) return []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return clinicsData.map((c: any) => ({
       ...c,
       id: c._id // Map _id to id for compatibility
@@ -52,6 +53,7 @@ export function useClinicProfile(id?: string) {
   const effectiveId = id || clinics[0]?.id
 
   const clinicData = useQuery(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (api as any).clinics?.getClinic,
     effectiveId ? { clinicId: effectiveId as Id<'clinics'> } : 'skip'
   )
@@ -81,33 +83,37 @@ export function useClinicProfile(id?: string) {
     };
   }, [clinicData]);
 
-  const updateClinic = async (updateData: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateClinic = async (_updateData: any) => {
     // This would need a mutation
     throw new Error('Update not implemented via Convex hook yet')
   }
 
   // Compatibility mapping for legacy ClinicProfileEditor
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateContactInfo = async ({ contactInfo }: { contactInfo: any }) => {
     return updateClinic(contactInfo)
   }
 
   // Compatibility mapping for branding updates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateBranding = async (brandingData: any) => {
     return updateClinic({ branding: brandingData })
   }
 
   // Compatibility mapping for slug updates
-  const updateSlug = async ({ slug, tenantId: _tenantId }: { slug: string, tenantId?: string }) => {
+  const updateSlug = async ({ slug }: { slug: string, tenantId?: string }) => {
     return updateClinic({ slug })
   }
 
   // Compatibility mapping for domain updates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateDomains = async (domainData: any) => {
-    const { tenantId: _tenantId, ...data } = domainData;
+    const { tenantId: _unusedTenantId, ...data } = domainData;
     return updateClinic({ domains: data })
   }
 
-  const updateOrganization = async ({ name }: { name: string }) => {
+  const updateOrganization = async ({ name: _name }: { name: string }) => {
     throw new Error('Update organization not implemented via Convex hook yet')
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -238,9 +238,9 @@ interface AddBlockMenuProps {
 }
 
 function AddBlockMenu({ onAddBlock, existingBlocks, disabled, pageType = 'home' }: AddBlockMenuProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const [showScrollIndicator, setShowScrollIndicator] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
 
   // Get standard blocks for the current page type with explicit type checking
   const standardBlockTypes = 
@@ -262,7 +262,7 @@ function AddBlockMenu({ onAddBlock, existingBlocks, disabled, pageType = 'home' 
   };
 
   // Check if content is scrollable and update indicator
-  const checkScrollable = React.useCallback(() => {
+  const checkScrollable = useCallback(() => {
     const container = scrollContainerRef.current;
     if (container) {
       const hasMoreContent = container.scrollHeight > container.clientHeight;
@@ -272,10 +272,10 @@ function AddBlockMenu({ onAddBlock, existingBlocks, disabled, pageType = 'home' 
   }, []);
 
   // Check scrollability when popover opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       // Use requestAnimationFrame for more reliable timing, especially on slower devices
-      let timeoutId: NodeJS.Timeout | null = null;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const rafId = requestAnimationFrame(() => {
         timeoutId = setTimeout(checkScrollable, 50);
       });

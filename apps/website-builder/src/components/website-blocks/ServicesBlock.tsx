@@ -16,7 +16,7 @@ import { BlockSection, useAppearanceStyles } from './BlockSection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Clock, Heart, Stethoscope, Activity, Baby, Brain, Pill, Eye, DollarSign } from 'lucide-react';
+import { Clock, Heart, Stethoscope, Activity, Baby, Brain, Pill, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor, getTertiaryTextColor, getButtonHoverBgColor } from '@/lib/website-builder/theme-utils';
 import { getLucideIcon, type ServiceIcon } from '@/lib/services/icons';

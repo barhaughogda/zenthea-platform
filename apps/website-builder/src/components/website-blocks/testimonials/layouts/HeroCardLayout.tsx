@@ -12,7 +12,6 @@ import { Star, Quote } from 'lucide-react';
 import type { TestimonialLayoutProps } from '../types';
 import { 
   getPrimaryColor, 
-  getSecondaryColor, 
   getPrimaryTextColor, 
   getSecondaryTextColor 
 } from '@/lib/website-builder/theme-utils';
@@ -22,7 +21,6 @@ export function HeroCardLayout({
   theme,
 }: TestimonialLayoutProps) {
   const primaryColor = getPrimaryColor(theme);
-  const secondaryColor = getSecondaryColor(theme);
   const primaryTextColor = getPrimaryTextColor(theme);
   const secondaryTextColor = getSecondaryTextColor(theme);
 
@@ -72,6 +70,7 @@ export function HeroCardLayout({
           {/* Avatar */}
           {testimonial.imageUrl && (
             <div className="mb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={testimonial.imageUrl}
                 alt={testimonial.imageAlt || testimonial.name}

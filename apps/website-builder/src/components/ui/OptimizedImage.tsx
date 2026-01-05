@@ -9,7 +9,7 @@
 
 import Image from 'next/image';
 import { useState, useCallback } from 'react';
-import { StaticImageManager, ImageOptimizationOptions, ImageUtils } from '@/lib/images/static-images';
+import { StaticImageManager, ImageUtils } from '@/lib/images/static-images';
 import { cn } from '@/lib/utils';
 
 export interface OptimizedImageProps {
@@ -100,7 +100,7 @@ export function OptimizedImage({
   };
   
   // Generate responsive srcset if needed
-  const generateSrcSet = () => {
+  const _generateSrcSet = () => {
     if (!responsive) return undefined;
     return StaticImageManager.generateSrcSet(src, breakpoints, {
       quality,
@@ -125,7 +125,6 @@ export function OptimizedImage({
   };
   
   const placeholderData = getPlaceholderData();
-  const srcSet = generateSrcSet();
   const finalSrc = imageError ? getFallbackSrc() : optimizedSrc;
   
   return (
@@ -313,20 +312,16 @@ export function MedicalImage({
   encrypted = true,
   accessToken,
   onAccessDenied,
-  onAuditLog,
+  onAuditLog: _onAuditLog,
   className,
   ...props
 }: MedicalImageProps) {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [auditId, setAuditId] = useState<string | null>(null);
 
   const handleLoad = useCallback(() => {
     setIsLoading(false);
-    if (onAuditLog && auditId) {
-      onAuditLog(auditId);
-    }
-  }, [onAuditLog, auditId]);
+  }, []);
 
   const handleError = useCallback(() => {
     setImageError(true);

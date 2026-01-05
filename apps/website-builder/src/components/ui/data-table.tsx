@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, X, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -15,14 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
@@ -40,7 +31,7 @@ export interface Column<T> {
   /** Whether this column can be filtered */
   filterable?: boolean;
   /** Custom render function for the cell content */
-  render?: (value: any, row: T) => React.ReactNode;
+  render?: (value: unknown, row: T) => React.ReactNode;
 }
 
 /**
@@ -104,7 +95,7 @@ export interface DataTableProps<T> {
  * />
  * ```
  */
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   data,
   columns,
   searchKeys,
@@ -150,7 +141,7 @@ export function DataTable<T extends Record<string, any>>({
     Object.entries(dateFilters).forEach(([filterKey, dateRange]) => {
       if (dateRange.from || dateRange.to) {
         filtered = filtered.filter((item) => {
-          const itemDate = new Date(item[filterKey]);
+          const itemDate = new Date(item[filterKey] as string | number | Date);
           const fromDate = dateRange.from ? new Date(dateRange.from) : null;
           const toDate = dateRange.to ? new Date(dateRange.to) : null;
           
@@ -407,7 +398,7 @@ export function DataTable<T extends Record<string, any>>({
             ) : (
               sortedData.map((row, index) => {
                 // Use stable identifier from row data, fallback to index
-                const rowKey = (row as any).id || (row as any).key || `row-${index}`;
+                const rowKey = (row as Record<string, unknown>).id as string || (row as Record<string, unknown>).key as string || `row-${index}`;
                 return (
                 <TableRow
                   key={rowKey}

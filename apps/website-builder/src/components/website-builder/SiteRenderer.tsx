@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import type {
   HeaderConfig,
   FooterConfig,
@@ -92,7 +92,7 @@ export function SiteRenderer({
   const siteStructure = websiteBuilder.siteStructure || 'multi-page';
   
   // Transform navigation items to use proper paths for multi-page sites
-  const transformedHeader = React.useMemo(() => {
+  const transformedHeader = useMemo(() => {
     if (siteStructure === 'one-pager' || !basePath) {
       return websiteBuilder.header;
     }
@@ -124,7 +124,7 @@ export function SiteRenderer({
   }, [websiteBuilder.header, siteStructure, basePath]);
 
   // Transform footer with real tenant data
-  const transformedFooter = React.useMemo(() => {
+  const transformedFooter = useMemo(() => {
     let footer = websiteBuilder.footer;
 
     // If tenant data is provided, transform footer columns with real data
@@ -181,7 +181,7 @@ export function SiteRenderer({
   }, [websiteBuilder.footer, siteStructure, basePath, tenantFooterData]);
 
   const zentheaAppUrl = process.env.NEXT_PUBLIC_ZENTHEA_APP_URL || 'https://app.zenthea.ai';
-  const effectiveBookUrl = React.useMemo(() => {
+  const effectiveBookUrl = useMemo(() => {
     const rawUrl = bookUrl || websiteBuilder.header.bookUrl || '/book';
     if (rawUrl.startsWith('http')) return rawUrl;
     

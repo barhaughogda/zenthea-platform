@@ -4,11 +4,10 @@ import { convexHttp } from '@/lib/convex-server';
 import { api } from '@/convex/_generated/api';
 import { Metadata } from 'next';
 import { Loader2 } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { SiteRenderer } from '@/components/website-builder/SiteRenderer';
+import type { SiteRendererProps } from '@/components/website-builder/SiteRenderer';
 
-const SiteRenderer = dynamic(() => import('@/components/website-builder/SiteRenderer'), {
-  ssr: true // We still want SSR, but dynamic import helps with boundary isolation
-});
+export const dynamic = 'force-dynamic';
 
 interface PublicClinicPageProps {
   params: Promise<{ slug: string }>;
@@ -69,7 +68,7 @@ export default async function PublicClinicPage({ params }: PublicClinicPageProps
       </div>
     }>
       <SiteRenderer
-        websiteBuilder={websiteBuilder as any}
+        websiteBuilder={websiteBuilder as unknown as SiteRendererProps['websiteBuilder']}
         tenantName={tenantName}
         tenantId={tenantId}
         tenantSlug={slug}

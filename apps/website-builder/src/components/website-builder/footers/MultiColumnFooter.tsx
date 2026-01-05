@@ -5,12 +5,11 @@ import Link from 'next/link';
 import type { FooterConfig, PageConfig, SiteStructure } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
-import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor, getTertiaryTextColor, getBackgroundColor } from '@/lib/website-builder/theme-utils';
+import { getPrimaryColor, getPrimaryTextColor, getBackgroundColor } from '@/lib/website-builder/theme-utils';
 import {
   hasMenuColumnsV2,
   resolveFooterMenuV2,
   type ResolvedFooterMenuColumn,
-  type ResolvedFooterMenuSection,
 } from '@/lib/website-builder/footer-utils';
 
 // =============================================================================
@@ -97,8 +96,6 @@ export function MultiColumnFooter({
   // Theme colors (fallback)
   const themePrimaryColor = getPrimaryColor(theme);
   const themePrimaryTextColor = getPrimaryTextColor(theme);
-  const themeSecondaryTextColor = getSecondaryTextColor(theme);
-  const themeTertiaryTextColor = getTertiaryTextColor(theme);
 
   // Determine which colors to use based on useThemeColors flag
   const useThemeColors = config.useThemeColors ?? true;

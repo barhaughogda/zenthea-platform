@@ -10,7 +10,7 @@
  * - card-grid: All Q&As visible as cards in a responsive grid
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FAQBlockProps } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles } from './BlockSection';
@@ -58,7 +58,7 @@ export default function FAQBlock({
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
 
   // Placeholder FAQs for preview
-  const placeholderItems: FAQItem[] = [
+  const placeholderItems: FAQItem[] = useMemo(() => [
     {
       id: '1',
       question: 'How do I schedule an appointment?',
@@ -84,12 +84,15 @@ export default function FAQBlock({
       question: 'How can I access my medical records?',
       answer: 'You can access your medical records, test results, and appointment summaries through our secure patient portal. Sign up or log in on our website.',
     },
-  ];
+  ], []);
 
-  const displayItems: FAQItem[] = items.length > 0 ? items : (isPreview ? placeholderItems : []);
+  const displayItems: FAQItem[] = useMemo(() => 
+    items.length > 0 ? items : (isPreview ? placeholderItems : []),
+    [items, isPreview, placeholderItems]
+  );
 
   // Initialize selected question for split-panel if not set
-  React.useEffect(() => {
+  useEffect(() => {
     if (layout === 'split-panel' && displayItems.length > 0 && !selectedQuestionId) {
       const firstItem = displayItems[0];
       if (firstItem) {

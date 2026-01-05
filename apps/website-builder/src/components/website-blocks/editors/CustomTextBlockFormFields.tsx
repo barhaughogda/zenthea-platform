@@ -129,7 +129,6 @@ export function CustomTextBlockFormFields({
         <RichTextEditor
           value={(customTextProps.content as string) || ''}
           onChange={(html) => onUpdate({ ...props, content: html })}
-          placeholder="Start typing your content..."
           minHeight={isSidebar ? EDITOR_SIDEBAR_MIN_HEIGHT : EDITOR_MIN_HEIGHT}
           maxHeight={isSidebar ? EDITOR_SIDEBAR_MAX_HEIGHT : EDITOR_MAX_HEIGHT}
           disabled={disabled}

@@ -6,7 +6,7 @@
  */
 
 import type { ThemeConfig } from './schema';
-import { FONT_PAIRS, DEFAULT_THEME } from './schema';
+import { DEFAULT_THEME } from './schema';
 
 /**
  * Flexible theme type that accepts both proper ThemeConfig and schema data

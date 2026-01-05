@@ -7,7 +7,6 @@ import { HeaderRenderer } from '@/components/website-builder/headers';
 import { FooterRenderer } from '@/components/website-builder/footers';
 import { MobileBookingCTA } from '@/components/website-builder/MobileBookingCTA';
 import { SkipLinks } from '@/components/website-builder/SkipLinks';
-import type { BlockComponentProps } from '@/components/website-blocks/block-registry';
 import { cn } from '@/lib/utils';
 import { SKIP_LINK_TARGETS } from '@/lib/website-builder/accessibility';
 import { getThemeStyles, getFontUrl } from '@/lib/website-builder/theme-utils';
@@ -74,7 +73,7 @@ export interface TemplateRendererProps {
 // =============================================================================
 
 export function TemplateRenderer({
-  templateId,
+  templateId: _templateId,
   header,
   footer,
   theme,
@@ -91,7 +90,7 @@ export function TemplateRenderer({
   bookText,
   onNavigate,
   pages,
-  activePageId,
+  activePageId: _activePageId,
   siteStructure,
   basePath = '',
 }: TemplateRendererProps) {

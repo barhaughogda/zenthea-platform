@@ -16,7 +16,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { BlockAppearance, BackgroundToken, TextToken, ThemeConfig } from '@/lib/website-builder/schema';
 import { DEFAULT_BLOCK_APPEARANCE } from '@/lib/website-builder/schema';
-import { getPrimaryColor, getSecondaryColor, isColorDark } from '@/lib/website-builder/theme-utils';
+import { getPrimaryColor, isColorDark } from '@/lib/website-builder/theme-utils';
 
 // =============================================================================
 // TYPES
@@ -143,26 +143,6 @@ function getTextStyle(
   }
 }
 
-/**
- * Get padding classes based on padding prop
- */
-function getPaddingClasses(padding: BlockSectionProps['padding']): string {
-  switch (padding) {
-    case 'none':
-      return '';
-    case 'sm':
-      return 'py-8 md:py-12';
-    case 'md':
-      return 'py-12 md:py-16';
-    case 'lg':
-      return 'py-16 md:py-20';
-    case 'xl':
-      return 'py-20 md:py-24';
-    default:
-      return ''; // No default padding - let blocks decide
-  }
-}
-
 // =============================================================================
 // COMPONENT
 // =============================================================================
@@ -194,7 +174,6 @@ export function BlockSection({
   className,
   isPreview = false,
   as: Element = 'section',
-  padding,
   style,
 }: BlockSectionProps) {
   // Merge with defaults

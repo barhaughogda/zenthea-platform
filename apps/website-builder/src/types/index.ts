@@ -1,7 +1,7 @@
 // Global type definitions for Websites app
 
 export interface PermissionTree {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ZentheaSession {

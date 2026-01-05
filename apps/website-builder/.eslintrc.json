@@ -4,10 +4,13 @@
     "../../.eslintrc.json"
   ],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "warn",
-    "react/no-unescaped-entities": "off",
-    "@next/next/no-img-element": "warn",
-    "import/no-unresolved": "off"
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "react/no-unescaped-entities": "error",
+    "@next/next/no-img-element": "error",
+    "import/no-unresolved": "error",
+    "react-hooks/exhaustive-deps": "error",
+    "import/no-named-as-default-member": "error",
+    "import/no-named-as-default": "error"
   }
 }

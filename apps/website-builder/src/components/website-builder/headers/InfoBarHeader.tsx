@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { HeaderConfig } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Menu, X, Phone, Clock, Info } from 'lucide-react';
-import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor } from '@/lib/website-builder/theme-utils';
+import { getPrimaryTextColor, getSecondaryTextColor } from '@/lib/website-builder/theme-utils';
 import {
   DEFAULT_HEADER_BACKGROUND,
   DEFAULT_HEADER_TEXT,
@@ -60,17 +60,7 @@ export function InfoBarHeader({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [config.sticky]);
 
-  const cornerRadiusMap: Record<string, string> = {
-    none: '0',
-    small: '0.25rem',
-    medium: '0.5rem',
-    large: '0.75rem',
-    full: '9999px',
-  };
-  const buttonRadius = cornerRadiusMap[theme?.cornerRadius || 'medium'];
-
   // Theme colors (fallback)
-  const themePrimaryColor = getPrimaryColor(theme);
   const themePrimaryTextColor = getPrimaryTextColor(theme);
   const themeSecondaryTextColor = getSecondaryTextColor(theme);
 
@@ -81,7 +71,6 @@ export function InfoBarHeader({
   const headerLinkColor = useThemeColors ? themeSecondaryTextColor : (config.textColor || DEFAULT_HEADER_TEXT);
   const mobileBgColor = useThemeColors ? undefined : (config.mobileBackgroundColor || DEFAULT_MOBILE_HEADER_BACKGROUND);
   const mobileTextColor = useThemeColors ? themePrimaryTextColor : (config.mobileTextColor || DEFAULT_MOBILE_HEADER_TEXT);
-  const primaryColor = themePrimaryColor;
 
   // Extract page ID from href (e.g., "#services" -> "services", "/team" -> "team")
   const getPageIdFromHref = (href: string): string | null => {

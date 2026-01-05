@@ -8,6 +8,7 @@ import {
   FOOTER_VARIANTS,
   FOOTER_METADATA,
   type FooterVariant,
+  type ThemeConfig,
 } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Check, LayoutGrid, Minus, Palette } from 'lucide-react';
@@ -17,7 +18,6 @@ import {
   DEFAULT_FOOTER_TEXT,
 } from '@/lib/website-builder/color-defaults';
 import { getBackgroundColor, getPrimaryTextColor } from '@/lib/website-builder/theme-utils';
-import type { ThemeConfig } from '@/lib/website-builder/schema';
 
 // =============================================================================
 // TYPES
@@ -208,7 +208,7 @@ export function FooterSelector({
 
             {useThemeColors && (
               <p className="text-sm text-text-secondary text-center py-4">
-                Using global theme colors. Disable "Use theme colors" to customize footer appearance.
+                Using global theme colors. Disable &quot;Use theme colors&quot; to customize footer appearance.
               </p>
             )}
           </div>

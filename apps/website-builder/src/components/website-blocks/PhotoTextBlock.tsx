@@ -99,6 +99,7 @@ export default function PhotoTextBlock({
               )}
             >
               {hasImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={imageUrl}
                   alt={imageAlt || 'Photo'}

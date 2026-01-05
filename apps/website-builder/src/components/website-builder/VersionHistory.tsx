@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -88,15 +87,20 @@ export function VersionHistory({
   const [newSnapshotNote, setNewSnapshotNote] = useState('');
 
   // Queries
-  const versions = useQuery((api as any).websiteBuilder.getVersionHistory, {
-    tenantId,
-    limit: 50,
-  });
+  const versions = useQuery(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (api as any).websiteBuilder.getVersionHistory, 
+    { tenantId, limit: 50 }
+  );
 
   // Mutations
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const createSnapshot = useMutation((api as any).websiteBuilder.createVersionSnapshot);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const restoreVersion = useMutation((api as any).websiteBuilder.restoreVersion);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateMetadata = useMutation((api as any).websiteBuilder.updateVersionMetadata);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const deleteVersion = useMutation((api as any).websiteBuilder.deleteVersion);
 
   const handleCreateSnapshot = async () => {
@@ -266,7 +270,7 @@ export function VersionHistory({
                   </CardContent>
                 </Card>
               ) : (
-                versions.map((version: any) => (
+                versions.map((version: { _id: string; versionNumber: number; version: string; isPublished: boolean; label?: string; createdAt: number; createdBy?: string; note?: string; restoredFrom?: string }) => (
                   <Card 
                     key={version._id}
                     className={cn(

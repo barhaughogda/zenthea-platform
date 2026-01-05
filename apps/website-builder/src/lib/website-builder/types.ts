@@ -422,7 +422,7 @@ export interface BlockInstance {
   id: string;
   type: BlockType;
   enabled: boolean;
-  props: Record<string, any>;
+  props: Record<string, unknown>;
   appearance?: BlockAppearance;
 }
 

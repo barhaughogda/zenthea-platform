@@ -102,6 +102,7 @@ export function CenteredQuoteLayout({
       {/* Author Info */}
       <div className="flex flex-col items-center mb-8">
         {testimonial.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={testimonial.imageUrl}
             alt={testimonial.imageAlt || testimonial.name}

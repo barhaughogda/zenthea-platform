@@ -10,7 +10,6 @@
 import React from 'react';
 import {
   HowItWorksBlockProps,
-  type HowItWorksLayout,
   type HowItWorksIconShape,
   type HowItWorksIcon,
 } from '@/lib/website-builder/schema';
@@ -267,7 +266,7 @@ function TimelineLayout({
       />
 
       <div className="space-y-8 md:space-y-12">
-        {steps.map((step, index) => {
+        {steps.map((step) => {
           const IconComponent = getStepIcon(step.icon, step.number);
 
           return (
@@ -390,12 +389,11 @@ function CardsLayout({
  */
 function MinimalLayout({
   steps,
-  iconShape,
   primaryColor,
   secondaryColor,
   primaryTextColor,
   secondaryTextColor,
-}: LayoutProps) {
+}: Omit<LayoutProps, 'iconShape'>) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
       {steps.map((step) => {
@@ -440,7 +438,6 @@ function MinimalLayout({
 
 export default function HowItWorksBlock({
   props,
-  isPreview,
   theme,
   appearance,
   blockId,

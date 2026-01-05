@@ -89,9 +89,9 @@ function TemplateCard({ templateId, template, isSelected, onSelect, disabled, co
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         onClick={() => !disabled && onSelect()}
-        role="button"
+        role="radio"
         tabIndex={disabled ? -1 : 0}
-        aria-selected={isSelected}
+        aria-checked={isSelected}
         aria-disabled={disabled}
         onKeyDown={(e) => {
           if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
@@ -155,9 +155,9 @@ function TemplateCard({ templateId, template, isSelected, onSelect, disabled, co
         disabled && 'opacity-50 cursor-not-allowed'
       )}
       onClick={() => !disabled && onSelect()}
-      role="button"
+      role="radio"
       tabIndex={disabled ? -1 : 0}
-      aria-selected={isSelected}
+      aria-checked={isSelected}
       aria-disabled={disabled}
       onKeyDown={(e) => {
         if (!disabled && (e.key === 'Enter' || e.key === ' ')) {

@@ -46,7 +46,7 @@ export const getConvexClient = () => {
 };
 
 // For backward compatibility with existing imports
-export const convex = typeof window !== 'undefined' ? new ConvexReactClient(effectiveUrl) : (null as any);
+export const convex = typeof window !== 'undefined' ? new ConvexReactClient(effectiveUrl) : (null as unknown as ConvexReactClient);
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   if (isValidConvexUrl(convexUrl)) {

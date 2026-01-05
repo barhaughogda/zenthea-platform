@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { logger } from "@/lib/logger";
-import type { GooglePlaceResult } from "@/types/google-maps";
+import type { GooglePlaceResult, GoogleMapsAutocompleteInstance } from "@/types/google-maps";
 
 interface AddressAutocompleteProps {
   id?: string;
@@ -20,8 +20,6 @@ interface AddressAutocompleteProps {
 }
 
 // Google Maps types are loaded dynamically from the script
-import type { GoogleMapsAutocompleteInstance } from "@/types/google-maps";
-type GoogleMapsAutocomplete = GoogleMapsAutocompleteInstance;
 
 // Global script loading state
 let scriptLoadingPromise: Promise<void> | null = null;
@@ -101,6 +99,7 @@ function loadGoogleMapsScript(): Promise<void> {
     let errorDetected = false;
     
     // Listen for Google Maps API authentication failures
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).gm_authFailure = () => {
       errorDetected = true;
       scriptLoadingPromise = null;
@@ -174,6 +173,7 @@ function loadGoogleMapsScript(): Promise<void> {
     script.onerror = handleError;
     
     // Temporarily override console.error to catch Google Maps errors
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     console.error = (...args: any[]) => {
       originalConsoleError(...args);
       const message = args.join(' ');
@@ -207,7 +207,6 @@ export function AddressAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState(value); // Internal state for uncontrolled input
 
   // Keep refs up to date
   useEffect(() => {
@@ -219,7 +218,6 @@ export function AddressAutocomplete({
   useEffect(() => {
     if (inputRef.current && !isUserTypingRef.current && inputRef.current.value !== value) {
       inputRef.current.value = value;
-      setInputValue(value);
     }
   }, [value]);
 
@@ -349,7 +347,7 @@ export function AddressAutocomplete({
 
     // Monitor for pac-container creation and ensure clicks work
     // Google Maps creates the pac-container dynamically, so we need to wait for it
-    let checkPacContainerInterval: NodeJS.Timeout | null = null;
+    let checkPacContainerInterval: ReturnType<typeof setInterval> | null = null;
     
         const setupPacContainer = () => {
       const pacContainer = document.querySelector('.pac-container') as HTMLElement;
@@ -361,12 +359,12 @@ export function AddressAutocomplete({
         // Mark that we're clicking on dropdown
         // IMPORTANT: Don't interfere with Google Maps click handling at all
         // We'll handle preventing modal close in onInteractOutside instead
-        const handleMouseDown = (e: MouseEvent) => {
+        const handleMouseDown = () => {
           isClickingDropdownRef.current = true;
           // Don't stop propagation here - let Google Maps handle it normally
         };
         
-        const handleClick = (e: MouseEvent) => {
+        const handleClick = () => {
           isClickingDropdownRef.current = true;
           // Don't stop propagation here - let Google Maps handle it normally
           // Reset flag after a short delay
@@ -392,11 +390,11 @@ export function AddressAutocomplete({
           itemElement.style.cursor = 'pointer';
           
           // Just track, don't interfere
-          const handleItemMouseDown = (e: MouseEvent) => {
+          const handleItemMouseDown = () => {
             isClickingDropdownRef.current = true;
           };
           
-          const handleItemClick = (e: MouseEvent) => {
+          const handleItemClick = () => {
             isClickingDropdownRef.current = true;
             setTimeout(() => {
               isClickingDropdownRef.current = false;
@@ -477,7 +475,6 @@ export function AddressAutocomplete({
           // Update the input element directly (uncontrolled input)
           if (inputRef.current) {
             inputRef.current.value = addressToSet;
-            setInputValue(addressToSet);
           }
           
           // Update the form state via onChange - call this immediately to ensure it's set
@@ -552,7 +549,6 @@ export function AddressAutocomplete({
             if (process.env.NODE_ENV === 'development') {
               logger.debug('Input onChange fired with value:', newValue);
             }
-            setInputValue(newValue);
             // Update parent component
             onChangeRef.current(newValue);
             // Reset typing flag after a short delay
@@ -607,10 +603,12 @@ export function AddressAutocomplete({
             }, 200); // Increased delay to allow place_changed to fire
             
             // Store timeout to clear if needed
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (e.target as any)._blurTimeout = blurTimeout;
           }}
           onFocus={(e) => {
             // Clear any pending blur timeout
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const target = e.target as any;
             if (target._blurTimeout) {
               clearTimeout(target._blurTimeout);

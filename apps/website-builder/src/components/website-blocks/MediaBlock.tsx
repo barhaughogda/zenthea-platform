@@ -109,7 +109,6 @@ function isDirectVideoUrl(url: string): boolean {
 
 export default function MediaBlock({
   props,
-  isPreview,
   theme,
   appearance,
   blockId,
@@ -215,6 +214,7 @@ export default function MediaBlock({
         >
           {/* Thumbnail if available */}
           {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imageUrl}
               alt="Video thumbnail"
@@ -283,6 +283,7 @@ export default function MediaBlock({
 
     return (
       <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={currentImage.url}
           alt={currentImage.alt || 'Media image'}

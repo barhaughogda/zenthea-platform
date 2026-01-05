@@ -28,7 +28,6 @@ import {
   TextTokens,
   DEFAULT_BLOCK_APPEARANCE,
   type BlockInstance,
-  type BlockType,
   type BlockAppearance,
   type BackgroundToken,
   type TextToken,
@@ -144,7 +143,6 @@ interface BlockConfigPanelProps {
   block: BlockInstance | null;
   onUpdate: (props: Record<string, unknown>) => void;
   onAppearanceUpdate?: (appearance: BlockAppearance | undefined) => void;
-  onClose: () => void;
   disabled?: boolean;
 }
 
@@ -380,7 +378,7 @@ function AppearanceConfigForm({
           <Label className="text-xs text-text-secondary">Maximum Content Width</Label>
           <Select
             value={appearance?.maxWidth || 'normal'}
-            onValueChange={(value) => handleUpdate({ maxWidth: value as any })}
+            onValueChange={(value) => handleUpdate({ maxWidth: value as BlockAppearance['maxWidth'] })}
             disabled={disabled}
           >
             <SelectTrigger className="w-full h-8 text-xs">
@@ -401,7 +399,7 @@ function AppearanceConfigForm({
             <Label className="text-xs text-text-secondary">Top Padding</Label>
             <Select
               value={appearance?.paddingTop || 'medium'}
-              onValueChange={(value) => handleUpdate({ paddingTop: value as any })}
+              onValueChange={(value) => handleUpdate({ paddingTop: value as BlockAppearance['paddingTop'] })}
               disabled={disabled}
             >
               <SelectTrigger className="w-full h-8 text-xs">
@@ -419,7 +417,7 @@ function AppearanceConfigForm({
             <Label className="text-xs text-text-secondary">Bottom Padding</Label>
             <Select
               value={appearance?.paddingBottom || 'medium'}
-              onValueChange={(value) => handleUpdate({ paddingBottom: value as any })}
+              onValueChange={(value) => handleUpdate({ paddingBottom: value as BlockAppearance['paddingBottom'] })}
               disabled={disabled}
             >
               <SelectTrigger className="w-full h-8 text-xs">
@@ -688,7 +686,7 @@ function HeroBackgroundConfigForm({
             <Label className="text-xs text-text-secondary">Top Padding</Label>
             <Select
               value={appearance?.paddingTop || 'medium'}
-              onValueChange={(value) => handleLayoutUpdate({ paddingTop: value as any })}
+              onValueChange={(value) => handleLayoutUpdate({ paddingTop: value as BlockAppearance['paddingTop'] })}
               disabled={disabled}
             >
               <SelectTrigger className="w-full h-8 text-xs">
@@ -706,7 +704,7 @@ function HeroBackgroundConfigForm({
             <Label className="text-xs text-text-secondary">Bottom Padding</Label>
             <Select
               value={appearance?.paddingBottom || 'medium'}
-              onValueChange={(value) => handleLayoutUpdate({ paddingBottom: value as any })}
+              onValueChange={(value) => handleLayoutUpdate({ paddingBottom: value as BlockAppearance['paddingBottom'] })}
               disabled={disabled}
             >
               <SelectTrigger className="w-full h-8 text-xs">
@@ -1734,9 +1732,8 @@ export function BlockConfigPanel({
   block,
   onUpdate,
   onAppearanceUpdate,
-  onClose,
   disabled,
-}: BlockConfigPanelProps) {
+}: Omit<BlockConfigPanelProps, 'onClose'>) {
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
 
   if (!block) {

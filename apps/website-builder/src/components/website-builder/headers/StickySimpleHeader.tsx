@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
-import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor, getButtonHoverBgColor, getButtonHoverTextColor } from '@/lib/website-builder/theme-utils';
+import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor, getButtonHoverBgColor } from '@/lib/website-builder/theme-utils';
 import {
   DEFAULT_HEADER_BACKGROUND,
   DEFAULT_HEADER_TEXT,
@@ -24,7 +24,6 @@ import {
 
 export default function StickySimpleHeader({
   config,
-  tenantId,
   isPreview = false,
   tenantName = 'Clinic',
   theme,

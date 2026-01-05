@@ -247,7 +247,7 @@ export function LivePreview({
         clearTimeout(updateTimeoutRef.current);
       }
     };
-  }, [templateId, header, footer, theme, blocks, tenantName, tenantId, logoUrl, contactInfo, pages, activePageId, selectedBlockId, isReady, sendUpdate]);
+  }, [isReady, sendUpdate, previewData]);
 
   // Listen for messages from iframe
   // Security: Validate origin and message type

@@ -45,7 +45,7 @@ declare global {
           ) => GoogleMapsAutocompleteInstance;
         };
         event: {
-          clearInstanceListeners: (instance: any) => void;
+          clearInstanceListeners: (instance: unknown) => void;
           removeListener: (listener: google.maps.MapsEventListener) => void;
         };
       };

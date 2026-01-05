@@ -3,10 +3,10 @@
  */
 
 export const StaticImageManager = {
-  getOptimizedImage: (src: string, options: any) => src,
-  getFallbackImage: (type: string) => '/placeholder.png',
-  generateSrcSet: (src: string, breakpoints: number[], options: any) => undefined,
-  getLazyImage: (src: string, options: any) => ({ blurDataURL: undefined }),
+  getOptimizedImage: (src: string, _options: Record<string, unknown>) => src,
+  getFallbackImage: (_type: string) => '/placeholder.png',
+  generateSrcSet: (_src: string, _breakpoints: number[], _options: Record<string, unknown>) => undefined,
+  getLazyImage: (_src: string, _options: Record<string, unknown>) => ({ blurDataURL: undefined }),
 };
 
 export const ImageUtils = {

@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   type PageConfig,
   type PageType,
-  PAGE_METADATA,
 } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import {
@@ -70,7 +69,6 @@ interface PageVisibilityRowProps {
 }
 
 function PageVisibilityRow({ page, mode, onToggle, disabled }: PageVisibilityRowProps) {
-  const metadata = PAGE_METADATA[page.type];
   const Icon = pageIcons[page.type];
   const isLegalPage = page.type === 'terms' || page.type === 'privacy';
   

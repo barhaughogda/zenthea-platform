@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import type { Area, Point } from 'react-easy-crop';
 import {
@@ -102,7 +102,7 @@ export function LogoCropDialog({
   }, [onOpenChange]);
 
   // Reset state when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       setCrop({ x: 0, y: 0 });
       setZoom(1);

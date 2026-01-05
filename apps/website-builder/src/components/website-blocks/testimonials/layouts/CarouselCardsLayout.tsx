@@ -82,6 +82,7 @@ export function CarouselCardsLayout({
               {/* Avatar & Rating Row */}
               <div className="flex items-center gap-3 mb-4">
                 {testimonial.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={testimonial.imageUrl}
                     alt={testimonial.imageAlt || testimonial.name}

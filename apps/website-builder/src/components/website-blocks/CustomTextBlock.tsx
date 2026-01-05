@@ -11,7 +11,7 @@ import React from 'react';
 import DOMPurify from 'isomorphic-dompurify';
 import { CustomTextBlockProps } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
-import { BlockSection, useAppearanceStyles } from './BlockSection';
+import { BlockSection } from './BlockSection';
 import { cn } from '@/lib/utils';
 import { getPrimaryColor, getTertiaryTextColor } from '@/lib/website-builder/theme-utils';
 
@@ -28,9 +28,7 @@ export default function CustomTextBlock({
     title,
     content,
     showTitle = true,
-    backgroundColor = '#ffffff',
     textColor = '#000000',
-    maxWidth = 'normal',
   } = props;
 
   const primaryColor = getPrimaryColor(theme);
@@ -39,17 +37,6 @@ export default function CustomTextBlock({
   // Use hex color values directly
   const contentTextColor = textColor;
   const contentHeadingColor = textColor; // Use same color for headings, or could be slightly darker
-
-  const getBgStyle = (): React.CSSProperties => {
-    return { backgroundColor };
-  };
-
-  const maxWidthClasses = {
-    narrow: 'max-w-2xl',
-    normal: 'max-w-4xl',
-    wide: 'max-w-6xl',
-    full: 'max-w-7xl',
-  };
 
   // Build CSS variables for theming (using Tailwind Typography's variable names)
   const contentStyle: React.CSSProperties = {
