@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ObservabilityContext {
@@ -9,7 +8,27 @@ export interface ObservabilityContext {
   environment: string;
 }
 
-const contextStorage = new AsyncLocalStorage<ObservabilityContext>();
+// Browser-safe AsyncLocalStorage shim
+class MockAsyncLocalStorage<T> {
+  getStore() { return undefined; }
+  run<R>(_store: T, fn: () => R): R {
+    return fn();
+  }
+}
+
+let contextStorage: any;
+
+if (typeof window === 'undefined') {
+  // We use dynamic require to avoid bundling issues in the browser
+  try {
+    const { AsyncLocalStorage } = require('async_hooks');
+    contextStorage = new AsyncLocalStorage();
+  } catch (e) {
+    contextStorage = new MockAsyncLocalStorage();
+  }
+} else {
+  contextStorage = new MockAsyncLocalStorage();
+}
 
 export const getContext = (): ObservabilityContext | undefined => {
   return contextStorage.getStore();
