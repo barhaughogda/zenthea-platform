@@ -8,8 +8,8 @@
  */
 
 import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
 import { AlertCircle } from 'lucide-react';
 import { getContrastRatio, getContrastStatus, isValidHex } from '@/lib/website-builder/contrast';
 

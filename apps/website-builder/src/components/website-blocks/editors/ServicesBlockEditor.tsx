@@ -3,11 +3,11 @@
 import React from 'react';
 import { ServicesBlockProps, servicesBlockPropsSchema } from '@/lib/website-builder/schema';
 import { BlockEditorProps } from '../block-registry';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
+import { Switch } from '@starter/ui';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@starter/ui';
 
 export default function ServicesBlockEditor({ props, onChange }: BlockEditorProps) {
   const servicesProps = servicesBlockPropsSchema.parse(props) as ServicesBlockProps;

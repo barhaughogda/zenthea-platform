@@ -11,7 +11,7 @@ import React from 'react';
 import { HeroBlockProps } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles, resolveTextToken } from './BlockSection';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { getPrimaryColor, getButtonHoverBgColor, getButtonHoverTextColor } from '@/lib/website-builder/theme-utils';

@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@starter/ui';
+import { Switch } from '@starter/ui';
+import { Label } from '@starter/ui';
 import {
   HEADER_VARIANTS,
   HEADER_METADATA,

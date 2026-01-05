@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { ImageIcon, X, Upload, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { cn } from '@/lib/utils';
 import { LogoCropDialog } from './LogoCropDialog';
 import { createImagePreviewUrl } from '@/lib/images/crop-image';

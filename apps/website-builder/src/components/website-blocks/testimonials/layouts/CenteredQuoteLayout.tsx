@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { Star, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import type { TestimonialLayoutProps } from '../types';
 import { 
   getPrimaryColor, 

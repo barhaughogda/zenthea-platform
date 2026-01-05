@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@starter/ui';
+import { Badge } from '@starter/ui';
+import { Popover, PopoverContent, PopoverTrigger } from '@starter/ui';
 import {
   BLOCK_METADATA,
   BLOCK_TYPES,

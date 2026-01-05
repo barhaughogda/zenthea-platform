@@ -8,16 +8,16 @@
  */
 
 import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Label } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Button } from '@starter/ui';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@starter/ui';
 import {
   Plus,
   Trash2,

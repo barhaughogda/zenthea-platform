@@ -8,9 +8,9 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@starter/ui';
+import { Switch } from '@starter/ui';
+import { Badge } from '@starter/ui';
 import {
   type PageConfig,
   type PageType,

@@ -12,11 +12,11 @@ import React, { useState, useCallback } from 'react';
 import { FooterSelector } from './FooterSelector';
 import { PageNavVisibilitySettings } from './PageNavVisibilitySettings';
 import { FooterMenuEditor } from './FooterMenuEditor';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@starter/ui';
+import { Button } from '@starter/ui';
+import { Switch } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
 import {
   Collapsible,
   CollapsibleContent,

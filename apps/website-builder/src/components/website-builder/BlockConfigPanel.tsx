@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Label } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Textarea } from '@starter/ui';
+import { Switch } from '@starter/ui';
 import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { CustomTextBlockFormFields } from '@/components/website-blocks/editors/CustomTextBlockFormFields';
 import { FAQContentConfigForm } from './block-config/FAQContentConfigForm';
 import { FAQAppearanceControls } from './block-config/FAQAppearanceControls';
@@ -16,7 +16,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@starter/ui';
 import {
   Collapsible,
   CollapsibleContent,

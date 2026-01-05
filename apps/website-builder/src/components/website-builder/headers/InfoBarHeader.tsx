@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import type { HeaderConfig } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Menu, X, Phone, Clock, Info } from 'lucide-react';

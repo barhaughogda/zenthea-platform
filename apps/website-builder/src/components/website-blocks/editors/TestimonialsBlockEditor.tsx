@@ -18,12 +18,12 @@ import {
   type TestimonialsLayout 
 } from '@/lib/website-builder/schema';
 import { BlockEditorProps } from '../block-registry';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
+import { Textarea } from '@starter/ui';
+import { Button } from '@starter/ui';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@starter/ui';
 import { Plus, Trash2, Star } from 'lucide-react';
 
 /**

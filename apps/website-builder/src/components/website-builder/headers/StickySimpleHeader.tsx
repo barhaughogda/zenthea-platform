@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { HeaderComponentProps } from './HeaderRenderer';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';

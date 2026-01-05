@@ -7,9 +7,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '@starter/ui';
+import { Button } from '@starter/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@starter/ui';
 import { SiteStructureSelector } from './SiteStructureSelector';
 import { ThemeSettings } from './ThemeSettings';
 import { PageManager } from './PageManager';

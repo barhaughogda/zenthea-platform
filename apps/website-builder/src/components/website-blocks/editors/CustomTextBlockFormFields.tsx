@@ -6,10 +6,10 @@
  */
 
 import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
+import { Switch } from '@starter/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@starter/ui';
 import { RichTextEditor, EDITOR_MIN_HEIGHT, EDITOR_MAX_HEIGHT, EDITOR_SIDEBAR_MIN_HEIGHT, EDITOR_SIDEBAR_MAX_HEIGHT } from '@/components/ui/rich-text-editor';
 import type { CustomTextBlockProps } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';

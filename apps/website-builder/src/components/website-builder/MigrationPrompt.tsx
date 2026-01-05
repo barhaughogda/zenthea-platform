@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import {
   Card,
   CardContent,
@@ -18,7 +18,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from '@starter/ui';
 import {
   AlertDialog,
   AlertDialogAction,

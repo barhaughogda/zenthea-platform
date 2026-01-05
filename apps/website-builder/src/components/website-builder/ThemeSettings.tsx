@@ -1,17 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Label } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Button } from '@starter/ui';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+} from '@starter/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@starter/ui';
 import { type ThemeConfig, type HeaderConfig, FONT_PAIRS, DEFAULT_THEME } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Palette, Type, Square, RotateCcw, ImageIcon } from 'lucide-react';

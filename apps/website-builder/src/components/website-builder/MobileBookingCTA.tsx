@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { cn } from '@/lib/utils';
 import { Calendar, Phone, X } from 'lucide-react';
 import Link from 'next/link';

@@ -10,9 +10,9 @@
 import React, { useState } from 'react';
 import { HeroBlockProps, heroBlockPropsSchema } from '@/lib/website-builder/schema';
 import { BlockEditorProps } from '../block-registry';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
+import { Textarea } from '@starter/ui';
 import { Slider } from '@/components/ui/slider';
 import {
   Select,
@@ -20,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@starter/ui';
 import { ChevronDown, ChevronRight, Palette, Type, ImageIcon } from 'lucide-react';
 
 // Button appearance tokens for dropdown options

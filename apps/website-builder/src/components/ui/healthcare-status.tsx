@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@starter/ui';
 import { cn } from '@/lib/utils';
 
 // Simple status components using standard shadcn Badge

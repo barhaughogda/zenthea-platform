@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useTheme } from '@/lib/theme-context';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@starter/ui';
+import { Card, CardContent } from '@starter/ui';
 import { cn } from '@/lib/utils';
 
 interface ThemeToggleProps {

@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { Check, ChevronsUpDown, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import {
   Command,
   CommandEmpty,
@@ -16,8 +16,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
+} from '@starter/ui';
+import { Label } from '@starter/ui';
 
 /**
  * Common timezones organized by region

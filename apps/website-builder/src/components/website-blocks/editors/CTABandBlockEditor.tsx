@@ -10,9 +10,9 @@
 import React, { useState } from 'react';
 import { CTABandBlockProps, ctaBandBlockPropsSchema } from '@/lib/website-builder/schema';
 import { BlockEditorProps } from '../block-registry';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@starter/ui';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 // Button appearance tokens for dropdown options

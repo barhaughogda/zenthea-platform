@@ -8,14 +8,14 @@
  */
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
+import { Label } from '@starter/ui';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@starter/ui';
 
 // =============================================================================
 // TYPES

@@ -8,8 +8,8 @@
 
 import React, { useState } from 'react';
 import { Star, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@starter/ui';
+import { Card, CardContent } from '@starter/ui';
 import type { TestimonialLayoutProps } from '../types';
 import { 
   getPrimaryColor, 

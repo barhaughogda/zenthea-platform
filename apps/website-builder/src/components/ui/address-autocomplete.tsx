@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@starter/ui";
+import { Label } from "@starter/ui";
 import { Loader2 } from "lucide-react";
 import { logger } from "@/lib/logger";
 import type { GooglePlaceResult, GoogleMapsAutocompleteInstance } from "@/types/google-maps";

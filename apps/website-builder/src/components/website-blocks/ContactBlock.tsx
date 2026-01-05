@@ -13,7 +13,7 @@ import { api } from '../../../convex/_generated/api';
 import { ContactBlockProps } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles } from './BlockSection';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@starter/ui';
 import { cn } from '@/lib/utils';
 import { Phone, Mail, MapPin, Clock, ExternalLink } from 'lucide-react';
 import { getPrimaryColor, getPrimaryTextColor, getSecondaryTextColor } from '@/lib/website-builder/theme-utils';

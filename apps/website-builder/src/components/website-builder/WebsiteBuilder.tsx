@@ -9,15 +9,15 @@ import { useQuery, useMutation } from 'convex/react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/convex/_generated/api';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+} from '@starter/ui';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@starter/ui';
 import {
   BlockCanvas,
   BlockConfigPanel,

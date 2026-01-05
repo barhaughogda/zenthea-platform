@@ -8,16 +8,16 @@
  */
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Textarea } from '@starter/ui';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@starter/ui';
 import { ImageUpload } from '../ImageUpload';
 
 // =============================================================================

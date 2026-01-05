@@ -2,9 +2,8 @@
 
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-
-import { cn } from "@/lib/utils"
-import { UI_Z_INDEX } from "@/lib/z-index"
+import { cn } from "../lib/utils"
+import { UI_Z_INDEX } from "../lib/z-index"
 
 const TooltipProvider = TooltipPrimitive.Provider
 

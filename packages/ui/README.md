@@ -5,6 +5,20 @@ The `@starter/ui` package is the centralized design system and component library
 
 ## Responsibilities
 - **Design System Implementation**: Provides the building blocks (atoms, molecules, organisms) for all platform UIs.
+- **Components**:
+  - `Button`: Versatile button component with variants.
+  - `Card`: Container component for content grouping.
+  - `Input`: Standard text input field.
+  - `Label`: Accessible label component.
+  - `Badge`: Status and informational badges.
+  - `Separator`: Visual divider.
+  - `Tabs`: Tabbed navigation and content switching.
+  - `Textarea`: Multi-line text input.
+  - `Dialog`: Accessible modal dialogs.
+  - `Select`: Customizable dropdown selection.
+  - `Popover`: Contextual popup containers.
+  - `Tooltip`: Hover-activated informational snippets.
+  - `Switch`: Binary toggle control.
 - **Mobile-First Primitives**: Implements layout and interaction patterns optimized for small screens and touch.
 - **Accessibility**: Ensures all shared components meet WCAG standards and provide a high-quality experience for all users.
 - **Reusable Layouts**: Defines the core shells, navigation structures, and responsive primitives used by apps.

@@ -10,9 +10,9 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+} from '@starter/ui';
+import { Button } from '@starter/ui';
+import { Label } from '@starter/ui';
 import { Slider } from '@/components/ui/slider';
 import { Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 import { cropImage, type CropArea } from '@/lib/images/crop-image';

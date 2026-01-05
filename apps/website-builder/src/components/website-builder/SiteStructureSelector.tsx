@@ -9,8 +9,8 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@starter/ui';
+import { Badge } from '@starter/ui';
 import { type SiteStructure, siteStructureMetadata } from '@/lib/website-builder/schema';
 import { cn } from '@/lib/utils';
 import { Check, FileText, Files } from 'lucide-react';

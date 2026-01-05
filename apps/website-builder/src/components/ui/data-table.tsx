@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Badge } from '@starter/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@starter/ui';
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Label } from '@starter/ui';
 
 /**
  * Configuration for a table column

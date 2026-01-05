@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { cn } from '@/lib/utils';
 
 // =============================================================================

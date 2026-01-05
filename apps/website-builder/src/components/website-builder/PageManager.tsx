@@ -11,12 +11,12 @@
  */
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@starter/ui';
+import { Button } from '@starter/ui';
+import { Switch } from '@starter/ui';
+import { Badge } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
+} from '@starter/ui';
 import {
   type PageConfig,
   type PageType,

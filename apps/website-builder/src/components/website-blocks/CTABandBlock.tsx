@@ -14,7 +14,7 @@ import React from 'react';
 import { CTABandBlockProps, type BackgroundToken, type TextToken } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles, resolveBackgroundToken, resolveTextToken } from './BlockSection';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { ArrowRight, Calendar } from 'lucide-react';

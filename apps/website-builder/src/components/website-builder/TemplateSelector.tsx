@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@starter/ui';
+import { Button } from '@starter/ui';
+import { Badge } from '@starter/ui';
 import {
   TEMPLATE_IDS,
   TEMPLATE_METADATA,

@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { Star, Quote } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@starter/ui';
 import type { TestimonialLayoutProps } from '../types';
 import { 
   getPrimaryColor, 

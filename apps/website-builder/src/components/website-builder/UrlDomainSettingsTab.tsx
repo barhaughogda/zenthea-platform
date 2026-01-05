@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@starter/ui';
 import { Globe, Save, Loader2, Eye, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useClinicProfile } from '@/hooks/useClinicProfile';

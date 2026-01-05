@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { MediaBlockProps } from '@/lib/website-builder/schema';
 import { BlockComponentProps } from './block-registry';
 import { BlockSection, useAppearanceStyles } from './BlockSection';
-import { Button } from '@/components/ui/button';
+import { Button } from '@starter/ui';
 import { cn } from '@/lib/utils';
 import {
   Play,

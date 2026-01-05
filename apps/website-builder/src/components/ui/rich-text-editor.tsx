@@ -52,7 +52,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@starter/ui';
 import {
   Dialog,
   DialogContent,
@@ -60,10 +60,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+} from '@starter/ui';
+import { Input } from '@starter/ui';
+import { Label } from '@starter/ui';
+import { Button } from '@starter/ui';
 import { Checkbox } from '@/components/ui/checkbox';
 
 // =============================================================================
