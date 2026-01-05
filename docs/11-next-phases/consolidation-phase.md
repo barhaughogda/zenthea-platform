@@ -201,7 +201,7 @@ Deliverable:
 - Record the baseline tag name under "Baseline Tag".
 
 ### Baseline Tag
-- 
+- platform-baseline-v1.0.0
 
 ---
 
