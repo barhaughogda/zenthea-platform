@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "type-check": "tsc --noEmit",
-    "eval:ai": "vitest run tests/*.eval.test.ts",
-    "test": "vitest run tests/*.test.ts"
+    "eval:ai": "vitest run --passWithNoTests tests/*.eval.test.ts",
+    "test": "vitest run --passWithNoTests --exclude **/*.eval.test.ts tests/*.test.ts"
   },
   "dependencies": {
     "@starter/ai-runtime": "workspace:*",

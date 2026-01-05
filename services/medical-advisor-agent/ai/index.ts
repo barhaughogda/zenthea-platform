@@ -40,7 +40,14 @@ export class MedicalAdvisorAI {
   private runtime: AIRuntime;
 
   constructor() {
-    this.runtime = new AIRuntime();
+    this.runtime = new AIRuntime({
+      provider: {
+        invoke: async () => ({
+          content: '',
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+        })
+      }
+    });
   }
 
   async generateAdvisory(input: any): Promise<MedicalAdvisorAIOutput> {

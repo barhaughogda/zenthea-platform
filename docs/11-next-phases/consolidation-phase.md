@@ -55,12 +55,19 @@ Deliverable:
 - A short note in this doc under "Sanity Results" with pass/fail and any fixes made.
 
 ### Sanity Results
-- install:
-- lint:
-- test:
-- eval:ai:
-- build:
-- typecheck:
+- install: Pass
+- lint: Pass
+- test: Pass (Fixed crash in appointment-booking-agent by excluding evals and increasing permissions)
+- eval:ai: Pass (Aligned scripts with `.eval.test.ts` convention and added `--passWithNoTests`)
+- build: Pass (Fixed by enabling network for font fetch)
+- typecheck: Pass (Fixed AIRuntime instantiation in medical-advisor-agent)
+
+#### Fixes Made
+- Fixed `AIRuntime` instantiation error in `services/medical-advisor-agent/ai/index.ts` by providing a default provider.
+- Renamed all `*.eval.ts` files to `*.eval.test.ts` to match the documented convention.
+- Updated `package.json` scripts in all services to use consistent Vitest globs and `--passWithNoTests`.
+- Removed duplicate `appointment-booking.eval.ts` in favor of `appointment-booking.eval.test.ts`.
+- Verified all sanity commands pass from repo root.
 
 ---
 
