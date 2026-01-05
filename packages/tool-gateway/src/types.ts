@@ -151,16 +151,23 @@ export interface ToolGatewayEvent {
  */
 export type AgentType = 'patient-facing' | 'clinical' | 'platform' | 'unknown';
 
-export type GovernanceReasonCode = 'UNKNOWN_AGENT' | 'UNKNOWN_TOOL' | 'SCOPE_DENIED';
+export type GovernanceReasonCode = 
+  | 'UNKNOWN_AGENT' 
+  | 'UNKNOWN_TOOL' 
+  | 'SCOPE_DENIED'
+  | 'FEATURE_DISABLED'
+  | 'RATE_LIMITED'
+  | 'VALIDATION_FAILED';
 
 /**
- * Governance event for tool invocation denies.
+ * Governance control result for tool invocation denies.
  * 🚫 STRICTLY NO PHI, tenantId, actorId, or requestId.
  */
-export interface GovernanceEvent {
-  agentType: AgentType;
-  toolName: string;
+export interface GovernanceControlResult {
+  decision: 'DENIED';
   reasonCode: GovernanceReasonCode;
+  toolName: string;
+  agentType: AgentType;
   timestamp: string;
 }
 
@@ -190,7 +197,7 @@ export interface IToolTelemetryLogger {
  * Interface for governance logging.
  */
 export interface IGovernanceLogger {
-  emit(event: GovernanceEvent): Promise<void>;
+  emit(event: GovernanceControlResult): Promise<void>;
 }
 
 /**
