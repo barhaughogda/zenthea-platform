@@ -9,6 +9,7 @@ import {
 } from './types';
 import { validateExecutionCommand } from './validation';
 import { ToolTelemetryLogger } from './audit';
+import { toolGatewayMetrics } from './metrics';
 
 /**
  * Tool Execution Gateway
@@ -156,6 +157,36 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       await this.telemetryLogger.emit(telemetryEvent).catch(err => {
         console.error('Failed to emit telemetry:', err);
       });
+
+      // 8. Emit metrics (Derived from telemetry - NO PHI, Low cardinality)
+      const metricToolName = telemetryEvent.toolName;
+      const metricActorType = telemetryEvent.actorType;
+
+      toolGatewayMetrics.recordRequest({
+        toolName: metricToolName,
+        decision: telemetryEvent.decision,
+        actorType: metricActorType,
+      });
+
+      toolGatewayMetrics.recordLatency({
+        toolName: metricToolName,
+        decision: telemetryEvent.decision,
+        latencyMs,
+      });
+
+      if (errorCode) {
+        toolGatewayMetrics.recordError({
+          toolName: metricToolName,
+          errorCode,
+        });
+
+        if (telemetryEvent.decision === 'rate_limited') {
+          toolGatewayMetrics.recordRateLimited({
+            toolName: metricToolName,
+            actorType: metricActorType,
+          });
+        }
+      }
     }
   }
 

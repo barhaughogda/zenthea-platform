@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "zod": "^3.23.8",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "@starter/observability": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
