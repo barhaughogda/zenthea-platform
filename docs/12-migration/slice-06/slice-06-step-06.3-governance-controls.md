@@ -1,7 +1,7 @@
 # Slice 06 – Step 06.3: Governance Controls (Non-Blocking)
 
 ## Status
-Planned
+Completed
 
 ## Objective
 Introduce **explicit governance control signaling** in the Tool Gateway without changing execution behavior.
@@ -135,12 +135,12 @@ Hard stops:
 
 ## Acceptance Criteria
 
-- [ ] GovernanceControlResult type defined
-- [ ] Deny decisions emit control output
-- [ ] Reason codes are normalized and reused
-- [ ] No behavior change from previous slices
-- [ ] pnpm typecheck passes
-- [ ] Zero PHI verified
+- [x] GovernanceControlResult type defined
+- [x] Deny decisions emit control output
+- [x] Reason codes are normalized and reused
+- [x] No behavior change from previous slices
+- [x] pnpm typecheck passes
+- [x] Zero PHI verified
 
 ---
 
