@@ -1,2 +1,1 @@
-/* eslint-disable */
-export const ProviderCredentials = (props: any) => null;
+export const ProviderCredentials = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;

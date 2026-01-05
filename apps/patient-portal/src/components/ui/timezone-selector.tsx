@@ -1,4 +1,2 @@
-/* eslint-disable */
-import React from 'react';
 
-export const TimezoneSelector = (props: any) => <select {...props}><option>UTC</option></select>;
+export const TimezoneSelector = (props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => <select {...props}><option>UTC</option></select>;

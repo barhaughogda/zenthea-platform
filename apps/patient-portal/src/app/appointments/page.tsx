@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -15,7 +14,6 @@ import { useAppointments, type ConvexAppointment } from '@/hooks/useAppointments
 import { useCardSystem } from '@/components/cards/CardSystemProvider';
 import { CardType, Priority, TaskStatus } from '@/components/cards/types';
 import { useZentheaSession } from '@/hooks/useZentheaSession';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface Appointment {
@@ -55,7 +53,6 @@ export default function PatientAppointmentsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { data: session } = useZentheaSession();
-  const router = useRouter();
 
   // Use the main card system for appointments
   const { openCard } = useCardSystem();
@@ -96,7 +93,7 @@ export default function PatientAppointmentsPage() {
         },
         type: apt.type,
         status: apt.status,
-        location: (apt as any).locationName || 'Main Office',
+        location: (apt as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).locationName || 'Main Office',
         locationId: apt.locationId ? String(apt.locationId) : undefined,
         duration: durationStr,
         durationMinutes: durationMinutes,
@@ -170,7 +167,7 @@ export default function PatientAppointmentsPage() {
 
     // Get date/time values
     const aptDate = isFormattedAppointment 
-      ? ((appointment as any).originalDate || appointment.date || '')
+      ? ((appointment as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).originalDate || appointment.date || '')
       : (appointment as Appointment).date;
     
     // Parse scheduledAt from the full appointment data if available
@@ -194,7 +191,7 @@ export default function PatientAppointmentsPage() {
       time: appointment.time,
       date: aptDate,
       duration: durationMinutes,
-      type: isFormattedAppointment ? ((appointment as any).title || appointment.type || 'consultation') : appointment.type || 'consultation',
+      type: isFormattedAppointment ? ((appointment as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).title || appointment.type || 'consultation') : appointment.type || 'consultation',
       status: appointment.status,
       location: appointment.location || '',
       locationId: (appointment as Appointment).locationId || fullAppointment?.locationId,

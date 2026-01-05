@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { useZentheaSession } from '@/hooks/useZentheaSession';
 import { PatientProfileDashboard } from '@/components/patient/PatientProfileDashboard';

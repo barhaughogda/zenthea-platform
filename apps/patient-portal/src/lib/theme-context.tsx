@@ -1,7 +1,6 @@
-/* eslint-disable */
 import React, { createContext, useContext } from 'react';
 
-const ThemeContext = createContext<any>(null);
+const ThemeContext = createContext<any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */>(null);
 
 export const ZentheaThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const value = {

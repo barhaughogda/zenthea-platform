@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -6,10 +5,9 @@ import { useZentheaSession } from '@/hooks/useZentheaSession';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { Bell, Shield, Palette, Languages, Monitor, Moon, Sun, Lock, CreditCard, Calendar, Building2, Clock, Globe, Eye } from 'lucide-react';
+import { Bell, Shield, Palette, Languages, Monitor, Moon, Sun, Lock, CreditCard, Building2, Globe, Eye, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -31,10 +29,10 @@ export const dynamic = 'force-dynamic';
 function PatientSettingsContent() {
   const { data: session, status } = useZentheaSession();
   const { theme, setTheme: setThemeFromHook } = useTheme();
-  const { patientId, patientProfile, isLoading: patientLoading } = usePatientProfileData();
-  const changePasswordAction = (useAction as any)(api.users.changePassword);
-  const updatePatient = (useMutation as any)(api.patients.updatePatient);
-  const updatePatientTimezone = (useMutation as any)(api.patients.updatePatientTimezone);
+  const { patientId, patientProfile } = usePatientProfileData();
+  const changePasswordAction = (useAction as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(api.users.changePassword);
+  const updatePatient = (useMutation as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(api.patients.updatePatient);
+  const updatePatientTimezone = (useMutation as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(api.patients.updatePatientTimezone);
   
   // Booking preferences state
   const [preferredClinicId, setPreferredClinicId] = useState<string>('');

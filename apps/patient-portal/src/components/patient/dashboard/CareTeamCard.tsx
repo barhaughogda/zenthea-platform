@@ -1,2 +1,1 @@
-/* eslint-disable */
-export const CareTeamCard = (props: any) => null;
+export const CareTeamCard = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;

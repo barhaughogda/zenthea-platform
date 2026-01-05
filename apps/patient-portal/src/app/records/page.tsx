@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -44,35 +43,39 @@ function PatientRecordsContent() {
     const currentIndex = tabs.findIndex(tab => tab.id === tabId);
     
     switch (e.key) {
-      case 'ArrowRight':
+      case 'ArrowRight': {
         e.preventDefault();
         shouldFocusAfterChange.current = true;
         const nextIndex = (currentIndex + 1) % tabs.length;
         const nextTab = tabs[nextIndex];
         if (nextTab) setActiveMedicalTab(nextTab.id);
         break;
+      }
       
-      case 'ArrowLeft':
+      case 'ArrowLeft': {
         e.preventDefault();
         shouldFocusAfterChange.current = true;
         const prevIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
         const prevTab = tabs[prevIndex];
         if (prevTab) setActiveMedicalTab(prevTab.id);
         break;
+      }
       
-      case 'Home':
+      case 'Home': {
         e.preventDefault();
         shouldFocusAfterChange.current = true;
         const firstTab = tabs[0];
         if (firstTab) setActiveMedicalTab(firstTab.id);
         break;
+      }
       
-      case 'End':
+      case 'End': {
         e.preventDefault();
         shouldFocusAfterChange.current = true;
         const lastTab = tabs[tabs.length - 1];
         if (lastTab) setActiveMedicalTab(lastTab.id);
         break;
+      }
       
       case 'Enter':
       case ' ':

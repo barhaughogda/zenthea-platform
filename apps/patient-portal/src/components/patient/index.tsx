@@ -1,5 +1,3 @@
-/* eslint-disable */
-import React from 'react';
 
 export const NotificationCenter = () => <div>Notification Center</div>;
 export const PatientAppointmentsList = () => <div>Patient Appointments List</div>;

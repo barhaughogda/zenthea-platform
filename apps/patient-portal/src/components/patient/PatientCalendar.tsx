@@ -1,2 +1,1 @@
-/* eslint-disable */
-export const PatientCalendar = (props: any) => null;
+export const PatientCalendar = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;

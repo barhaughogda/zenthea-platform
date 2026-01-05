@@ -1,5 +1,3 @@
-/* eslint-disable */
-import React from 'react';
 
-export const ErrorState = (props: any) => null;
-export const InvoicesEmptyState = (props: any) => null;
+export const ErrorState = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;
+export const InvoicesEmptyState = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;

@@ -1,5 +1,3 @@
-/* eslint-disable */
-import React from 'react';
 
 export const CareTeamCard = () => <div>Care Team Card</div>;
 export const DashboardAppointmentsWidget = () => <div>Dashboard Appointments Widget</div>;

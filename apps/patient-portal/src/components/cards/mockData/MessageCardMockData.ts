@@ -1,4 +1,5 @@
-/* eslint-disable */
-export const MessageCardMockData = [];
-export const createMockMessageData = (...args: any[]) => [];
-export const mockMessageHandlers = {};
+import { mockMessagingService } from '@/mocks/messaging';
+
+export const MessageCardMockData = mockMessagingService.getMessages();
+export const createMockMessageData = (..._args: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */[]) => mockMessagingService.getMessages();
+export const mockMessageHandlers = mockMessagingService.getMessageHandlers();

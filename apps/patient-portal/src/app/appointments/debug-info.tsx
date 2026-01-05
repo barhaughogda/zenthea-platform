@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import { useZentheaSession } from '@/hooks/useZentheaSession';
@@ -62,7 +61,6 @@ export function AppointmentsDebugInfo() {
   const appointmentsLoading = appointments === undefined && patient?._id;
   
   const hasPatient = patient !== null && patient !== undefined;
-  const hasAppointments = Array.isArray(appointments) && appointments.length > 0;
 
   return (
     <Card className="border-status-warning bg-status-warning-bg/30">

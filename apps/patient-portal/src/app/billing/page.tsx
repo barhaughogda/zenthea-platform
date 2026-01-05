@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { canUseConvexQuery, isValidConvexIdForTable, isValidConvexId } from '@/l
 import { PatientClaimDetailsDrawer } from '@/components/billing/PatientClaimDetailsDrawer';
 import { PatientPaymentModal } from '@/components/billing/PatientPaymentModal';
 import { getClaimStatusMessage, getClaimStatusHelpfulMessage } from '@/lib/billing/claim-status';
-import { getStatusLabel, getStatusColor, getStatusBadgeVariant } from '@/lib/billing/statusMapping';
+import { getStatusLabel, getStatusColor } from '@/lib/billing/statusMapping';
 import { PatientBillingSummarySkeleton, PatientInvoiceCardsSkeleton } from '@/components/billing/BillingSkeletons';
 import { ErrorState, InvoicesEmptyState } from '@/components/billing/BillingStates';
 import type { ClaimStatus } from '@/types/billing';
@@ -45,8 +44,8 @@ export default function PatientBillingPage() {
   
   // Find patient ID
   // Note: Using type assertion because patientProfile may not be in generated types if codegen was skipped
-  const foundPatientId = (useQuery as any)(
-    (api as any).patientProfile?.findPatientByEmail,
+  const foundPatientId = (useQuery as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(
+    (api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).patientProfile?.findPatientByEmail,
     canQueryByEmail && patientEmail && patientEmail.length > 0 
       ? { email: patientEmail, tenantId } 
       : 'skip'
@@ -57,14 +56,14 @@ export default function PatientBillingPage() {
 
   // Get billing data using new getPatientInvoices query (Task 5.1)
   // Note: Using type assertion because billing may not be in generated types if codegen was skipped
-  const invoices = (useQuery as any)(
-    (api as any).billing?.getPatientInvoices,
+  const invoices = (useQuery as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(
+    (api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).billing?.getPatientInvoices,
     isValidPatientId && patientEmail ? { patientId: foundPatientId as Id<'patients'>, userEmail: patientEmail } : 'skip'
   );
 
   // Get billing summary
   const billingSummary = useQuery(
-    (api as any).billing?.getPatientBillingSummary,
+    (api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).billing?.getPatientBillingSummary,
     isValidPatientId && patientEmail ? { patientId: foundPatientId as Id<'patients'>, userEmail: patientEmail } : 'skip'
   );
 
@@ -655,7 +654,7 @@ export default function PatientBillingPage() {
         <PatientClaimDetailsDrawer
           claimId={selectedClaimId}
           open={isClaimDrawerOpen}
-          onOpenChange={(open: any) => {
+          onOpenChange={(open: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
             setIsClaimDrawerOpen(open);
             if (!open) {
               setSelectedClaimId(null);
@@ -670,7 +669,7 @@ export default function PatientBillingPage() {
       {selectedInvoiceForPayment && patientEmail && (
         <PatientPaymentModal
           open={isPaymentModalOpen}
-          onOpenChange={(open: any) => {
+          onOpenChange={(open: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
             setIsPaymentModalOpen(open);
             if (!open) {
               setSelectedInvoiceForPayment(null);

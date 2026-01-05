@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 // Force dynamic rendering - this page uses useCardSystem hook which requires CardSystemProvider context
@@ -9,10 +8,10 @@ import { useZentheaSession } from '@/hooks/useZentheaSession';
 import { useConversations } from '@/hooks/useConversations';
 import { useCardSystem } from '@/components/cards/CardSystemProvider';
 import { createMockMessageData, mockMessageHandlers } from '@/components/cards/mockData/MessageCardMockData';
-import { MessageSquare, User, Clock, MoreHorizontal, Archive, Reply, Forward, Star, CheckCircle, Plus, Trash2, Loader2, UserCheck } from 'lucide-react';
+import { User, MoreHorizontal, Archive, Reply, Star, CheckCircle, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DataTable, Column, FilterOption } from '@/components/ui/data-table';
 import {
   DropdownMenu,
@@ -54,7 +53,7 @@ export default function PatientMessagesPage() {
   const { conversations, isLoading } = useConversations();
 
   // Transform conversations to Message format for DataTable
-  const transformConversationsToMessages = (convs: any[]): Message[] => {
+  const transformConversationsToMessages = (convs: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */[]): Message[] => {
     if (!convs) return [];
     
     return convs.map((conv) => {
@@ -134,10 +133,10 @@ export default function PatientMessagesPage() {
       if (!res.ok) throw new Error('Failed to fetch thread');
       const threadMessages = await res.json();
 
-      const conversation = conversations?.find((c: any) => c.threadId === message.threadId);
+      const conversation = conversations?.find((c: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => c.threadId === message.threadId);
       const otherUser = conversation?.otherUser;
 
-      const mappedThreadMessages = threadMessages.map((msg: any) => ({
+      const mappedThreadMessages = threadMessages.map((msg: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => ({
         id: msg.id,
         sender: {
           id: msg.fromUserId,
@@ -191,7 +190,7 @@ export default function PatientMessagesPage() {
         timestamp: firstMessage?.timestamp || new Date(message.date ?? 0).toISOString(),
         sender,
         recipient,
-        threadMessages: mappedThreadMessages.map((msg: any) => ({
+        threadMessages: mappedThreadMessages.map((msg: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => ({
           ...msg,
           messageType: msg.messageType as 'incoming' | 'outgoing' | 'system' | 'notification'
         })),
@@ -286,7 +285,7 @@ export default function PatientMessagesPage() {
         </div>
       ),
       sortable: false,
-      render: (value: any, row: any) => (
+      render: (value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, row: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
         <input
           type="checkbox"
           checked={selectedMessages.includes(row.id)}
@@ -306,7 +305,7 @@ export default function PatientMessagesPage() {
       key: 'careTeamMemberName',
       label: 'Care Team Member',
       sortable: true,
-      render: (value: any, row: any) => (
+      render: (value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, row: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-zenthea-teal text-white">
@@ -331,7 +330,7 @@ export default function PatientMessagesPage() {
       key: 'priority',
       label: 'Priority',
       sortable: true,
-      render: (value: any) => {
+      render: (value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
         const priorityColors = {
           critical: 'bg-red-100 text-red-800 hover:bg-red-200',
           high: 'bg-orange-100 text-orange-800 hover:bg-orange-200',
@@ -352,7 +351,7 @@ export default function PatientMessagesPage() {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (value: any) => {
+      render: (value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
         const statusColors = {
           new: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
           'in-progress': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200',
@@ -373,7 +372,7 @@ export default function PatientMessagesPage() {
       key: 'time',
       label: 'Time',
       sortable: true,
-      render: (value: any, row: any) => (
+      render: (value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, row: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
         <div className="flex flex-col items-end">
           <div className="text-sm font-medium text-muted-foreground">{row.time}</div>
         </div>
@@ -382,7 +381,7 @@ export default function PatientMessagesPage() {
     {
       key: 'actions' as keyof Message,
       label: 'Actions',
-      render: (_: any, row: any) => (
+      render: (_val: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, _row: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
         <div onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

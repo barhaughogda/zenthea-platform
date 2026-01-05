@@ -1,2 +1,1 @@
-/* eslint-disable */
-export const PatientClaimDetailsDrawer = (props: any) => null;
+export const PatientClaimDetailsDrawer = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;

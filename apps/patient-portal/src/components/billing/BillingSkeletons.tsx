@@ -1,5 +1,3 @@
-/* eslint-disable */
-import React from 'react';
 
-export const PatientBillingSummarySkeleton = (props: any) => null;
-export const PatientInvoiceCardsSkeleton = (props: any) => null;
+export const PatientBillingSummarySkeleton = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;
+export const PatientInvoiceCardsSkeleton = (_props: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => null;

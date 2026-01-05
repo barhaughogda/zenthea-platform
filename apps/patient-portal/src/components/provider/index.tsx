@@ -1,5 +1,3 @@
-/* eslint-disable */
-import React from 'react';
 
 export const ProviderProfileHeader = () => <div>Provider Profile Header</div>;
 export const ProviderCredentials = () => <div>Provider Credentials</div>;

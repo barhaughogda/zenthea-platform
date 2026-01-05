@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -14,7 +13,7 @@ import { ProviderPhilosophy } from '@/components/provider/ProviderPhilosophy';
 import { ProviderVideoIntro } from '@/components/provider/ProviderVideoIntro';
 import { ProviderTestimonials } from '@/components/provider/ProviderTestimonials';
 import { ProviderContactActions } from '@/components/provider/ProviderContactActions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
@@ -28,14 +27,14 @@ export default function PatientProviderProfilePage() {
   
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
   const [testimonials, setTestimonials] = useState<PatientTestimonial[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */>(null);
   
   // Get profile data
-  const profileData = (useQuery as any)(
+  const profileData = (useQuery as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(
     api.providerProfiles.getPatientProviderProfile,
     providerId && session?.user?.tenantId
       ? {
-          profileId: providerId as any,
+          profileId: providerId as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */,
           tenantId: session.user.tenantId,
           patientId: undefined // Would be session user's patient ID
         }
@@ -43,11 +42,11 @@ export default function PatientProviderProfilePage() {
   );
   
   // Get testimonials
-  const testimonialsData = (useQuery as any)(
+  const testimonialsData = (useQuery as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(
     api.providerProfiles.getProviderTestimonials,
     providerId && session?.user?.tenantId
       ? {
-          providerProfileId: providerId as any,
+          providerProfileId: providerId as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */,
           tenantId: session.user.tenantId,
           includeUnpublished: false
         }
@@ -55,7 +54,7 @@ export default function PatientProviderProfilePage() {
   );
   
   // Get user info
-  const userData = (useQuery as any)(
+  const userData = (useQuery as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(
     api.users.getUser,
     profileData?.userId
       ? {
@@ -75,7 +74,7 @@ export default function PatientProviderProfilePage() {
   useEffect(() => {
     if (testimonialsData) {
       // Transform Convex data to match PatientTestimonial type
-      const transformed = testimonialsData.map((testimonial: any) => ({
+      const transformed = testimonialsData.map((testimonial: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => ({
         id: testimonial._id as string,
         providerProfileId: testimonial.providerProfileId as string,
         tenantId: testimonial.tenantId,
@@ -228,7 +227,7 @@ export default function PatientProviderProfilePage() {
                     <div>
                       <h4 className="text-sm font-semibold text-text-primary mb-2">Languages Spoken</h4>
                       <div className="flex flex-wrap gap-2">
-                        {profile.languages.map((lang: any, idx: any) => (
+                        {profile.languages.map((lang: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, idx: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
                           <Badge key={idx} variant="outline">
                             {lang}
                           </Badge>
@@ -241,7 +240,7 @@ export default function PatientProviderProfilePage() {
                     <div>
                       <h4 className="text-sm font-semibold text-text-primary mb-2">Conditions Treated</h4>
                       <div className="flex flex-wrap gap-2">
-                        {profile.conditionsTreated.slice(0, 5).map((condition: any, idx: any) => (
+                        {profile.conditionsTreated.slice(0, 5).map((condition: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, idx: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
                           <Badge key={idx} variant="secondary">
                             {condition}
                           </Badge>
@@ -259,7 +258,7 @@ export default function PatientProviderProfilePage() {
                     <div>
                       <h4 className="text-sm font-semibold text-text-primary mb-2">Procedures</h4>
                       <div className="flex flex-wrap gap-2">
-                        {profile.proceduresPerformed.slice(0, 5).map((procedure: any, idx: any) => (
+                        {profile.proceduresPerformed.slice(0, 5).map((procedure: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, idx: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
                           <Badge key={idx} variant="secondary">
                             {procedure}
                           </Badge>
@@ -284,7 +283,7 @@ export default function PatientProviderProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {profile.hospitalAffiliations.map((affiliation: any, idx: any) => (
+                    {profile.hospitalAffiliations.map((affiliation: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, idx: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
                       <div key={idx} className="text-sm">
                         <div className="font-medium text-text-primary">{affiliation.name}</div>
                         {affiliation.role && (

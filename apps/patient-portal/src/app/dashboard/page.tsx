@@ -1,10 +1,9 @@
-/* eslint-disable */
 'use client';
 
 // Force dynamic rendering - this page uses useCardSystem hook which requires CardSystemProvider context
 export const dynamic = 'force-dynamic';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useZentheaSession } from '@/hooks/useZentheaSession';
 import { useConversations } from '@/hooks/useConversations';
 import { CareTeamCard } from '@/components/patient/dashboard/CareTeamCard';
@@ -15,14 +14,13 @@ import { PrescriptionCard } from '@/components/cards/PrescriptionCard';
 import { MessageCard } from '@/components/cards/MessageCard';
 import { usePatientAppointments } from '@/hooks/useAppointments';
 import { usePatientProfileData } from '@/hooks/usePatientProfileData';
-import { CardEventHandlers } from '@/components/cards/types';
 
 export default function PatientDashboardPage() {
   const { data: session, status } = useZentheaSession();
   const sessionUserId = session?.user?.id;
   const [selectedPrescriptionId, setSelectedPrescriptionId] = useState<string | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [messageCardData, setMessageCardData] = useState<any>(null);
+  const [messageCardData, setMessageCardData] = useState<any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */>(null);
   const [isLoadingMessage, setIsLoadingMessage] = useState(false);
   
   // Fetch appointments using patient-specific hook
@@ -70,7 +68,7 @@ export default function PatientDashboardPage() {
       return [];
     }
 
-    return patientProfile.medications.map((medication: any, index: number) => ({
+    return patientProfile.medications.map((medication: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */, index: number) => ({
       id: `med-${index}`,
       name: medication.name,
       dosage: medication.dosage,
@@ -84,8 +82,8 @@ export default function PatientDashboardPage() {
     }));
   }, [patientProfile]);
 
-  const getPrescriptionCardData = (prescription: any) => {
-    const medicationIndex = prescriptions.findIndex((p: any) => p.id === prescription.id);
+  const getPrescriptionCardData = useCallback((prescription: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
+    const medicationIndex = prescriptions.findIndex((p: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => p.id === prescription.id);
     const medication = patientProfile?.medications?.[medicationIndex];
     if (!medication) return null;
 
@@ -147,18 +145,18 @@ export default function PatientDashboardPage() {
       documents: [],
       comments: []
     };
-  };
+  }, [prescriptions, patientProfile, sessionUserId, session?.user?.name]);
 
-  const handlePrescriptionClick = (prescription: any) => {
+  const handlePrescriptionClick = (prescription: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
     setSelectedPrescriptionId(selectedPrescriptionId === prescription.id ? null : prescription.id);
   };
 
   const prescriptionCardData = useMemo(() => {
-    const selected = selectedPrescriptionId ? prescriptions.find((p: any) => p.id === selectedPrescriptionId) : null;
+    const selected = selectedPrescriptionId ? prescriptions.find((p: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => p.id === selectedPrescriptionId) : null;
     return selected ? getPrescriptionCardData(selected) : null;
-  }, [selectedPrescriptionId, prescriptions, patientProfile]);
+  }, [selectedPrescriptionId, prescriptions, getPrescriptionCardData]);
 
-  const handleMessageClick = async (message: any) => {
+  const handleMessageClick = async (message: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
     if (selectedMessageId === message.id) {
       setSelectedMessageId(null);
       setMessageCardData(null);
@@ -173,10 +171,10 @@ export default function PatientDashboardPage() {
       if (!res.ok) throw new Error('Failed to fetch thread');
       const threadMessages = await res.json();
 
-      const conversation = conversations?.find((c: any) => c.threadId === message.id);
+      const conversation = conversations?.find((c: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => c.threadId === message.id);
       const otherUser = conversation?.otherUser;
 
-      const mappedThreadMessages = threadMessages.map((msg: any) => ({
+      const mappedThreadMessages = threadMessages.map((msg: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => ({
         id: msg.id,
         sender: {
           id: msg.fromUserId,

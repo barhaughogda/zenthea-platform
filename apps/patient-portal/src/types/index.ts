@@ -1,4 +1,3 @@
-/* eslint-disable */
-export type ProviderProfile = any;
-export type PatientTestimonial = any;
-export type GlobalTypes = any;
+export type ProviderProfile = any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */;
+export type PatientTestimonial = any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */;
+export type GlobalTypes = any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */;

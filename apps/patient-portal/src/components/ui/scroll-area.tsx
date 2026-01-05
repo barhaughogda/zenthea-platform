@@ -1,5 +1,3 @@
-/* eslint-disable */
-import React from 'react';
 
-export const ScrollArea = ({ children, className }: any) => <div className={className} style={{ overflow: 'auto' }}>{children}</div>;
+export const ScrollArea = ({ children, className }: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => <div className={className} style={{ overflow: 'auto' }}>{children}</div>;
 export const ScrollBar = () => null;

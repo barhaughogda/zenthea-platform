@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
@@ -117,8 +116,8 @@ function PatientIntakePageContent() {
   const searchParams = useSearchParams();
   const { data: session } = useZentheaSession();
   const { patientId, patientProfile, isLoading: profileLoading } = usePatientProfileData();
-  const updateProfile = useMutation((api as any).patientProfile?.updatePatientProfile);
-  const updatePatient = useMutation((api as any).patients?.updatePatient);
+  const updateProfile = useMutation((api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).patientProfile?.updatePatientProfile);
+  const updatePatient = useMutation((api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).patients?.updatePatient);
   const setPrimaryProvider = useMutation(api.careTeam.setPrimaryProvider);
   
   // Get the tenant ID and redirect URL from session or search params
@@ -136,11 +135,11 @@ function PatientIntakePageContent() {
     if (!tenantUsers) return [];
     const providerRoles = ['admin', 'provider', 'clinic_user'];
     return tenantUsers
-      .filter((user: any) => 
+      .filter((user: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => 
         providerRoles.includes(user.role) && 
         user.role !== 'patient'
       )
-      .map((user: any) => ({
+      .map((user: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => ({
         id: user._id,
         name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         email: user.email,
@@ -179,7 +178,7 @@ function PatientIntakePageContent() {
   // Load existing profile data when available
   useEffect(() => {
     if (patientProfile && !profileLoading) {
-      setFormData((prev: any) => ({
+      setFormData((prev: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => ({
         ...prev,
         primaryProviderId: patientProfile.primaryProviderId || prev.primaryProviderId,
         preferredName: patientProfile.preferredName || prev.preferredName,
@@ -322,7 +321,7 @@ function PatientIntakePageContent() {
     try {
       if (!currentSection) throw new Error("Invalid current section");
       const section = currentSection.id;
-      let sectionData: any = {};
+      let sectionData: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */ = {};
       let sectionName: string = '';
 
       switch (section) {
@@ -398,7 +397,7 @@ function PatientIntakePageContent() {
 
       await updateProfile({
         patientId,
-        section: sectionName as any,
+        section: sectionName as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */,
         data: sectionData,
         userEmail: session?.user?.email,
       });
@@ -406,7 +405,7 @@ function PatientIntakePageContent() {
       // If this is the contact section, also update email, phone, and address via updatePatient
       if (section === 'contact' && updatePatient) {
         try {
-          const patientUpdates: any = {};
+          const patientUpdates: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */ = {};
           if (formData.email) patientUpdates.email = formData.email;
           if (formData.phone) patientUpdates.phone = formData.phone;
           if (formData.address) patientUpdates.address = formData.address;
@@ -466,14 +465,14 @@ function PatientIntakePageContent() {
     }
   };
 
-  const updateField = (field: string, value: any) => {
+  const updateField = (field: string, value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateNestedField = (path: string[], value: any) => {
+  const updateNestedField = (path: string[], value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
     setFormData((prev) => {
       const newData = { ...prev };
-      let current: any = newData;
+      let current: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */ = newData;
       for (let i = 0; i < path.length - 1; i++) {
         const key = path[i];
         if (key === undefined) continue;
@@ -500,7 +499,7 @@ function PatientIntakePageContent() {
     }));
   };
 
-  const updateEmergencyContact = (index: number, field: string, value: any) => {
+  const updateEmergencyContact = (index: number, field: string, value: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => {
     setFormData((prev) => ({
       ...prev,
       emergencyContacts: (prev.emergencyContacts || []).map((ec, i) =>
@@ -554,7 +553,7 @@ function PatientIntakePageContent() {
                         No providers available
                       </SelectItem>
                     ) : (
-                      availableProviders.map((provider: any) => (
+                      availableProviders.map((provider: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
                         <SelectItem key={provider.id} value={provider.id}>
                           <div className="flex items-center gap-2">
                             <span>{provider.name}</span>
@@ -577,7 +576,7 @@ function PatientIntakePageContent() {
                     </div>
                     <div>
                       <p className="font-medium text-text-primary">
-                        {availableProviders.find((p: any) => p.id === formData.primaryProviderId)?.name}
+                        {availableProviders.find((p: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => p.id === formData.primaryProviderId)?.name}
                       </p>
                       <p className="text-sm text-text-secondary">
                         Will be your primary care provider
@@ -1114,7 +1113,7 @@ function PatientIntakePageContent() {
 export default function PatientIntakePage() {
   return (
     <ErrorBoundary
-      fallback={({ error, resetError }: any) => (
+      fallback={({ error, resetError }: any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */) => (
         <div className="flex items-center justify-center min-h-screen p-4">
           <Card className="w-full max-w-md">
             <CardHeader>
