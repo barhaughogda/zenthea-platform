@@ -1,0 +1,21 @@
+{
+  "name": "@starter/patient-portal-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "eval:ai": "vitest run tests/**/*.eval.ts"
+  },
+  "dependencies": {
+    "@starter/ai-runtime": "workspace:*",
+    "@starter/sdk": "workspace:*",
+    "@starter/observability": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@starter/ai-eval": "workspace:*",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
