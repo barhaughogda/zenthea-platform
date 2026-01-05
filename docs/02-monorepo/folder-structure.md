@@ -137,11 +137,11 @@ Packages must not:
 ### Example Structure
 
 /packages
-/ai-core
-/policy
+/ai-runtime
+/tool-gateway
+/ai-eval
 /auth
 /observability
-/events
 /sdk
 /ui
 

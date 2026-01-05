@@ -177,7 +177,14 @@ Deliverable:
 - Add one bullet list under "Alignment Notes".
 
 ### Alignment Notes
-- 
+- **Service Naming**: Verified all services use `<domain>-agent` except for core platform services (e.g., `billing`), which is now explicitly allowed in `naming-conventions.md`.
+- **Internal Structure**: All 5 in-scope agents follow the 8-layer subfolder convention (`api`, `orchestration`, `domain`, `ai`, `data`, `integrations`, `config`, `tests`).
+- **Test Conventions**: Aligned `naming-conventions.md` with the locked `*.test.ts` and `*.eval.test.ts` standard established in Step 1.
+- **Package Inventory**: Updated `folder-structure.md` to reflect actual platform packages: `ai-runtime`, `tool-gateway`, and `ai-eval`.
+- **README Compliance**: Verified that all services (including `billing`) contain mandatory sections: Overview, Responsibilities, Compliance, Tool Policy, Observability, and Backup & Recovery.
+- **Dependency Flow**: Confirmed strict `apps -> services -> packages` dependency graph across the workspace.
+- **Tooling Boundary**: Verified no direct model SDK or external tool execution exists within services; all use `AIRuntime` and `ToolProposal` abstractions.
+- **Backup Strategy**: Verified `packages/maintenance` provides the required validation scripts and all service READMEs define their backup scope and frequency.
 
 ---
 

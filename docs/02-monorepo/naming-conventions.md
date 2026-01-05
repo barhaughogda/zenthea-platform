@@ -63,13 +63,14 @@ These names are reserved and must not be repurposed.
 
 Service folders must:
 - Represent a single domain
-- End with `-agent` where appropriate
+- End with `-agent` for AI-driven domain services
+- Core platform services (e.g., `billing`, `auth`) may omit the `-agent` suffix
 - Use domain language, not technical language
 
 Examples:
 - `chat-agent`
 - `sales-agent`
-- `accounting-agent`
+- `billing`
 - `project-management-agent`
 
 Avoid:
@@ -182,8 +183,8 @@ Avoid:
 Test files should mirror the name of the file they test.
 
 Examples:
-- `create-conversation.test.ts`
-- `policy-check.spec.ts`
+- Unit tests: `create-conversation.test.ts`
+- AI eval tests: `conversation-quality.eval.test.ts`
 
 Consistency here helps both humans and AI locate related code quickly.
 
