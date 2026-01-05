@@ -1,4 +1,4 @@
-import { ConsentRecord } from '../domain/index.js';
+import { ConsentRecord } from '../domain/index';
 
 /**
  * Data Layer for Consent Agent

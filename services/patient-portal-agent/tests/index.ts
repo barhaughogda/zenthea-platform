@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateAccessScope } from '../domain/index.js';
+import { validateAccessScope } from '../domain/index';
 
 describe('Patient Portal Agent - Unit Tests', () => {
   describe('Domain Layer', () => {

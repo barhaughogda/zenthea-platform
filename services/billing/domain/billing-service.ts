@@ -3,8 +3,8 @@ import {
   UsageEvent, 
   EntitlementCheck, 
   EntitlementResponse 
-} from '../api/index.js';
-import { IPaymentProvider } from '../integrations/index.js';
+} from '../api/index';
+import { IPaymentProvider } from '../integrations/index';
 
 export class BillingService implements IBillingService {
   constructor(

@@ -3,7 +3,7 @@
  * Persistence abstraction for patient-scoped health data.
  */
 
-import { PatientDataCategory } from '../domain/index.js';
+import { PatientDataCategory } from '../domain/index';
 
 export interface PatientDataRecord {
   id: string;

@@ -130,6 +130,19 @@ The platform supports multiple evaluation types.
 
 Golden evaluations are the backbone of safety.
 
+### Technical Execution and Naming
+
+AI evaluation tests are separated from standard unit tests to ensure execution speed and cost control.
+
+- **Naming Convention:** AI eval tests MUST use the `.eval.test.ts` extension.
+- **Isolation:** AI eval tests are excluded from standard `pnpm test` runs.
+- **Execution:** Run via `pnpm eval:ai` (which maps to `turbo run eval:ai`).
+
+Rationale:
+- **Cost:** Avoid accidental model calls during fast local development.
+- **Latency:** AI evals can take minutes, while unit tests take seconds.
+- **Failure Modes:** AI eval failures often require different analysis than code logic failures.
+
 ---
 
 ### Schema and Contract Validation

@@ -7,7 +7,7 @@
  * - SAFETY: Ensure immutability of audit logs and traceability of all drafts.
  */
 
-import { ClinicalNoteDraft } from '../domain/index.js';
+import { ClinicalNoteDraft } from '../domain/index';
 
 /**
  * Interface for storing and retrieving clinical documentation drafts.

@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests --exclude **/*.eval.test.ts tests/**/*.test.ts",
+    "eval:ai": "vitest run --passWithNoTests tests/**/*.eval.test.ts"
   },
   "dependencies": {
     "@starter/sdk": "workspace:*",
@@ -12,6 +14,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }

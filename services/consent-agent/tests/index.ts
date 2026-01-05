@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isConsentActive } from '../domain/index.js';
+import { isConsentActive } from '../domain/index';
 
 /**
  * Unit Tests for Consent Agent

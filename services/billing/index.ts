@@ -1,3 +1,3 @@
-export * from './api/index.js';
-export { BillingService } from './domain/billing-service.js';
-export { StripeProvider } from './integrations/index.js';
+export * from './api/index';
+export { BillingService } from './domain/billing-service';
+export { StripeProvider } from './integrations/index';

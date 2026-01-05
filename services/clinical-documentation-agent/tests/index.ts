@@ -2,5 +2,5 @@
  * Tests: Clinical Documentation Agent
  */
 
-export * from './unit.test.js';
+export * from './unit.test';
 // Eval tests are typically run separately via vitest
