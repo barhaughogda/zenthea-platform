@@ -11,7 +11,7 @@ import { ConsentService } from '@/lib/contracts/consent';
 export function useConsents() {
   const { data: session } = useZentheaSession();
   const useRealAgent = useFeatureFlag('USE_REAL_CONSENT_AGENT');
-  const enableWrites = useFeatureFlag('ENABLE_CONSENT_WRITES');
+  const enableWrites = useFeatureFlag('USE_CONSENT_WRITES');
 
   const consentService = useMemo<ConsentService>(() => {
     if (useRealAgent) {

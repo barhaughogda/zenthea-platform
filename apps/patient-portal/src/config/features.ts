@@ -20,7 +20,7 @@ export const FEATURES = {
 
   // Migration Phase Slice 02B - Step 5.1: Controlled Consent Write Enablement
   // Kill switch for all consent write operations. Default to false for safety.
-  ENABLE_CONSENT_WRITES: process.env.NEXT_PUBLIC_ENABLE_CONSENT_WRITES === 'true' || false,
+  USE_CONSENT_WRITES: process.env.NEXT_PUBLIC_USE_CONSENT_WRITES === 'true' || false,
 };
 
 export type FeatureKey = keyof typeof FEATURES;
