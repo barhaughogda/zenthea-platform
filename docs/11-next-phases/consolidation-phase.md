@@ -125,10 +125,10 @@ Deliverable:
 - Add a short section "Guardrail Verification Results" here.
 
 ### Guardrail Verification Results
-- service coupling:
-- model isolation:
-- tool execution:
-- billing isolation:
+- service coupling: **Verified**. No cross-service imports found. ESLint `import/no-restricted-paths` is active and correctly configured in `.eslintrc.json`.
+- model isolation: **Verified**. No direct usage of OpenAI, Anthropic, or other model SDKs found in services. All services use the `AIRuntime` abstraction.
+- tool execution: **Verified**. Services produce `ToolProposal` objects for external actions. No direct tool execution (axios/fetch) found in services. `services/chat-agent` uses local `fs.readFile` for prompt loading, which is a permitted configuration side-effect but not a tool execution.
+- billing isolation: **Verified**. Stripe usage and billing logic are strictly isolated to `services/billing`.
 
 ---
 

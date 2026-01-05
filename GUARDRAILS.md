@@ -31,3 +31,23 @@ The core guardrails are enforced via ESLint's `import/no-restricted-paths` rule 
 ## 4. Type Safety (TypeScript Project References)
 The monorepo uses TypeScript Project References to ensure that types are correctly resolved across the workspace and that build order is respected.
 - **Enforcement**: `tsconfig.json` and `tsconfig.base.json` define the hierarchy and boundaries for type checking.
+
+## 5. Model Isolation (AI Runtime)
+- **Rule**: No service or app may call AI models (OpenAI, Anthropic, etc.) directly.
+- **Why**: Centralizing AI execution in `packages/ai-runtime` enables global policy enforcement (HIPAA/GDPR), cost tracking, and consistent tool proposal handling.
+- **Enforcement**:
+    - Services must import and use `AIRuntime` from `@starter/ai-runtime`.
+    - Model SDKs (e.g., `openai`, `anthropic`) are only permitted as dependencies in `packages/ai-runtime`.
+
+## 6. Tool Execution Boundary (mediated execution)
+- **Rule**: AI agents must only produce **Tool Proposals**. They must never execute side effects (API calls, DB writes, etc.) directly.
+- **Why**: Separation of intent (AI) from execution (System) is critical for security, auditability, and human-in-the-loop control.
+- **Enforcement**:
+    - Services return `ToolProposal` objects in their AI output schemas.
+    - Side effects must be mediated by the `ToolExecutionGateway`.
+
+## 7. Billing Isolation
+- **Rule**: Only the `services/billing` service may interact with payment providers (e.g., Stripe).
+- **Why**: Payment logic and sensitive financial integration must be isolated to a single domain to simplify compliance and prevent leakage of billing logic.
+- **Enforcement**:
+    - Direct usage of `stripe` or other payment SDKs is restricted to `services/billing`.
