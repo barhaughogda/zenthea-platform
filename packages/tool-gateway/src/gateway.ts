@@ -7,7 +7,9 @@ import {
   IToolTelemetryLogger,
   ToolGatewayEvent,
   IGovernanceLogger,
-  GovernanceEvent 
+  GovernanceControlResult,
+  GovernanceReasonCode,
+  AgentType
 } from './types';
 import { validateExecutionCommand } from './validation';
 import { ToolTelemetryLogger } from './audit';
@@ -58,6 +60,13 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       } catch (err: any) {
         decision = 'error';
         errorCode = 'VALIDATION_FAILED';
+
+        const toolName = (command as any)?.tool?.name || 'unknown';
+        const agentId = (command as any)?.agentId || 'unknown';
+        const agentType = this.policyEvaluator.evaluate(agentId, toolName).agentType;
+        
+        this.emitGovernanceControl(agentType, toolName, 'VALIDATION_FAILED');
+
         throw err;
       }
 
@@ -67,26 +76,11 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         decision = 'denied';
         errorCode = evaluation.reasonCode;
 
-        // Emit governance event (metadata only - NO PHI)
-        if (this.governanceLogger) {
-          const governanceEvent: GovernanceEvent = {
-            agentType: evaluation.agentType,
-            toolName: validatedCommand.tool.name,
-            reasonCode: evaluation.reasonCode!,
-            timestamp: new Date().toISOString(),
-          };
-          // Fire and forget
-          this.governanceLogger.emit(governanceEvent).catch(err => {
-            console.error('Failed to emit governance event:', err);
-          });
-        }
-
-        // Emit governance metrics (Slice 06.2)
-        toolGatewayMetrics.recordGovernanceDeny({
-          toolName: validatedCommand.tool.name,
-          agentType: evaluation.agentType,
-          reasonCode: evaluation.reasonCode!,
-        });
+        this.emitGovernanceControl(
+          evaluation.agentType, 
+          validatedCommand.tool.name, 
+          evaluation.reasonCode as GovernanceReasonCode
+        );
 
         throw new Error(`FORBIDDEN: ${evaluation.reasonCode}`);
       }
@@ -97,6 +91,10 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       } catch (err: any) {
         decision = 'rate_limited';
         errorCode = 'RATE_LIMITED';
+
+        const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name).agentType;
+        this.emitGovernanceControl(agentType, validatedCommand.tool.name, 'RATE_LIMITED');
+
         throw err;
       }
 
@@ -106,6 +104,16 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       } catch (err: any) {
         decision = 'denied';
         errorCode = this.mapErrorToCode(err);
+
+        // Emit governance control if it matches a governance reason code
+        if (errorCode === 'VALIDATION_FAILED' || errorCode === 'FEATURE_DISABLED') {
+          const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name).agentType;
+          this.emitGovernanceControl(agentType, validatedCommand.tool.name, errorCode as GovernanceReasonCode);
+        } else if (errorCode === 'FORBIDDEN') {
+          const agentType = this.policyEvaluator.evaluate(validatedCommand.agentId, validatedCommand.tool.name).agentType;
+          this.emitGovernanceControl(agentType, validatedCommand.tool.name, 'SCOPE_DENIED');
+        }
+
         throw err;
       }
 
@@ -402,5 +410,36 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
                           toolName.includes('Appointment');
                           
     return isPatientTool ? 'patient' : 'unknown';
+  }
+
+  /**
+   * Emits a governance control result and records the corresponding metric.
+   * 🚫 STRICTLY NO PHI, actorId, tenantId, or requestId.
+   */
+  private emitGovernanceControl(
+    agentType: AgentType,
+    toolName: string,
+    reasonCode: GovernanceReasonCode
+  ) {
+    if (this.governanceLogger) {
+      const result: GovernanceControlResult = {
+        decision: 'DENIED',
+        agentType,
+        toolName,
+        reasonCode,
+        timestamp: new Date().toISOString(),
+      };
+      // Fire and forget
+      this.governanceLogger.emit(result).catch(err => {
+        console.error('Failed to emit governance control result:', err);
+      });
+    }
+
+    // Emit governance metrics (Slice 06.2)
+    toolGatewayMetrics.recordGovernanceDeny({
+      toolName,
+      agentType,
+      reasonCode,
+    });
   }
 }
