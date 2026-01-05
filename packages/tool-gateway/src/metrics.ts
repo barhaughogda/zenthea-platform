@@ -1,5 +1,5 @@
 import { metrics as baseMetrics } from '@starter/observability';
-import { ToolGatewayEvent } from './types';
+import { ToolGatewayEvent, AgentType, GovernanceReasonCode } from './types';
 
 /**
  * Tool Gateway Metrics
@@ -10,6 +10,41 @@ import { ToolGatewayEvent } from './types';
  * Reliability: Metrics emission MUST NOT throw and must not affect control flow.
  */
 export const toolGatewayMetrics = {
+  /**
+   * Records governance denies.
+   * Labels: toolName, agentType, reasonCode
+   */
+  recordGovernanceDeny(params: {
+    toolName: string;
+    agentType: AgentType;
+    reasonCode: GovernanceReasonCode;
+  }) {
+    try {
+      baseMetrics.increment('tool_gateway_governance_denies_total', 1, {
+        toolName: params.toolName,
+        agentType: params.agentType,
+        reasonCode: params.reasonCode,
+      });
+
+      // Specialization for unknown agent
+      if (params.reasonCode === 'UNKNOWN_AGENT') {
+        baseMetrics.increment('tool_gateway_governance_unknown_agent_total', 1, {
+          toolName: params.toolName,
+        });
+      }
+
+      // Specialization for scope denied
+      if (params.reasonCode === 'SCOPE_DENIED') {
+        baseMetrics.increment('tool_gateway_governance_scope_denied_total', 1, {
+          toolName: params.toolName,
+          agentType: params.agentType,
+        });
+      }
+    } catch (err) {
+      // Swallowed safely
+    }
+  },
+
   /**
    * Records the total number of requests received by the gateway.
    * Labels: toolName, decision, actorType

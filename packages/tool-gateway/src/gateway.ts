@@ -81,6 +81,13 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
           });
         }
 
+        // Emit governance metrics (Slice 06.2)
+        toolGatewayMetrics.recordGovernanceDeny({
+          toolName: validatedCommand.tool.name,
+          agentType: evaluation.agentType,
+          reasonCode: evaluation.reasonCode!,
+        });
+
         throw new Error(`FORBIDDEN: ${evaluation.reasonCode}`);
       }
 
