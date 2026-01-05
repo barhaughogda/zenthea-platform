@@ -21,7 +21,7 @@ export class ConsentAgentAdapter implements ConsentService {
     try {
       console.log('[ConsentAgentAdapter] Fetching consent history', { 
         event: 'CONSENT_FETCH_START', 
-        patientId 
+        patientId: patientId.slice(0, 4) + '...' // Redacting PHI
       });
       const history = await this.client.getHistory(patientId);
       
@@ -29,14 +29,14 @@ export class ConsentAgentAdapter implements ConsentService {
       
       console.log('[ConsentAgentAdapter] Successfully fetched consents', { 
         event: 'CONSENT_FETCH_SUCCESS', 
-        patientId, 
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         count: mapped.length 
       });
       return mapped;
     } catch (error) {
       console.error('[ConsentAgentAdapter] Failed to fetch consents', {
         event: 'CONSENT_FETCH_ERROR',
-        patientId,
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;

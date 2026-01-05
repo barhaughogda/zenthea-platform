@@ -199,6 +199,9 @@ importers:
       '@starter/consent-agent-sdk':
         specifier: workspace:*
         version: link:../../packages/consent-agent-sdk
+      '@starter/medical-advisor-agent-sdk':
+        specifier: workspace:*
+        version: link:../../packages/medical-advisor-agent-sdk
       '@starter/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -536,6 +539,16 @@ importers:
       '@types/node':
         specifier: ^20.17.10
         version: 20.19.27
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/medical-advisor-agent-sdk:
+    dependencies:
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

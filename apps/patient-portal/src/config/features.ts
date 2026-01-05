@@ -21,9 +21,22 @@ export const FEATURES = {
 
 export type FeatureKey = keyof typeof FEATURES;
 
+declare global {
+  interface Window {
+    ZENTHEA_FEATURES_OVERRIDE?: Partial<Record<string, boolean>>;
+  }
+}
+
 /**
  * Hook to check if a feature is enabled
  */
 export const useFeatureFlag = (key: FeatureKey): boolean => {
+  // Allow runtime overrides for emergency disabling without redeploy
+  if (typeof window !== 'undefined' && window.ZENTHEA_FEATURES_OVERRIDE?.[key] !== undefined) {
+    const override = window.ZENTHEA_FEATURES_OVERRIDE[key];
+    if (typeof override === 'boolean') {
+      return override;
+    }
+  }
   return FEATURES[key];
 };

@@ -24,7 +24,7 @@ export class MedicalAdvisorAgentAdapter implements MedicalAdvisorService {
     try {
       console.log('[MedicalAdvisorAgentAdapter] Fetching clinical advisory', { 
         event: 'ADVISORY_FETCH_START', 
-        patientId 
+        patientId: patientId.slice(0, 4) + '...' // Redacting PHI
       });
 
       // Following Step 4.4 requirements: ADVISORY ONLY and READ-ONLY.
@@ -45,7 +45,7 @@ export class MedicalAdvisorAgentAdapter implements MedicalAdvisorService {
 
       console.log('[MedicalAdvisorAgentAdapter] Successfully fetched advisory', { 
         event: 'ADVISORY_FETCH_SUCCESS', 
-        patientId, 
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         requestId: response.metadata.promptVersion // Using prompt version as a proxy for correlation
       });
 
@@ -53,7 +53,7 @@ export class MedicalAdvisorAgentAdapter implements MedicalAdvisorService {
     } catch (error) {
       console.error('[MedicalAdvisorAgentAdapter] Failed to fetch clinical advisory', {
         event: 'ADVISORY_FETCH_ERROR',
-        patientId,
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         error: error instanceof Error ? error.message : String(error)
       });
       // In case of error, we return null to allow the UI to handle it gracefully

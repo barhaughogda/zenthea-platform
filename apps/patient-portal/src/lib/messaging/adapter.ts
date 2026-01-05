@@ -21,7 +21,7 @@ export class MessagingAgentAdapter implements MessagingService {
     try {
       console.log('[MessagingAgentAdapter] Fetching conversations', { 
         event: 'CONVERSATIONS_FETCH_START', 
-        patientId 
+        patientId: patientId.slice(0, 4) + '...' // Redacting PHI
       });
       
       const response = await this.client.listConversations();
@@ -30,14 +30,14 @@ export class MessagingAgentAdapter implements MessagingService {
       
       console.log('[MessagingAgentAdapter] Successfully fetched conversations', { 
         event: 'CONVERSATIONS_FETCH_SUCCESS', 
-        patientId, 
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         count: mapped.length 
       });
       return mapped;
     } catch (error) {
       console.error('[MessagingAgentAdapter] Failed to fetch conversations', {
         event: 'CONVERSATIONS_FETCH_ERROR',
-        patientId,
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
@@ -48,7 +48,7 @@ export class MessagingAgentAdapter implements MessagingService {
     try {
       console.log('[MessagingAgentAdapter] Fetching messages', { 
         event: 'MESSAGES_FETCH_START', 
-        conversationId 
+        conversationId: conversationId.slice(0, 4) + '...' // Redacting PHI
       });
       
       const response = await this.client.getMessages(conversationId);
@@ -57,14 +57,14 @@ export class MessagingAgentAdapter implements MessagingService {
       
       console.log('[MessagingAgentAdapter] Successfully fetched messages', { 
         event: 'MESSAGES_FETCH_SUCCESS', 
-        conversationId, 
+        conversationId: conversationId.slice(0, 4) + '...', // Redacting PHI
         count: mapped.length 
       });
       return mapped;
     } catch (error) {
       console.error('[MessagingAgentAdapter] Failed to fetch messages', {
         event: 'MESSAGES_FETCH_ERROR',
-        conversationId,
+        conversationId: conversationId.slice(0, 4) + '...', // Redacting PHI
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;

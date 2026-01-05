@@ -21,7 +21,7 @@ export class AppointmentAgentAdapter {
     try {
       console.log('[AppointmentAgentAdapter] Fetching appointments', { 
         event: 'APPOINTMENTS_FETCH_START', 
-        patientId 
+        patientId: patientId.slice(0, 4) + '...' // Redacting PHI
       });
       const appointments = await this.client.getAppointments(patientId);
       
@@ -29,14 +29,14 @@ export class AppointmentAgentAdapter {
       
       console.log('[AppointmentAgentAdapter] Successfully fetched appointments', { 
         event: 'APPOINTMENTS_FETCH_SUCCESS', 
-        patientId, 
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         count: mapped.length 
       });
       return mapped;
     } catch (error) {
       console.error('[AppointmentAgentAdapter] Failed to fetch appointments', {
         event: 'APPOINTMENTS_FETCH_ERROR',
-        patientId,
+        patientId: patientId.slice(0, 4) + '...', // Redacting PHI
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
