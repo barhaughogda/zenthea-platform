@@ -36,6 +36,7 @@ export type GovernanceTimelineEventType =
  * 🚫 STRICTLY NO PHI, tenantId, actorId, agentId, or payloads.
  */
 export interface BaseTimelineEvent {
+  eventId: string;
   type: GovernanceTimelineEventType;
   policySnapshotHash: string;
   agentVersion: string;
@@ -104,6 +105,8 @@ export interface TimelineFilter {
   startTime?: string;
   endTime?: string;
   type?: GovernanceTimelineEventType;
+  cursor?: string;
+  limit?: number;
 }
 
 /**
@@ -125,6 +128,7 @@ export const TimelineAggregator = {
    */
   fromToolGateway(event: ToolGatewayEvent): ToolGatewayTimelineEvent {
     return {
+      eventId: event.requestId, // Using requestId as stable eventId for tool gateway events
       type: 'TOOL_GATEWAY',
       policySnapshotHash: event.policySnapshotHash,
       agentVersion: event.agentVersion,
@@ -142,6 +146,7 @@ export const TimelineAggregator = {
    */
   fromGovernanceControl(event: GovernanceControlResult): GovernanceControlTimelineEvent {
     return {
+      eventId: `gov-${event.timestamp}-${event.policySnapshotHash.slice(0, 8)}`,
       type: 'GOVERNANCE_CONTROL',
       policySnapshotHash: event.policySnapshotHash,
       agentVersion: event.agentVersion,
@@ -158,6 +163,7 @@ export const TimelineAggregator = {
    */
   fromApprovalSignal(event: ApprovalSignal): ApprovalSignalTimelineEvent {
     return {
+      eventId: `app-${event.timestamp}-${event.policySnapshotHash.slice(0, 8)}`,
       type: 'APPROVAL_SIGNAL',
       policySnapshotHash: event.policySnapshotHash,
       agentVersion: event.agentVersion,
@@ -173,6 +179,7 @@ export const TimelineAggregator = {
    */
   fromTransition(event: TransitionEvent): TransitionTimelineEvent {
     return {
+      eventId: `life-${event.timestamp}-${event.agentVersion}`,
       type: 'LIFECYCLE_TRANSITION',
       policySnapshotHash: event.policySnapshotHash,
       agentVersion: event.agentVersion,

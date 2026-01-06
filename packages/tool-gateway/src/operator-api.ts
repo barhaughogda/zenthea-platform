@@ -12,28 +12,21 @@ import {
   EnrichedTimelineEntry, 
   TimelineRegistryJoiner 
 } from './timeline-registry-join';
+import { 
+  PaginatedResponseV1, 
+  encodeCursorV1, 
+  decodeCursorV1 
+} from './cursor';
 
 /**
  * Versioned API Response Contracts (v1)
  */
 
-export interface OperatorTimelineResponseV1 {
-  version: 'v1';
-  events: GovernanceTimelineEvent[];
-  count: number;
-}
+export interface OperatorTimelineResponseV1 extends PaginatedResponseV1<GovernanceTimelineEvent> {}
 
-export interface OperatorAgentRegistryResponseV1 {
-  version: 'v1';
-  agents: AgentRegistryEntry[];
-  count: number;
-}
+export interface OperatorAgentRegistryResponseV1 extends PaginatedResponseV1<AgentRegistryEntry> {}
 
-export interface OperatorEnrichedTimelineResponseV1 {
-  version: 'v1';
-  entries: EnrichedTimelineEntry[];
-  count: number;
-}
+export interface OperatorEnrichedTimelineResponseV1 extends PaginatedResponseV1<EnrichedTimelineEntry> {}
 
 /**
  * Operator-facing APIs (Read-Only).
@@ -52,13 +45,46 @@ export class OperatorAPI {
    * Deterministic, stable ordering (chronological).
    */
   async getTimeline(filter: TimelineFilter): Promise<OperatorTimelineResponseV1> {
-    const events = await this.timelineReader.query(filter);
+    const limit = filter.limit ?? 50;
+    
+    // Fetch limit + 1 to detect if there's more
+    const events = await this.timelineReader.query({ 
+      ...filter, 
+      limit: limit + 1 
+    });
+    
     const sortedEvents = TimelineAggregator.sortChronologically(events);
     
+    // Handle cursor slicing if the reader didn't (generic implementation)
+    let startIndex = 0;
+    if (filter.cursor) {
+      const decoded = decodeCursorV1(filter.cursor);
+      if (decoded) {
+        // Find first item AFTER the cursor by timestamp + eventId
+        startIndex = sortedEvents.findIndex(e => 
+          e.timestamp === decoded.timestamp && e.eventId === decoded.secondaryKey
+        ) + 1;
+      }
+    }
+
+    const slicedItems = sortedEvents.slice(startIndex, startIndex + limit);
+    const hasMore = sortedEvents.length > (startIndex + limit);
+    
+    let nextCursor: string | null = null;
+    if (hasMore && slicedItems.length > 0) {
+      const lastItem = slicedItems[slicedItems.length - 1];
+      nextCursor = encodeCursorV1({
+        timestamp: lastItem.timestamp,
+        secondaryKey: lastItem.eventId
+      });
+    }
+
     return {
       version: 'v1',
-      events: sortedEvents,
-      count: sortedEvents.length,
+      items: slicedItems,
+      nextCursor,
+      hasMore,
+      count: slicedItems.length,
     };
   }
 
@@ -66,13 +92,28 @@ export class OperatorAPI {
    * Exposes the Agent Registry.
    * Deterministic, stable ordering (by agentId and version).
    */
-  async getAgents(): Promise<OperatorAgentRegistryResponseV1> {
-    const agents = this.registryReader.listAgents();
+  async getAgents(limit: number = 50, cursor?: string): Promise<OperatorAgentRegistryResponseV1> {
+    // Fetch limit + 1 to detect if there's more
+    const agents = this.registryReader.listAgents(limit + 1, cursor);
     
+    const hasMore = agents.length > limit;
+    const items = agents.slice(0, limit);
+    
+    let nextCursor: string | null = null;
+    if (hasMore && items.length > 0) {
+      const lastItem = items[items.length - 1];
+      nextCursor = encodeCursorV1({
+        timestamp: lastItem.lastUpdatedAt,
+        secondaryKey: `${lastItem.agentId}:${lastItem.agentVersion}`
+      });
+    }
+
     return {
       version: 'v1',
-      agents,
-      count: agents.length,
+      items,
+      nextCursor,
+      hasMore,
+      count: items.length,
     };
   }
 
@@ -81,13 +122,45 @@ export class OperatorAPI {
    * Deterministic, stable ordering (chronological).
    */
   async getEnrichedTimeline(filter: TimelineFilter): Promise<OperatorEnrichedTimelineResponseV1> {
-    const events = await this.timelineReader.query(filter);
-    const sortedEvents = TimelineAggregator.sortChronologically(events);
-    const enrichedEntries = this.joiner.join(sortedEvents);
+    const limit = filter.limit ?? 50;
     
+    // Fetch limit + 1
+    const events = await this.timelineReader.query({ 
+      ...filter, 
+      limit: limit + 1 
+    });
+    
+    const sortedEvents = TimelineAggregator.sortChronologically(events);
+    
+    // Handle cursor slicing
+    let startIndex = 0;
+    if (filter.cursor) {
+      const decoded = decodeCursorV1(filter.cursor);
+      if (decoded) {
+        startIndex = sortedEvents.findIndex(e => 
+          e.timestamp === decoded.timestamp && e.eventId === decoded.secondaryKey
+        ) + 1;
+      }
+    }
+
+    const slicedEvents = sortedEvents.slice(startIndex, startIndex + limit);
+    const enrichedEntries = this.joiner.join(slicedEvents);
+    const hasMore = sortedEvents.length > (startIndex + limit);
+    
+    let nextCursor: string | null = null;
+    if (hasMore && slicedEvents.length > 0) {
+      const lastItem = slicedEvents[slicedEvents.length - 1];
+      nextCursor = encodeCursorV1({
+        timestamp: lastItem.timestamp,
+        secondaryKey: lastItem.eventId
+      });
+    }
+
     return {
       version: 'v1',
-      entries: enrichedEntries,
+      items: enrichedEntries,
+      nextCursor,
+      hasMore,
       count: enrichedEntries.length,
     };
   }
