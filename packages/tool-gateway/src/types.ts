@@ -263,3 +263,23 @@ export interface GovernancePolicySnapshot {
 export interface IPolicySnapshotEmitter {
   emit(snapshot: GovernancePolicySnapshot): Promise<void>;
 }
+
+/**
+ * Metadata-only approval signal derived from governance events.
+ * 🚫 STRICTLY NO PHI, tenantId, actorId, or agentId.
+ */
+export interface ApprovalSignal {
+  triggerType: GovernanceReasonCode;
+  severity: 'low' | 'medium' | 'high';
+  escalationLevel: 1 | 2 | 3;
+  agentVersion: string;
+  policySnapshotHash: string;
+  timestamp: string;
+}
+
+/**
+ * Interface for approval signal emission.
+ */
+export interface IApprovalSignalEmitter {
+  emitSignal(signal: ApprovalSignal): void;
+}
