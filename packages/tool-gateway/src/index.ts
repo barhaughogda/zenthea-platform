@@ -4,3 +4,5 @@ export * from './validation';
 export * from './audit';
 export * from './metrics';
 export * from './lifecycle';
+export * from './timeline';
+export * from './agent-registry';
