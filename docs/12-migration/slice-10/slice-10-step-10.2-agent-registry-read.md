@@ -1,7 +1,7 @@
 # Slice 10 – Step 10.2: Agent Registry (Read-Only)
 
 ## Status
-Planned
+Complete
 
 ## Purpose
 Expose a read-only, metadata-only view of all registered agents and their versions.
