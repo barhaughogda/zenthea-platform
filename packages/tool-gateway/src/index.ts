@@ -7,3 +7,4 @@ export * from './lifecycle';
 export * from './timeline';
 export * from './agent-registry';
 export * from './timeline-registry-join';
+export * from './operator-api';
