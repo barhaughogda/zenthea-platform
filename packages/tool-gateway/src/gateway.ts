@@ -11,13 +11,15 @@ import {
   GovernanceControlResult,
   GovernanceReasonCode,
   AgentType,
-  IPolicySnapshotEmitter
+  IPolicySnapshotEmitter,
+  IApprovalSignalEmitter
 } from './types';
 import { validateExecutionCommand } from './validation';
 import { ToolTelemetryLogger } from './audit';
 import { toolGatewayMetrics } from './metrics';
 import { AbuseSignalEngine } from './abuse';
 import { PolicyEvaluator, generatePolicySnapshot } from './governance';
+import { ApprovalSignalEngine } from './approval';
 
 /**
  * Tool Execution Gateway
@@ -29,6 +31,9 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   // Deterministic Abuse Signal Engine (Slice 04.3)
   private readonly abuseEngine: AbuseSignalEngine;
   
+  // Approval Signal Engine (Slice 08.1)
+  private readonly approvalEngine: ApprovalSignalEngine;
+
   // Policy Evaluator (Slice 06.1)
   private readonly policyEvaluator = new PolicyEvaluator();
 
@@ -39,7 +44,8 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     private readonly auditLogger: IToolAuditLogger,
     private readonly telemetryLogger: IToolTelemetryLogger = new ToolTelemetryLogger(),
     private readonly governanceLogger?: IGovernanceLogger,
-    private readonly snapshotEmitter?: IPolicySnapshotEmitter
+    private readonly snapshotEmitter?: IPolicySnapshotEmitter,
+    private readonly approvalEmitter?: IApprovalSignalEmitter
   ) {
     // Generate active policy snapshot hash (Slice 07.3)
     this.policySnapshotHash = generatePolicySnapshot().policyHash;
@@ -50,6 +56,16 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       // ⚠️ SECURITY: No PHI, actorId, or tenantId in the signal.
       console.log(`[AbuseSignal] [${signal.severity.toUpperCase()}] ${signal.ruleId} - Tool: ${signal.toolName || 'N/A'}, Actor: ${signal.actorType}, Observed: ${signal.observedCount}/${signal.threshold} (Window: ${signal.windowMs}ms)`);
     });
+
+    // Initialize Approval Signal Engine (Slice 08.1)
+    this.approvalEngine = new ApprovalSignalEngine(
+      this.approvalEmitter || {
+        emitSignal: (signal) => {
+          // Metadata-only log as fallback
+          console.log(`[ApprovalSignal] [${signal.severity.toUpperCase()}] Level ${signal.escalationLevel} - Trigger: ${signal.triggerType}, Version: ${signal.agentVersion}, Hash: ${signal.policySnapshotHash}`);
+        }
+      }
+    );
 
     // Emit initial policy snapshot (Slice 06.4)
     this.emitPolicySnapshot();
@@ -473,21 +489,25 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     reasonCode: GovernanceReasonCode,
     decision: 'DENIED' | 'WARNING' = 'DENIED'
   ) {
+    const result: GovernanceControlResult = {
+      decision,
+      agentType,
+      agentVersion,
+      policySnapshotHash: this.policySnapshotHash,
+      toolName,
+      reasonCode,
+      timestamp: new Date().toISOString(),
+    };
+
     if (this.governanceLogger) {
-      const result: GovernanceControlResult = {
-        decision,
-        agentType,
-        agentVersion,
-        policySnapshotHash: this.policySnapshotHash,
-        toolName,
-        reasonCode,
-        timestamp: new Date().toISOString(),
-      };
       // Fire and forget
       this.governanceLogger.emit(result).catch(err => {
         console.error('Failed to emit governance control result:', err);
       });
     }
+
+    // Process Approval Signals (Slice 08.1) - Non-blocking
+    this.approvalEngine.processGovernanceEvent(result);
 
     // Emit governance metrics (Slice 06.2)
     if (decision === 'DENIED') {
