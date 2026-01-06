@@ -81,9 +81,50 @@ function testPolicySnapshots() {
   console.log('✅ PolicySnapshot tests passed!');
 }
 
+function testLifecycleTransitions() {
+  const evaluator = new PolicyEvaluator();
+  console.log('Running LifecycleTransition tests...');
+
+  // 1. Allowed Transitions
+  const allowed = [
+    { from: 'experimental', to: 'active' },
+    { from: 'active', to: 'deprecated' },
+    { from: 'deprecated', to: 'retired' },
+    { from: 'active', to: 'disabled' },
+    { from: 'deprecated', to: 'disabled' },
+    { from: 'active', to: 'active' }, // Identity
+  ];
+
+  for (const { from, to } of allowed) {
+    const result = evaluator.validateTransition(from as any, to as any);
+    assert.strictEqual(result.allowed, true, `Transition ${from} -> ${to} should be allowed`);
+  }
+  console.log('✅ Allowed transitions passed');
+
+  // 2. Forbidden Transitions
+  const forbidden = [
+    { from: 'retired', to: 'active' },
+    { from: 'retired', to: 'experimental' },
+    { from: 'disabled', to: 'active' },
+    { from: 'active', to: 'experimental' },
+    { from: 'retired', to: 'deprecated' },
+    { from: 'disabled', to: 'retired' },
+  ];
+
+  for (const { from, to } of forbidden) {
+    const result = evaluator.validateTransition(from as any, to as any);
+    assert.strictEqual(result.allowed, false, `Transition ${from} -> ${to} should be forbidden`);
+    assert.strictEqual(result.reasonCode, 'LIFECYCLE_DENIED');
+  }
+  console.log('✅ Forbidden transitions passed');
+
+  console.log('All LifecycleTransition tests passed!');
+}
+
 try {
   testPolicyEvaluator();
   testPolicySnapshots();
+  testLifecycleTransitions();
 } catch (error) {
   console.error('Test failed:', error);
   process.exit(1);
