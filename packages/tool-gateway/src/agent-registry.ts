@@ -4,6 +4,7 @@ import {
   AgentVersion 
 } from './types';
 import { AGENT_REGISTRY, generatePolicySnapshot } from './governance';
+import { decodeCursorV1, encodeCursorV1 } from './cursor';
 
 /**
  * Metadata-only projection of an agent version.
@@ -26,7 +27,7 @@ export interface IAgentRegistryReader {
   /**
    * Lists all registered agents and versions, sorted by agentId and version.
    */
-  listAgents(): AgentRegistryEntry[];
+  listAgents(limit?: number, cursor?: string): AgentRegistryEntry[];
 
   /**
    * Gets all registered versions for a specific agent.
@@ -45,8 +46,8 @@ export interface IAgentRegistryReader {
 export class AgentRegistryReader implements IAgentRegistryReader {
   private readonly snapshot = generatePolicySnapshot();
 
-  listAgents(): AgentRegistryEntry[] {
-    const entries: AgentRegistryEntry[] = [];
+  listAgents(limit: number = 50, cursor?: string): AgentRegistryEntry[] {
+    const allEntries: AgentRegistryEntry[] = [];
 
     // Sort agent IDs for deterministic output
     const sortedAgentIds = Object.keys(AGENT_REGISTRY).sort();
@@ -59,11 +60,25 @@ export class AgentRegistryReader implements IAgentRegistryReader {
 
       for (const version of sortedVersions) {
         const versionInfo = agent.versions[version];
-        entries.push(this.mapToEntry(agentId, agent.type, versionInfo));
+        allEntries.push(this.mapToEntry(agentId, agent.type, versionInfo));
       }
     }
 
-    return entries;
+    // Agent Registry ordering: agentId + agentVersion
+    // Since we built the list using sorted keys, it's already in the correct order.
+
+    let startIndex = 0;
+    if (cursor) {
+      const decoded = decodeCursorV1(cursor);
+      if (decoded) {
+        // Find the first index AFTER the cursor
+        // Secondary key for registry is agentId:agentVersion
+        const cursorKey = decoded.secondaryKey;
+        startIndex = allEntries.findIndex(e => `${e.agentId}:${e.agentVersion}` === cursorKey) + 1;
+      }
+    }
+
+    return allEntries.slice(startIndex, startIndex + limit);
   }
 
   getAgent(agentId: string): AgentRegistryEntry[] {

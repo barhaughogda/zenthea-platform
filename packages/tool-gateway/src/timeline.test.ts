@@ -30,6 +30,7 @@ function testToolGatewayAggregation() {
   const timelineEvent = TimelineAggregator.fromToolGateway(event);
 
   assert.strictEqual(timelineEvent.type, 'TOOL_GATEWAY');
+  assert.strictEqual(timelineEvent.eventId, 'req-123');
   assert.strictEqual(timelineEvent.policySnapshotHash, policySnapshotHash);
   assert.strictEqual(timelineEvent.agentVersion, agentVersion);
   assert.strictEqual(timelineEvent.timestamp, timestamp);
@@ -185,9 +186,9 @@ function testNoForbiddenFieldsExist() {
 function testSorting() {
   console.log('Running sorting tests...');
   const events: any[] = [
-    { timestamp: '2025-01-01T12:00:00Z' },
-    { timestamp: '2025-01-01T10:00:00Z' },
-    { timestamp: '2025-01-01T11:00:00Z' },
+    { eventId: '1', timestamp: '2025-01-01T12:00:00Z' },
+    { eventId: '2', timestamp: '2025-01-01T10:00:00Z' },
+    { eventId: '3', timestamp: '2025-01-01T11:00:00Z' },
   ];
 
   const sorted = TimelineAggregator.sortChronologically(events as GovernanceTimelineEvent[]);
