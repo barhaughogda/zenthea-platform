@@ -8,7 +8,7 @@ import { GovernanceTimelineEvent } from './timeline';
  */
 class MockRegistryReader implements IAgentRegistryReader {
   constructor(private entries: AgentRegistryEntry[]) {}
-  listAgents(): AgentRegistryEntry[] { return this.entries; }
+  listAgents(_limit?: number, _cursor?: string): AgentRegistryEntry[] { return this.entries; }
   getAgent(agentId: string): AgentRegistryEntry[] { 
     return this.entries.filter(e => e.agentId === agentId); 
   }
@@ -39,6 +39,7 @@ function testTimelineRegistryJoin() {
 
   // 1. Successful Join
   const event: GovernanceTimelineEvent = {
+    eventId: 'req-1',
     type: 'TOOL_GATEWAY',
     policySnapshotHash: policyHash,
     agentVersion: version,
@@ -95,6 +96,7 @@ function testTimelineRegistryJoin() {
   // 5. Deterministic ordering (stable output relative to input)
   const event2: GovernanceTimelineEvent = {
     ...event,
+    eventId: 'req-2',
     timestamp: '2025-01-01T11:00:00Z',
   };
   const resultsOrder = joiner.join([event2, event]);

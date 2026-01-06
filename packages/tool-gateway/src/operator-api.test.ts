@@ -31,6 +31,7 @@ async function testOperatorAPI() {
 
   const events: GovernanceTimelineEvent[] = [
     {
+      eventId: 'req-1',
       type: 'TOOL_GATEWAY',
       policySnapshotHash: 'hash-1',
       agentVersion: '1.0.0',
@@ -40,6 +41,7 @@ async function testOperatorAPI() {
       decision: 'allowed',
     },
     {
+      eventId: 'gov-1',
       type: 'GOVERNANCE_CONTROL',
       policySnapshotHash: 'hash-1',
       agentVersion: '1.0.0',
@@ -60,22 +62,22 @@ async function testOperatorAPI() {
   const timelineResponse = await api.getTimeline({});
   assert.strictEqual(timelineResponse.version, 'v1');
   assert.strictEqual(timelineResponse.count, 2);
-  assert.strictEqual(timelineResponse.events[0].timestamp, '2025-01-01T10:00:00Z', 'Should be sorted chronologically');
+  assert.strictEqual(timelineResponse.items[0].timestamp, '2025-01-01T10:00:00Z', 'Should be sorted chronologically');
   console.log('✅ getTimeline passed');
 
   // 2. getAgents - Check data and count
   const agentsResponse = await api.getAgents();
   assert.strictEqual(agentsResponse.version, 'v1');
   assert.ok(agentsResponse.count > 0);
-  assert.ok(Array.isArray(agentsResponse.agents));
+  assert.ok(Array.isArray(agentsResponse.items));
   console.log('✅ getAgents passed');
 
   // 3. getEnrichedTimeline - Check join and data
   const enrichedResponse = await api.getEnrichedTimeline({});
   assert.strictEqual(enrichedResponse.version, 'v1');
   assert.strictEqual(enrichedResponse.count, 2);
-  assert.strictEqual(enrichedResponse.entries[0].timestamp, '2025-01-01T10:00:00Z', 'Should be sorted chronologically');
-  assert.ok(enrichedResponse.entries[0].agent, 'Should have joined agent data or "unknown"');
+  assert.strictEqual(enrichedResponse.items[0].timestamp, '2025-01-01T10:00:00Z', 'Should be sorted chronologically');
+  assert.ok(enrichedResponse.items[0].agent, 'Should have joined agent data or "unknown"');
   console.log('✅ getEnrichedTimeline passed');
 
   // 4. 🚫 Security - Forbidden fields in response contracts
@@ -89,8 +91,8 @@ async function testOperatorAPI() {
       assert.strictEqual(res[field], undefined, `Response must NOT contain ${field}`);
     });
 
-    // Check nested arrays
-    const items = (res as any).events || (res as any).agents || (res as any).entries;
+    // Check nested items
+    const items = res.items;
     items.forEach((item: any) => {
       forbiddenFields.forEach(field => {
         assert.strictEqual(item[field], undefined, `Item must NOT contain ${field}`);
