@@ -8,6 +8,7 @@ import {
   AgentVersion,
   PolicyEvaluation
 } from './types';
+import { validateTransition } from './lifecycle';
 
 export type ToolScope = 
   | 'consent.read' 
@@ -190,6 +191,14 @@ export class PolicyEvaluator {
       agentType: agent.type,
       warningCode,
     };
+  }
+
+  /**
+   * Validates a lifecycle transition for an agent version.
+   * This logic is deterministic and used by governance processes.
+   */
+  validateTransition(fromState: AgentLifecycleState, toState: AgentLifecycleState) {
+    return validateTransition(fromState, toState);
   }
 }
 
