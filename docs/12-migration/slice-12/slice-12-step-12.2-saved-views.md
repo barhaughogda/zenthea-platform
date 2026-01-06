@@ -1,6 +1,11 @@
 # Slice 12 - Step 12.2: Saved Views (Read-Only)
 
-**Status:** Planned  
+**Status:** Completed
+
+## Evidence
+- `packages/tool-gateway/src/saved-view-registry.ts`: Implements the code-defined `SAVED_VIEW_REGISTRY`.
+- `packages/tool-gateway/src/operator-api.ts`: Implements `executeView` which resolves to the underlying policy execution path.
+- `packages/tool-gateway/src/saved-view.test.ts`: Asserts view resolution, deterministic results, and pagination parity.
 **Owner:** Platform Architecture  
 **Scope:** Operator Control Plane  
 **Precondition:** Step 12.1 complete and sealed (Operator Query Policies)

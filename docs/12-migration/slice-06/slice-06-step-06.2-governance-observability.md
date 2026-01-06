@@ -1,6 +1,11 @@
 # Slice 06: Step 06.2 Governance Telemetry and Metrics
 
-Status: Planned
+Status: Completed
+
+## Evidence
+- `packages/tool-gateway/src/gateway.ts`: Emits `emitGovernanceControl` events on policy evaluation failures.
+- `packages/tool-gateway/src/metrics.ts`: Defines `tool_gateway_governance_denies_total` and associated labels for operational visibility.
+- `packages/tool-gateway/src/governance.ts`: `generatePolicySnapshot` provides the metadata foundation for auditable governance events.
 Owner: Platform Architecture
 Phase: Governance
 Prerequisite: Slice 06.1 complete and locked

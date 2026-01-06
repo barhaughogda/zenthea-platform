@@ -1,6 +1,11 @@
 # Slice 12 – Step 12.1: Operator Query Policies (Read-Only)
 
-**Status:** Planned  
+**Status:** Completed
+
+## Evidence
+- `packages/tool-gateway/src/policy-registry.ts`: Implements the code-defined, immutable `OPERATOR_POLICY_REGISTRY`.
+- `packages/tool-gateway/src/operator-api.ts`: Implements `executePolicy` for resolving and running named query definitions.
+- `packages/tool-gateway/src/operator-api.test.ts`: Covers unknown policy rejection and results parity with direct API calls.
 **Owner:** Platform Architecture  
 **Scope:** Operator Control Plane  
 **Precondition:** Slice 11 complete and sealed

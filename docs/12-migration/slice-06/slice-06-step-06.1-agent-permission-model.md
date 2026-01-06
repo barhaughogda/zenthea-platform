@@ -1,6 +1,11 @@
 # Slice 06: Step 06.1 Agent Permission Model
 
-Status: Planned  
+Status: Completed
+
+## Evidence
+- `packages/tool-gateway/src/governance.ts`: Implements `AGENT_REGISTRY` and `TOOL_SCOPE_MAPPING` for explicit permission declarations.
+- `packages/tool-gateway/src/governance.ts`: `PolicyEvaluator` handles the core "deny-by-default" logic.
+- `packages/tool-gateway/src/governance.test.ts`: Unit tests asserting strict enforcement of registered agents and scopes.
 Owner: Platform Architecture  
 Phase: Governance  
 Prerequisite: Slice 06 planning doc exists and is locked
