@@ -8,3 +8,4 @@ export * from './timeline';
 export * from './agent-registry';
 export * from './timeline-registry-join';
 export * from './operator-api';
+export * from './policy-registry';

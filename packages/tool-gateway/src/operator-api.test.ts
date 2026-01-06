@@ -1,5 +1,9 @@
 import * as assert from 'assert';
-import { OperatorAPI } from './operator-api';
+import { 
+  OperatorAPI, 
+  OperatorTimelineResponseV1, 
+  OperatorAgentRegistryResponseV1 
+} from './operator-api';
 import { 
   IGovernanceTimelineReader, 
   GovernanceTimelineEvent, 
@@ -10,6 +14,7 @@ import {
   AgentRegistryEntry
 } from './agent-registry';
 import { TimelineRegistryJoiner } from './timeline-registry-join';
+import { POLICY_REGISTRY } from './policy-registry';
 
 /**
  * Mock Timeline Reader for testing.
@@ -51,6 +56,16 @@ async function testOperatorAPI() {
       decision: 'allowed',
     },
     {
+      eventId: 'req-2',
+      type: 'TOOL_GATEWAY',
+      policySnapshotHash: 'hash-1',
+      agentVersion: '1.0.0',
+      timestamp: '2025-01-01T13:00:00Z',
+      toolName: 'chat.sendMessage',
+      actorType: 'patient',
+      decision: 'denied',
+    },
+    {
       eventId: 'gov-1',
       type: 'GOVERNANCE_CONTROL',
       policySnapshotHash: 'hash-1',
@@ -71,7 +86,7 @@ async function testOperatorAPI() {
   // 1. getTimeline - Check data and ordering
   const timelineResponse = await api.getTimeline({});
   assert.strictEqual(timelineResponse.version, 'v1');
-  assert.strictEqual(timelineResponse.count, 2);
+  assert.strictEqual(timelineResponse.count, 3);
   assert.strictEqual(timelineResponse.items[0].timestamp, '2025-01-01T10:00:00Z', 'Should be sorted chronologically');
   console.log('✅ getTimeline passed');
 
@@ -85,7 +100,7 @@ async function testOperatorAPI() {
   // 3. getEnrichedTimeline - Check join and data
   const enrichedResponse = await api.getEnrichedTimeline({});
   assert.strictEqual(enrichedResponse.version, 'v1');
-  assert.strictEqual(enrichedResponse.count, 2);
+  assert.strictEqual(enrichedResponse.count, 3);
   assert.strictEqual(enrichedResponse.items[0].timestamp, '2025-01-01T10:00:00Z', 'Should be sorted chronologically');
   assert.ok(enrichedResponse.items[0].agent, 'Should have joined agent data or "unknown"');
   console.log('✅ getEnrichedTimeline passed');
@@ -120,7 +135,7 @@ async function testOperatorAPI() {
 
   // 5. Filtering - Timeline Valid filters
   const filteredTimeline = await api.getTimeline({ agentVersion: '1.0.0' });
-  assert.strictEqual(filteredTimeline.count, 2);
+  assert.strictEqual(filteredTimeline.count, 3);
   const emptyTimeline = await api.getTimeline({ agentVersion: '2.0.0' });
   assert.strictEqual(emptyTimeline.count, 0);
   console.log('✅ getTimeline filtering passed');
@@ -178,6 +193,60 @@ async function testOperatorAPI() {
   );
   assert.strictEqual(writeMethods.length, 0, 'OperatorAPI MUST NOT have write methods');
   console.log('✅ Read-only (no write paths) passed');
+
+  // 10. executePolicy - Unknown policy ID
+  try {
+    await api.executePolicy('unknown-policy');
+    assert.fail('Should have rejected unknown policy ID');
+  } catch (err: any) {
+    assert.ok(err.message.includes('Unknown policyId'), 'Error message should mention unknown policyId');
+  }
+  console.log('✅ Unknown policy rejection passed');
+
+  // 11. executePolicy - Valid policy (timeline)
+  const policyTimeline = await api.executePolicy('recent-denied-tools') as OperatorTimelineResponseV1;
+  assert.strictEqual(policyTimeline.count, 1); // One denied event in the mock data
+  assert.strictEqual(policyTimeline.items[0].type, 'TOOL_GATEWAY');
+  assert.strictEqual((policyTimeline.items[0] as any).decision, 'denied');
+  console.log('✅ Valid timeline policy execution passed');
+
+  // 12. executePolicy - Valid policy (agentRegistry)
+  const policyAgents = await api.executePolicy('active-clinical-agents') as OperatorAgentRegistryResponseV1;
+  assert.ok(policyAgents.count > 0);
+  assert.ok(policyAgents.items.every((a: any) => a.agentType === 'clinical' && a.lifecycleState === 'active'));
+  console.log('✅ Valid agent registry policy execution passed');
+
+  // 13. executePolicy - Pagination parity
+  const manyDeniedEvents: GovernanceTimelineEvent[] = Array.from({ length: 10 }, (_, i) => ({
+    eventId: `denied-${i}`,
+    type: 'TOOL_GATEWAY',
+    policySnapshotHash: 'hash-1',
+    agentVersion: '1.0.0',
+    timestamp: `2025-01-01T12:00:${i.toString().padStart(2, '0')}Z`,
+    decision: 'denied',
+    toolName: 'chat.sendMessage',
+    actorType: 'patient',
+  }));
+  const policyPagingApi = new OperatorAPI(new MockTimelineReader(manyDeniedEvents), registryReader, joiner);
+  
+  // Directly using getTimeline with same filters as 'recent-denied-tools' but with limit 5
+  const directPage1 = await policyPagingApi.getTimeline({ decision: 'denied', limit: 5 });
+  // Using executePolicy (which has fixed limit 20 in policy definition, but we can override if we want? 
+  // No, the policy definition is fixed. But getTimeline takes the limit from the filter.
+  // Wait, my executePolicy implementation:
+  // const filter = { ...policy.filters, cursor } as TimelineFilter;
+  // return this.getTimeline(filter);
+  // It uses the limit from the policy filters!
+  
+  const policyPage = await policyPagingApi.executePolicy('recent-denied-tools') as OperatorTimelineResponseV1;
+  assert.strictEqual(policyPage.count, 10); // 'recent-denied-tools' has limit: 20
+  
+  // Test pagination via cursor on policy
+  // For this we need a policy that would actually have more than its limit
+  // Let's create a temporary policy or just test that cursor works
+  const pageWithCursor = await policyPagingApi.executePolicy('recent-denied-tools', directPage1.nextCursor!) as OperatorTimelineResponseV1;
+  assert.strictEqual(pageWithCursor.items[0].eventId, 'denied-5');
+  console.log('✅ Policy pagination parity passed');
 
   console.log('All OperatorAPI tests passed! 🛡️');
 }

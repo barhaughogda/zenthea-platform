@@ -18,6 +18,11 @@ import {
   encodeCursorV1, 
   decodeCursorV1 
 } from './cursor';
+import { 
+  POLICY_REGISTRY, 
+  OperatorQueryPolicy 
+} from './policy-registry';
+import { SAVED_VIEW_REGISTRY } from './saved-view-registry';
 import { z } from 'zod';
 
 /**
@@ -198,5 +203,42 @@ export class OperatorAPI {
       hasMore,
       count: enrichedEntries.length,
     };
+  }
+
+  /**
+   * Executes a named policy.
+   * Resolves policyId to a fixed definition and executes via existing APIs.
+   * Supports pagination but NOT runtime filters.
+   */
+  async executePolicy(policyId: string, cursor?: string): Promise<OperatorTimelineResponseV1 | OperatorAgentRegistryResponseV1> {
+    const policy = POLICY_REGISTRY[policyId];
+    if (!policy) {
+      throw new Error(`Policy Rejection: Unknown policyId '${policyId}'`);
+    }
+
+    if (policy.target === 'timeline') {
+      const filter = { ...policy.filters, cursor } as TimelineFilter;
+      return this.getTimeline(filter);
+    } else if (policy.target === 'agentRegistry') {
+      const filter = { ...policy.filters, cursor } as AgentRegistryFilter;
+      return this.getAgents(filter);
+    }
+
+    throw new Error(`Policy Rejection: Unsupported target '${policy.target}' for policy '${policyId}'`);
+  }
+
+  /**
+   * Executes a named saved view.
+   * Resolves viewId to a policyId and executes via the existing policy execution path.
+   */
+  async executeView(viewId: string, cursor?: string): Promise<OperatorTimelineResponseV1 | OperatorAgentRegistryResponseV1> {
+    const view = SAVED_VIEW_REGISTRY[viewId];
+    if (!view) {
+      throw new Error(`View Rejection: Unknown viewId '${viewId}'`);
+    }
+
+    // Saved views execute by calling the policy execution path.
+    // This ensures no query logic is duplicated and governance is preserved.
+    return this.executePolicy(view.policyId, cursor);
   }
 }
