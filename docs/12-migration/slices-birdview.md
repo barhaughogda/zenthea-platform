@@ -1,6 +1,11 @@
-# Slice Birdview (01–20)
+# Platform Birdview (Control Plane + Migration)
 
-This document is the **birdview status board** for migration/governance slices.
+This document is the **birdview status board** for platform progress.
+
+Important:
+- The repo contains both **migration slices** (product surfaces) and **control-plane slices** (governance hardening).
+- To avoid confusion, migration work is tracked as `MIG-xx` in `docs/12-migration/migration-roadmap-birdview.md`.
+- The table below tracks **control-plane slices** only.
 
 Rules:
 - This board is **status-only** and must reflect reality.
@@ -20,8 +25,8 @@ Legend:
 
 | Slice | Name | Status | Primary Evidence / Location |
 |------:|------|--------|-----------------------------|
-| 01 | Website Builder UI Migration | **Planned** (plan exists; completion doc not present) | `docs/12-migration/first-slice-plan.md` |
-| 02B | Controlled Patient Portal Migration | **Completed** | `docs/12-migration/Slice-02B/slice-02B-complete.md` |
+| 01 | (Reserved: migration slice numbering) | **See MIG roadmap** | `docs/12-migration/migration-roadmap-birdview.md` |
+| 02B | (Reserved: migration slice numbering) | **See MIG roadmap** | `docs/12-migration/migration-roadmap-birdview.md` |
 | 03 | (Not documented) | **Unknown** | — |
 | 04 | Observability & Abuse Signals | **Completed** | `docs/12-migration/slice-04/slice-04-complete.md` |
 | 05 | (Not documented) | **Unknown** | — |
