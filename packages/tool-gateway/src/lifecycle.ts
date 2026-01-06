@@ -1,6 +1,45 @@
 import { AgentLifecycleState, GovernanceReasonCode } from './types';
 
 /**
+ * Metadata-only request to transition an agent between lifecycle states.
+ * 🚫 MUST NOT include PHI, tenantId, or actorId.
+ */
+export interface TransitionRequest {
+  agentId: string;
+  agentVersion: string;
+  fromState: AgentLifecycleState;
+  toState: AgentLifecycleState;
+  reason: string;
+  requestedByRole: string;
+  timestamp: string;
+}
+
+/**
+ * Metadata-only decision for a transition request.
+ * 🚫 MUST NOT include PHI, tenantId, or actorId.
+ */
+export interface TransitionDecision {
+  requestId: string;
+  decision: 'approve' | 'reject';
+  decidedByRole: string;
+  timestamp: string;
+}
+
+/**
+ * Interface for emitting transition requests.
+ */
+export interface ITransitionRequestEmitter {
+  emitRequest(request: TransitionRequest): void;
+}
+
+/**
+ * Interface for providing transition decisions.
+ */
+export interface ITransitionDecisionProvider {
+  getDecision(requestId: string): Promise<TransitionDecision | null>;
+}
+
+/**
  * Result of a lifecycle transition validation.
  */
 export interface TransitionValidationResult {
