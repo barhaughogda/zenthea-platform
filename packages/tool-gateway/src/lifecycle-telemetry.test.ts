@@ -14,10 +14,10 @@ import {
 test('Lifecycle Transition Telemetry', async (t) => {
   const events: TransitionEvent[] = [];
   const mockLogger = {
-    info: (_tag: string, _msg: string, data: any) => {
-      events.push(data);
+    info: (_tag: string, _msg: string, data: Record<string, unknown>) => {
+      events.push(data as unknown as TransitionEvent);
     },
-    error: (_tag: string, _msg: string, _data: any) => {}
+    error: () => {}
   };
 
   const telemetry = createTransitionTelemetry(mockLogger);

@@ -27,14 +27,14 @@ export interface ITransitionTelemetry {
  * Uses a generic logger to emit events.
  */
 export interface IGenericLogger {
-  info(tag: string, message: string, data: any): void;
+  info(tag: string, message: string, data: Record<string, unknown>): void;
 }
 
 export const createTransitionTelemetry = (logger: IGenericLogger): ITransitionTelemetry => {
   return {
     emitTransitionEvent: (event: TransitionEvent) => {
       // Fire-and-forget logging
-      logger.info('lifecycle_transition', 'Lifecycle transition event recorded', event);
+      logger.info('lifecycle_transition', 'Lifecycle transition event recorded', event as unknown as Record<string, unknown>);
     },
   };
 };
