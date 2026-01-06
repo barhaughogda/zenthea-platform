@@ -10,7 +10,7 @@ into the platform.
 3. CMS package
 4. Shared UI components (packages/ui)
 5. Patient portal UI (read-only)
-6. Provider portal UI (read-only, draft-first)
+6. Provider portal UI (read-only, draft-first) — see `docs/12-migration/mig-03-provider-portal.md`
 7. Scheduling proposals
 8. Patient-facing AI summaries
 9. Clinical documentation (draft-only)
