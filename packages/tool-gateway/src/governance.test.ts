@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import { PolicyEvaluator, generatePolicySnapshot } from './governance';
+import { AgentLifecycleState } from './types';
 
 function testPolicyEvaluator() {
   const evaluator = new PolicyEvaluator();
@@ -96,7 +97,7 @@ function testLifecycleTransitions() {
   ];
 
   for (const { from, to } of allowed) {
-    const result = evaluator.validateTransition(from as any, to as any);
+    const result = evaluator.validateTransition(from as AgentLifecycleState, to as AgentLifecycleState);
     assert.strictEqual(result.allowed, true, `Transition ${from} -> ${to} should be allowed`);
   }
   console.log('✅ Allowed transitions passed');
@@ -112,7 +113,7 @@ function testLifecycleTransitions() {
   ];
 
   for (const { from, to } of forbidden) {
-    const result = evaluator.validateTransition(from as any, to as any);
+    const result = evaluator.validateTransition(from as AgentLifecycleState, to as AgentLifecycleState);
     assert.strictEqual(result.allowed, false, `Transition ${from} -> ${to} should be forbidden`);
     assert.strictEqual(result.reasonCode, 'LIFECYCLE_DENIED');
   }
