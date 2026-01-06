@@ -6,7 +6,8 @@ import {
 } from './timeline';
 import { 
   AgentRegistryEntry, 
-  IAgentRegistryReader 
+  IAgentRegistryReader,
+  AgentRegistryFilter 
 } from './agent-registry';
 import { 
   EnrichedTimelineEntry, 
@@ -17,6 +18,32 @@ import {
   encodeCursorV1, 
   decodeCursorV1 
 } from './cursor';
+import { z } from 'zod';
+
+/**
+ * Filter Validation Schemas (Strict Allowlist)
+ */
+
+export const TimelineFilterSchema = z.object({
+  policySnapshotHash: z.string().optional(),
+  agentVersion: z.string().optional(),
+  toolName: z.string().optional(),
+  decision: z.enum(['allowed', 'denied', 'warning', 'rate_limited', 'error']).optional(),
+  actorType: z.enum(['patient', 'provider', 'system', 'unknown']).optional(),
+  fromTimestamp: z.string().datetime().optional(),
+  toTimestamp: z.string().datetime().optional(),
+  type: z.enum(['TOOL_GATEWAY', 'GOVERNANCE_CONTROL', 'APPROVAL_SIGNAL', 'LIFECYCLE_TRANSITION']).optional(),
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+}).strict();
+
+export const AgentRegistryFilterSchema = z.object({
+  agentType: z.enum(['patient-facing', 'clinical', 'platform', 'unknown']).optional(),
+  lifecycleState: z.enum(['active', 'deprecated', 'disabled', 'experimental', 'retired']).optional(),
+  agentId: z.string().optional(),
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+}).strict();
 
 /**
  * Versioned API Response Contracts (v1)
@@ -45,11 +72,12 @@ export class OperatorAPI {
    * Deterministic, stable ordering (chronological).
    */
   async getTimeline(filter: TimelineFilter): Promise<OperatorTimelineResponseV1> {
-    const limit = filter.limit ?? 50;
+    const validatedFilter = TimelineFilterSchema.parse(filter);
+    const limit = validatedFilter.limit ?? 50;
     
     // Fetch limit + 1 to detect if there's more
     const events = await this.timelineReader.query({ 
-      ...filter, 
+      ...validatedFilter, 
       limit: limit + 1 
     });
     
@@ -57,8 +85,8 @@ export class OperatorAPI {
     
     // Handle cursor slicing if the reader didn't (generic implementation)
     let startIndex = 0;
-    if (filter.cursor) {
-      const decoded = decodeCursorV1(filter.cursor);
+    if (validatedFilter.cursor) {
+      const decoded = decodeCursorV1(validatedFilter.cursor);
       if (decoded) {
         // Find first item AFTER the cursor by timestamp + eventId
         startIndex = sortedEvents.findIndex(e => 
@@ -92,9 +120,15 @@ export class OperatorAPI {
    * Exposes the Agent Registry.
    * Deterministic, stable ordering (by agentId and version).
    */
-  async getAgents(limit: number = 50, cursor?: string): Promise<OperatorAgentRegistryResponseV1> {
+  async getAgents(filter: AgentRegistryFilter = {}): Promise<OperatorAgentRegistryResponseV1> {
+    const validatedFilter = AgentRegistryFilterSchema.parse(filter);
+    const limit = validatedFilter.limit ?? 50;
+
     // Fetch limit + 1 to detect if there's more
-    const agents = this.registryReader.listAgents(limit + 1, cursor);
+    const agents = this.registryReader.listAgents({
+      ...validatedFilter,
+      limit: limit + 1
+    });
     
     const hasMore = agents.length > limit;
     const items = agents.slice(0, limit);
@@ -122,11 +156,12 @@ export class OperatorAPI {
    * Deterministic, stable ordering (chronological).
    */
   async getEnrichedTimeline(filter: TimelineFilter): Promise<OperatorEnrichedTimelineResponseV1> {
-    const limit = filter.limit ?? 50;
+    const validatedFilter = TimelineFilterSchema.parse(filter);
+    const limit = validatedFilter.limit ?? 50;
     
     // Fetch limit + 1
     const events = await this.timelineReader.query({ 
-      ...filter, 
+      ...validatedFilter, 
       limit: limit + 1 
     });
     
@@ -134,8 +169,8 @@ export class OperatorAPI {
     
     // Handle cursor slicing
     let startIndex = 0;
-    if (filter.cursor) {
-      const decoded = decodeCursorV1(filter.cursor);
+    if (validatedFilter.cursor) {
+      const decoded = decodeCursorV1(validatedFilter.cursor);
       if (decoded) {
         startIndex = sortedEvents.findIndex(e => 
           e.timestamp === decoded.timestamp && e.eventId === decoded.secondaryKey

@@ -102,8 +102,10 @@ export interface TimelineFilter {
   policySnapshotHash?: string;
   agentVersion?: string;
   toolName?: string;
-  startTime?: string;
-  endTime?: string;
+  decision?: 'allowed' | 'denied' | 'warning' | 'rate_limited' | 'error';
+  actorType?: 'patient' | 'provider' | 'system' | 'unknown';
+  fromTimestamp?: string;
+  toTimestamp?: string;
   type?: GovernanceTimelineEventType;
   cursor?: string;
   limit?: number;

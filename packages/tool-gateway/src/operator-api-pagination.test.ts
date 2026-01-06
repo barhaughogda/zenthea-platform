@@ -107,12 +107,12 @@ async function testPagination() {
   console.log('✅ Determinism passed');
 
   // 6. Agent Registry Pagination
-  const agentsPage1 = await api.getAgents(2);
+  const agentsPage1 = await api.getAgents({ limit: 2 });
   assert.strictEqual(agentsPage1.items.length, 2);
   assert.strictEqual(agentsPage1.hasMore, true);
   assert.ok(agentsPage1.nextCursor);
 
-  const agentsPage2 = await api.getAgents(2, agentsPage1.nextCursor!);
+  const agentsPage2 = await api.getAgents({ limit: 2, cursor: agentsPage1.nextCursor! });
   assert.strictEqual(agentsPage2.items.length, 2);
   assert.notDeepStrictEqual(agentsPage1.items, agentsPage2.items);
   console.log('✅ Agent Registry Pagination passed');

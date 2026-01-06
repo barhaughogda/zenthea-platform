@@ -21,13 +21,24 @@ export interface AgentRegistryEntry {
 }
 
 /**
+ * Read-only filters for the agent registry.
+ */
+export interface AgentRegistryFilter {
+  agentType?: AgentType;
+  lifecycleState?: AgentLifecycleState;
+  agentId?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+/**
  * Read-only interface for exploring the agent registry.
  */
 export interface IAgentRegistryReader {
   /**
    * Lists all registered agents and versions, sorted by agentId and version.
    */
-  listAgents(limit?: number, cursor?: string): AgentRegistryEntry[];
+  listAgents(filter?: AgentRegistryFilter): AgentRegistryEntry[];
 
   /**
    * Gets all registered versions for a specific agent.
@@ -46,20 +57,33 @@ export interface IAgentRegistryReader {
 export class AgentRegistryReader implements IAgentRegistryReader {
   private readonly snapshot = generatePolicySnapshot();
 
-  listAgents(limit: number = 50, cursor?: string): AgentRegistryEntry[] {
+  listAgents(filter: AgentRegistryFilter = {}): AgentRegistryEntry[] {
+    const limit = filter.limit ?? 50;
+    const { cursor, agentType, lifecycleState, agentId: filterAgentId } = filter;
+    
     const allEntries: AgentRegistryEntry[] = [];
 
     // Sort agent IDs for deterministic output
     const sortedAgentIds = Object.keys(AGENT_REGISTRY).sort();
 
     for (const agentId of sortedAgentIds) {
+      // Apply agentId filter early
+      if (filterAgentId && agentId !== filterAgentId) continue;
+
       const agent = AGENT_REGISTRY[agentId];
       
+      // Apply agentType filter
+      if (agentType && agent.type !== agentType) continue;
+
       // Sort versions for deterministic output
       const sortedVersions = Object.keys(agent.versions).sort();
 
       for (const version of sortedVersions) {
         const versionInfo = agent.versions[version];
+
+        // Apply lifecycleState filter
+        if (lifecycleState && versionInfo.lifecycleState !== lifecycleState) continue;
+
         allEntries.push(this.mapToEntry(agentId, agent.type, versionInfo));
       }
     }
