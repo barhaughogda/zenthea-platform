@@ -1,3 +1,4 @@
+import { ITransitionTelemetry } from './lifecycle-telemetry';
 import { AgentLifecycleState, GovernanceReasonCode } from './types';
 
 /**
@@ -37,6 +38,47 @@ export interface ITransitionRequestEmitter {
  */
 export interface ITransitionDecisionProvider {
   getDecision(requestId: string): Promise<TransitionDecision | null>;
+}
+
+/**
+ * Hook for emitting telemetry when a transition request is made.
+ * 🚫 MUST NOT include PHI, tenantId, or actorId.
+ */
+export function emitTransitionRequestTelemetry(
+  telemetry: ITransitionTelemetry,
+  request: TransitionRequest,
+  policySnapshotHash: string
+): void {
+  // Fire-and-forget
+  telemetry.emitTransitionEvent({
+    agentVersion: request.agentVersion,
+    fromState: request.fromState,
+    toState: request.toState,
+    decision: 'requested',
+    policySnapshotHash,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Hook for emitting telemetry when a transition decision is returned.
+ * 🚫 MUST NOT include PHI, tenantId, or actorId.
+ */
+export function emitTransitionDecisionTelemetry(
+  telemetry: ITransitionTelemetry,
+  request: TransitionRequest,
+  decision: TransitionDecision,
+  policySnapshotHash: string
+): void {
+  // Fire-and-forget
+  telemetry.emitTransitionEvent({
+    agentVersion: request.agentVersion,
+    fromState: request.fromState,
+    toState: request.toState,
+    decision: decision.decision === 'approve' ? 'approved' : 'rejected',
+    policySnapshotHash,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 /**
