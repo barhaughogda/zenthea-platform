@@ -42,7 +42,7 @@ This table tracks both **Control Plane (CP)** and **Migration (MIG)** slices in 
 | **MIG-04** | Migration | Clinical Documentation (HITL) | **Planned** | — |
 | **MIG-05** | Migration | Scheduling & Billing | **Planned** | — |
 | **CP-16** | Control | Escalation Paths & Decision Hooks | **Completed** | `docs/12-migration/slice-16/` |
-| **CP-17** | Control | Controlled Mutations | **Draft** | `docs/12-migration/slice-17/` |
+| **CP-17** | Control | Controlled Mutations | **Completed** | `docs/12-migration/slice-17/` |
 | **CP-18** | Control | Policy & View Versioning | **Draft** | `docs/12-migration/slice-18/` |
 | **CP-19** | Control | Performance & Caching Boundaries | **Draft** | `docs/12-migration/slice-19/` |
 | **CP-20** | Control | External Integrations & Interop | **Draft** | `docs/12-migration/slice-20/` |

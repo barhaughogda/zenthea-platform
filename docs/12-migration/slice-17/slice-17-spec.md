@@ -1,64 +1,19 @@
-# Slice 17 – Controlled Mutations (Write Plane)
+# CP-17: Controlled Mutations (Option A: Communication Side Effects Only)
 
-**Status:** Draft (Not Approved)  
-**Owner:** Platform Architecture  
-**Scope:** Write Plane (Intentionally Last)  
-**Precondition:** Slice 16 complete and sealed
-
-> STOP: Do not implement this slice until explicitly instructed.
-
----
-
-## Purpose
-
-Introduce write capabilities only after governance, auditability, and escalation are structurally guaranteed.
-
----
-
-## Doctrine (Non-Negotiables)
-
-- Writes are deny-by-default
-- Writes require explicit approvals where defined
-- All writes are auditable with deterministic error taxonomy
-- Idempotency required for all side effects
-- No PHI leakage outside approved audit store boundaries
-
----
-
-## In Scope
-
-- Controlled mutation interfaces
-- Approval gates for sensitive actions
-- Deterministic error taxonomy for writes
-- Idempotency and retry doctrine
-- Tests for:
-  - idempotency correctness
-  - approval gating
-  - audit emission and forbidden-field absence
-
----
-
-## Out of Scope
-
-- No broad automation
-- No uncontrolled background writes
-- No free-form mutation endpoints
-
----
+## Overview
+CP-17 introduces the first governed mutation pathway for the Zenthea Platform, enabling communication side effects (messages and notifications) while maintaining strict security, auditability, and determinism.
 
 ## Acceptance Criteria
+- [ ] **One Mutation Gateway Only**: All side effects execute through `packages/tool-gateway`.
+- [ ] **Approval Required**: No mutation executes without an explicit approval record.
+- [ ] **Allowlist Required**: Only `comm.send_message@v1` and `comm.create_notification@v1` are allowed.
+- [ ] **Deterministic + Idempotent**: Idempotency keys required; replays return prior results.
+- [ ] **Fail Closed**: Rejection if any requirement is missing.
+- [ ] **Metadata-Only Outputs**: Operator DTOs do not leak sensitive information (tenantId, PHI, raw results).
+- [ ] **Audit Emission**: Full lifecycle audit with metadata-only payloads.
 
-- [ ] Controlled write path exists with explicit approval gates
-- [ ] Idempotency enforced everywhere
-- [ ] Audit trail is complete and metadata-only outside audit store
-- [ ] Tests cover safety properties
-
----
-
-## Evidence (Fill When Complete)
-
-- Implementation:
-  - (TODO)
-- Tests:
-  - (TODO)
-
+## Constraints
+- **Scope Lock**: Support ONLY `comm.send_message@v1` and `comm.create_notification@v1`.
+- **No Real Side Effects**: Use deterministic mock executor in this slice.
+- **No UI**: Implementation is limited to `packages/tool-gateway`.
+- **No Database**: Idempotency store is in-memory.

@@ -20,6 +20,9 @@ import { toolGatewayMetrics } from './metrics';
 import { AbuseSignalEngine } from './abuse';
 import { PolicyEvaluator, generatePolicySnapshot } from './governance';
 import { ApprovalSignalEngine } from './approval';
+import { IdempotencyStore } from './idempotency-store';
+import { MockMutationExecutor } from './mock-executor';
+import { validateToolAllowlist, TOOL_ALLOWLIST } from './tool-allowlist';
 
 /**
  * Tool Execution Gateway
@@ -39,6 +42,10 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
   // Active Policy Snapshot Hash (Slice 07.3)
   private readonly policySnapshotHash: string;
+
+  // Mutation Utilities (Slice 17)
+  private readonly idempotencyStore = new IdempotencyStore();
+  private readonly mutationExecutor = new MockMutationExecutor();
 
   constructor(
     private readonly auditLogger: IToolAuditLogger,
@@ -108,16 +115,46 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       // 1. Validate the command defensively
       try {
         validatedCommand = validateExecutionCommand(command);
+
+        // CP-17: Mutation Guard (Allowlist + Approval)
+        const isMutation = (validatedCommand.tool.name in TOOL_ALLOWLIST);
+        if (isMutation) {
+          // 1.1 Enforce Approval
+          if (!validatedCommand.approval || validatedCommand.approval.approvalType === undefined) {
+            throw new Error('APPROVAL_REQUIRED: Mutation requires explicit approval record');
+          }
+
+          // 1.2 Validate via Allowlist Schema
+          validateToolAllowlist(
+            validatedCommand.tool.name,
+            validatedCommand.tool.version,
+            validatedCommand.parameters
+          );
+
+          // 1.3 Check Idempotency
+          const priorResult = await this.idempotencyStore.get(
+            validatedCommand.tenantId,
+            validatedCommand.idempotencyKey,
+            validatedCommand.tool.name,
+            validatedCommand.tool.version,
+            validatedCommand.parameters
+          );
+
+          if (priorResult) {
+            // Replay prior result
+            return priorResult;
+          }
+        }
       } catch (err: any) {
         decision = 'error';
-        errorCode = 'VALIDATION_FAILED';
+        errorCode = this.mapErrorToCode(err);
 
         const toolName = (command as any)?.tool?.name || 'unknown';
         const agentId = (command as any)?.agentId || 'unknown';
         const agentVersion = (command as any)?.agentVersion || 'unknown';
         const agentType = this.policyEvaluator.evaluate(agentId, agentVersion, toolName).agentType;
         
-        this.emitGovernanceControl(agentType, agentVersion, toolName, 'VALIDATION_FAILED');
+        this.emitGovernanceControl(agentType, agentVersion, toolName, errorCode as GovernanceReasonCode);
 
         throw err;
       }
@@ -188,16 +225,47 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         commandId: validatedCommand.commandId,
         proposalId: validatedCommand.proposalId,
         toolName: validatedCommand.tool.name,
-        action: 'received',
+        action: (validatedCommand.tool.name in TOOL_ALLOWLIST) ? 'command_received' : 'received',
         actor: validatedCommand.approval.approvedBy,
         timestamp: startTimestamp,
         idempotencyKey: validatedCommand.idempotencyKey,
-        payload: validatedCommand.parameters, // Audit store MAY contain PHI
+        payload: (validatedCommand.tool.name in TOOL_ALLOWLIST) ? undefined : validatedCommand.parameters, // Audit store MAY contain PHI for non-mutations
         metadata: validatedCommand.metadata,
       });
 
-      // 5. Dispatch to execution infrastructure (Mocked for now)
-      const result = await this.dispatchToExecutor(validatedCommand);
+      // 5. Dispatch to execution infrastructure
+      let result: ToolExecutionResult;
+      
+      if (validatedCommand.tool.name in TOOL_ALLOWLIST) {
+        // CP-17: Mutation Dispatch
+        await this.auditLogger.log({
+          eventId: this.generateId(),
+          tenantId: validatedCommand.tenantId,
+          commandId: validatedCommand.commandId,
+          proposalId: validatedCommand.proposalId,
+          toolName: validatedCommand.tool.name,
+          action: 'command_dispatched',
+          actor: 'gateway',
+          timestamp: new Date().toISOString(),
+          metadata: validatedCommand.metadata,
+        });
+
+        result = await this.mutationExecutor.execute(validatedCommand);
+
+        // CP-17: Save Idempotency
+        if (result.status === 'success') {
+          await this.idempotencyStore.save(
+            validatedCommand.tenantId,
+            validatedCommand.idempotencyKey,
+            validatedCommand.tool.name,
+            validatedCommand.tool.version,
+            validatedCommand.parameters,
+            result
+          );
+        }
+      } else {
+        result = await this.dispatchToExecutor(validatedCommand);
+      }
 
       if (result.status === 'failure') {
         decision = 'error';
@@ -205,13 +273,16 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
       }
 
       // 6. Log completion
+      const isMutation = (validatedCommand.tool.name in TOOL_ALLOWLIST);
       await this.auditLogger.log({
         eventId: this.generateId(),
         tenantId: validatedCommand.tenantId,
         commandId: validatedCommand.commandId,
         proposalId: validatedCommand.proposalId,
         toolName: validatedCommand.tool.name,
-        action: result.status === 'success' ? 'completed' : 'failed',
+        action: isMutation 
+          ? (result.status === 'success' ? 'command_succeeded' : 'command_failed')
+          : (result.status === 'success' ? 'completed' : 'failed'),
         actor: 'gateway',
         timestamp: new Date().toISOString(),
         idempotencyKey: validatedCommand.idempotencyKey,
@@ -229,16 +300,20 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
       // Log failure if we have enough context
       if (validatedCommand) {
+        const isMutation = (validatedCommand.tool.name in TOOL_ALLOWLIST);
         await this.auditLogger.log({
           eventId: this.generateId(),
           tenantId: validatedCommand.tenantId,
           commandId: validatedCommand.commandId,
           proposalId: validatedCommand.proposalId,
           toolName: validatedCommand.tool.name,
-          action: 'failed',
+          action: isMutation ? 'command_rejected' : 'failed',
           actor: 'gateway',
           timestamp: new Date().toISOString(),
-          metadata: { error: error.message },
+          metadata: { 
+            error: error.message,
+            reasonCode: decision === 'denied' ? 'FORBIDDEN' : (errorCode || this.mapErrorToCode(error))
+          },
         });
       }
 
@@ -247,7 +322,7 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
         commandId: (command as any)?.commandId || 'unknown',
         status: 'failure',
         error: {
-          code: decision === 'denied' ? 'FORBIDDEN' : (errorCode || this.mapErrorToCode(error)),
+          code: errorCode || (decision === 'denied' ? 'FORBIDDEN' : this.mapErrorToCode(error)),
           message: error.message,
           retryable: false, 
         },
@@ -417,6 +492,11 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
   }
 
   private mapErrorToCode(error: any): string {
+    if (error.message.startsWith('UNKNOWN_TOOL')) return 'UNKNOWN_TOOL';
+    if (error.message.startsWith('UNKNOWN_VERSION')) return 'UNKNOWN_VERSION';
+    if (error.message.startsWith('INVALID_PARAMS')) return 'INVALID_PARAMS';
+    if (error.message.startsWith('APPROVAL_REQUIRED')) return 'APPROVAL_REQUIRED';
+    if (error.message.startsWith('IDEMPOTENCY_COLLISION')) return 'IDEMPOTENCY_COLLISION';
     if (error.name === 'ToolExecutionValidationError') return 'VALIDATION_FAILED';
     if (error.message.startsWith('FORBIDDEN')) return 'FORBIDDEN';
     if (error.message.startsWith('UNAUTHORIZED')) return 'UNAUTHORIZED';

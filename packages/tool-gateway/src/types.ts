@@ -122,7 +122,7 @@ export interface ToolAuditLog {
   commandId: string;
   proposalId: string;
   toolName: string;
-  action: 'received' | 'validated' | 'dispatched' | 'completed' | 'failed';
+  action: 'received' | 'validated' | 'dispatched' | 'completed' | 'failed' | 'command_received' | 'command_rejected' | 'command_dispatched' | 'command_succeeded' | 'command_failed';
   payload?: any;
   actor: string;
   timestamp: string;
@@ -168,7 +168,9 @@ export type GovernanceReasonCode =
   | 'SCOPE_DENIED'
   | 'FEATURE_DISABLED'
   | 'RATE_LIMITED'
-  | 'VALIDATION_FAILED';
+  | 'VALIDATION_FAILED'
+  | 'IDEMPOTENCY_COLLISION'
+  | 'APPROVAL_REQUIRED';
 
 /**
  * Governance control result for tool invocation denies.

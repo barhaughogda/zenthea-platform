@@ -17,7 +17,8 @@ export type ToolScope =
   | 'chat.write' 
   | 'appointment.read' 
   | 'appointment.write' 
-  | 'medical_advisor.read';
+  | 'medical_advisor.read'
+  | 'comm.write';
 
 /**
  * Mapping of tool names to their required scopes.
@@ -35,6 +36,8 @@ export const TOOL_SCOPE_MAPPING: Record<string, ToolScope> = {
   'appointment.cancelAppointment': 'appointment.write',
   'appointment.listAvailableSlots': 'appointment.read',
   'medical_advisor.getAdvice': 'medical_advisor.read',
+  'comm.send_message': 'chat.write',
+  'comm.create_notification': 'comm.write',
 };
 
 interface AgentVersionDeclaration {
@@ -65,7 +68,8 @@ export const AGENT_REGISTRY: Record<string, AgentDeclaration> = {
           'chat.write', 
           'appointment.read', 
           'appointment.write', 
-          'medical_advisor.read'
+          'medical_advisor.read',
+          'comm.write'
         ],
       },
     },

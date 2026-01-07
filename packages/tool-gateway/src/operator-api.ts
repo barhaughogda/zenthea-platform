@@ -34,6 +34,9 @@ import {
   OperatorDtoVersion 
 } from './operator-dtos';
 import { IDecisionHook, NoOpDecisionHook } from './decision-hooks/types';
+import { MutationRequestDtoV1, MutationResultDtoV1 } from './mutation-dtos';
+import { ToolExecutionCommand } from './types';
+import { ToolExecutionGateway } from './gateway';
 
 /**
  * Filter Validation Schemas (Strict Allowlist)
@@ -84,7 +87,8 @@ export class OperatorAPI {
     private readonly registryReader: IAgentRegistryReader,
     private readonly joiner: TimelineRegistryJoiner,
     private readonly auditEmitter: IOperatorAuditEmitter = new NoOpOperatorAuditEmitter(),
-    private readonly decisionHook: IDecisionHook = new NoOpDecisionHook()
+    private readonly decisionHook: IDecisionHook = new NoOpDecisionHook(),
+    private readonly gateway?: ToolExecutionGateway
   ) {}
 
   /**
@@ -366,6 +370,29 @@ export class OperatorAPI {
         reasonCode: decisionResult.reasonCode!,
         message: decisionResult.message,
       } : undefined,
+    };
+  }
+
+  /**
+   * Headless Mutation Endpoint (CP-17).
+   * Executes a mutation and returns a metadata-only result DTO.
+   * 🚫 NO sensitive fields in output.
+   */
+  async executeMutationV1(command: ToolExecutionCommand): Promise<MutationResultDtoV1> {
+    if (!this.gateway) {
+      throw new Error('Operator Error: Gateway not configured for mutations');
+    }
+
+    const result = await this.gateway.execute(command);
+    
+    return {
+      executionId: result.executionId,
+      status: result.status,
+      toolName: command.tool.name,
+      toolVersion: command.tool.version,
+      timestamp: result.timestamp,
+      reasonCode: result.error?.code,
+      summary: result.data?.summary, // Safe summary from mock executor
     };
   }
 
