@@ -5,8 +5,6 @@
 **Scope:** Operator Experience (Read-Only)  
 **Precondition:** Slice 14 complete and sealed
 
-> STOP: Do not implement this slice until explicitly instructed.
-
 ---
 
 ## Purpose
