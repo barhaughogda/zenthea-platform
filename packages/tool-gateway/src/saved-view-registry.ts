@@ -1,19 +1,4 @@
-import { POLICY_REGISTRY } from './policy-registry';
-
-/**
- * Presentation metadata for a saved view.
- * Limited to non-sensitive display hints.
- */
-export interface ViewPresentationMetadata {
-  /**
-   * Explicit allowlist of columns to display.
-   */
-  readonly columns?: string[];
-  /**
-   * Default number of items per page.
-   */
-  readonly defaultPageSize?: number;
-}
+import { POLICY_REGISTRY, BoundedPresentation } from './policy-registry';
 
 /**
  * Strict Saved View type.
@@ -28,7 +13,7 @@ export interface SavedView {
   /**
    * Optional presentation metadata (non-sensitive only).
    */
-  readonly presentation?: ViewPresentationMetadata;
+  readonly presentation: BoundedPresentation;
 }
 
 /**
@@ -45,8 +30,13 @@ export const SAVED_VIEW_REGISTRY: Record<string, SavedView> = {
     description: 'A view of all active clinical agents.',
     policyId: 'active-clinical-agents',
     presentation: {
-      columns: ['agentId', 'agentVersion', 'lifecycleState'],
-      defaultPageSize: 10,
+      icon: 'users',
+      layout: 'table',
+      columns: [
+        { key: 'agentId', label: 'Agent ID' },
+        { key: 'agentVersion', label: 'Version' },
+        { key: 'lifecycleState', label: 'State' },
+      ],
     },
   },
   /**
@@ -58,16 +48,12 @@ export const SAVED_VIEW_REGISTRY: Record<string, SavedView> = {
     description: 'Recent denied tool gateway events.',
     policyId: 'recent-denied-tools',
     presentation: {
-      columns: ['eventId', 'timestamp', 'toolName', 'decision'],
-      defaultPageSize: 20,
+      icon: 'shield',
+      layout: 'list',
+      badges: ['Security', 'Alert'],
     },
   },
 };
-
-/**
- * Bounded page size for safety.
- */
-const MAX_PAGE_SIZE = 100;
 
 /**
  * Validates the saved view registry at startup.
@@ -85,14 +71,8 @@ export function validateViews(): void {
       throw new Error(`Saved View Registry Error: View '${id}' references non-existent policyId '${view.policyId}'`);
     }
 
-    // Validate presentation metadata if present
+    // Validate presentation metadata
     if (view.presentation) {
-      if (view.presentation.defaultPageSize !== undefined) {
-        if (view.presentation.defaultPageSize <= 0 || view.presentation.defaultPageSize > MAX_PAGE_SIZE) {
-          throw new Error(`Saved View Registry Error: View '${id}' has invalid defaultPageSize (must be 1-${MAX_PAGE_SIZE})`);
-        }
-      }
-
       // Columns validation: ensure they are not empty if provided
       if (view.presentation.columns && view.presentation.columns.length === 0) {
         throw new Error(`Saved View Registry Error: View '${id}' columns cannot be empty if provided`);

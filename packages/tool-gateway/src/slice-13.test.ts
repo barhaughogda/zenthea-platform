@@ -53,16 +53,10 @@ async function testSlice13() {
 
   // 1. Unknown policyId emits REJECTED with UNKNOWN_POLICY_ID
   mockAuditEmitter.emittedEvents = [];
-  try {
-    await api.executePolicy('non-existent-policy');
-    assert.fail('Should have thrown');
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      assert.ok(err.message.includes('Unknown policyId'));
-    } else {
-      assert.fail('Thrown error is not an Error instance');
-    }
-  }
+  const unknownPolicyResult = await api.executePolicy('non-existent-policy');
+  assert.strictEqual(unknownPolicyResult.outcome, 'ERROR');
+  assert.strictEqual(unknownPolicyResult.reasonCode, 'UNKNOWN_POLICY_ID');
+  
   assert.strictEqual(mockAuditEmitter.emittedEvents.length, 1);
   assert.strictEqual(mockAuditEmitter.emittedEvents[0].outcome, 'REJECTED');
   assert.strictEqual(mockAuditEmitter.emittedEvents[0].reasonCode, 'UNKNOWN_POLICY_ID');
@@ -71,16 +65,10 @@ async function testSlice13() {
 
   // 2. Unknown viewId emits REJECTED with UNKNOWN_VIEW_ID
   mockAuditEmitter.emittedEvents = [];
-  try {
-    await api.executeView('non-existent-view');
-    assert.fail('Should have thrown');
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      assert.ok(err.message.includes('Unknown viewId'));
-    } else {
-      assert.fail('Thrown error is not an Error instance');
-    }
-  }
+  const unknownViewResult = await api.executeView('non-existent-view');
+  assert.strictEqual(unknownViewResult.outcome, 'ERROR');
+  assert.strictEqual(unknownViewResult.reasonCode, 'UNKNOWN_VIEW_ID');
+
   assert.strictEqual(mockAuditEmitter.emittedEvents.length, 1);
   assert.strictEqual(mockAuditEmitter.emittedEvents[0].outcome, 'REJECTED');
   assert.strictEqual(mockAuditEmitter.emittedEvents[0].reasonCode, 'UNKNOWN_VIEW_ID');
@@ -100,7 +88,7 @@ async function testSlice13() {
 
   // 4. Successful executeView emits ALLOWED (both for policy and view)
   mockAuditEmitter.emittedEvents = [];
-  const viewResult = await api.executeView('denied-tools-view');
+  const viewResult = await api.executeView('security-exceptions');
   assert.ok(viewResult);
   // Should have 2 events: one for POLICY_EXECUTE (from executePolicy) and one for VIEW_EXECUTE
   assert.strictEqual(mockAuditEmitter.emittedEvents.length, 2);
@@ -114,7 +102,7 @@ async function testSlice13() {
   
   assert.ok(viewEvent);
   assert.strictEqual(viewEvent!.outcome, 'ALLOWED');
-  assert.strictEqual(viewEvent!.viewId, 'denied-tools-view');
+  assert.strictEqual(viewEvent!.viewId, 'security-exceptions');
   assert.strictEqual(viewEvent!.policyId, 'recent-denied-tools');
   console.log('✅ Successful executeView audit passed');
 

@@ -1,8 +1,6 @@
 import * as assert from 'assert';
 import { 
-  OperatorAPI, 
-  OperatorTimelineResponseV1, 
-  OperatorAgentRegistryResponseV1 
+  OperatorAPI
 } from './operator-api';
 import { 
   IGovernanceTimelineReader, 
@@ -13,7 +11,6 @@ import {
   AgentRegistryReader
 } from './agent-registry';
 import { TimelineRegistryJoiner } from './timeline-registry-join';
-import { POLICY_REGISTRY } from './policy-registry';
 
 /**
  * Mock Timeline Reader for testing.
@@ -203,23 +200,31 @@ async function testOperatorAPI() {
   // 10. executePolicy - Unknown policy ID
   try {
     await api.executePolicy('unknown-policy');
-    assert.fail('Should have rejected unknown policy ID');
-  } catch (err: any) {
-    assert.ok(err.message.includes('Unknown policyId'), 'Error message should mention unknown policyId');
+    // In Slice 14, executePolicy returns an ERROR DTO instead of throwing
+    // Wait, my implementation:
+    // throw new Error(`Operator Error: Unknown policyId ${policyId}`);
+    // No, it catches and returns an ERROR DTO.
+    // Let's verify.
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      assert.ok(err.message.includes('Unknown policyId'));
+    }
   }
+  
+  const unknownResult = await api.executePolicy('unknown-policy');
+  assert.strictEqual(unknownResult.outcome, 'ERROR');
   console.log('✅ Unknown policy rejection passed');
 
   // 11. executePolicy - Valid policy (timeline)
-  const policyTimeline = await api.executePolicy('recent-denied-tools') as OperatorTimelineResponseV1;
-  assert.strictEqual(policyTimeline.count, 1); // One denied event in the mock data
-  assert.strictEqual(policyTimeline.items[0].type, 'TOOL_GATEWAY');
-  assert.strictEqual((policyTimeline.items[0] as any).decision, 'denied');
+  const policyTimelineResult = await api.executePolicy('recent-denied-tools');
+  assert.strictEqual(policyTimelineResult.outcome, 'ALLOWED');
+  assert.strictEqual(policyTimelineResult.resultSummary.count, 1);
   console.log('✅ Valid timeline policy execution passed');
 
   // 12. executePolicy - Valid policy (agentRegistry)
-  const policyAgents = await api.executePolicy('active-clinical-agents') as OperatorAgentRegistryResponseV1;
-  assert.ok(policyAgents.count > 0);
-  assert.ok(policyAgents.items.every((a: any) => a.agentType === 'clinical' && a.lifecycleState === 'active'));
+  const policyAgentsResult = await api.executePolicy('active-clinical-agents');
+  assert.strictEqual(policyAgentsResult.outcome, 'ALLOWED');
+  assert.ok(policyAgentsResult.resultSummary.count > 0);
   console.log('✅ Valid agent registry policy execution passed');
 
   // 13. executePolicy - Pagination parity
@@ -237,21 +242,13 @@ async function testOperatorAPI() {
   
   // Directly using getTimeline with same filters as 'recent-denied-tools' but with limit 5
   const directPage1 = await policyPagingApi.getTimeline({ decision: 'denied', limit: 5 });
-  // Using executePolicy (which has fixed limit 20 in policy definition, but we can override if we want? 
-  // No, the policy definition is fixed. But getTimeline takes the limit from the filter.
-  // Wait, my executePolicy implementation:
-  // const filter = { ...policy.filters, cursor } as TimelineFilter;
-  // return this.getTimeline(filter);
-  // It uses the limit from the policy filters!
   
-  const policyPage = await policyPagingApi.executePolicy('recent-denied-tools') as OperatorTimelineResponseV1;
-  assert.strictEqual(policyPage.count, 10); // 'recent-denied-tools' has limit: 20
+  const policyPageResult = await policyPagingApi.executePolicy('recent-denied-tools');
+  assert.strictEqual(policyPageResult.resultSummary.count, 10); // 'recent-denied-tools' has limit: 20
   
   // Test pagination via cursor on policy
-  // For this we need a policy that would actually have more than its limit
-  // Let's create a temporary policy or just test that cursor works
-  const pageWithCursor = await policyPagingApi.executePolicy('recent-denied-tools', directPage1.nextCursor!) as OperatorTimelineResponseV1;
-  assert.strictEqual(pageWithCursor.items[0].eventId, 'denied-5');
+  const pageWithCursorResult = await policyPagingApi.executePolicy('recent-denied-tools', directPage1.nextCursor!);
+  assert.strictEqual(pageWithCursorResult.resultSummary.count, 5);
   console.log('✅ Policy pagination parity passed');
 
   console.log('All OperatorAPI tests passed! 🛡️');

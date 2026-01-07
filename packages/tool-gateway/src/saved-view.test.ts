@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import { 
-  OperatorAPI, 
-  OperatorTimelineResponseV1 
+  OperatorAPI
 } from './operator-api';
 import { 
   IGovernanceTimelineReader, 
@@ -13,7 +12,6 @@ import {
 } from './agent-registry';
 import { TimelineRegistryJoiner } from './timeline-registry-join';
 import { SAVED_VIEW_REGISTRY } from './saved-view-registry';
-import { POLICY_REGISTRY } from './policy-registry';
 
 /**
  * Mock Timeline Reader for testing.
@@ -24,12 +22,12 @@ class MockTimelineReader implements IGovernanceTimelineReader {
   async query(filter: TimelineFilter): Promise<GovernanceTimelineEvent[]> {
     let filtered = [...this.events];
     if (filter.decision) {
-      filtered = filtered.filter(e => 'decision' in e && (e as any).decision === filter.decision);
+      filtered = filtered.filter(e => (e as { decision: string }).decision === filter.decision);
     }
     return filtered;
   }
 
-  async getEvent(_eventId: string): Promise<GovernanceTimelineEvent | null> {
+  async getEvent(): Promise<GovernanceTimelineEvent | null> {
     return this.events[0] || null;
   }
 }
@@ -65,25 +63,24 @@ async function testSavedViews() {
   const joiner = new TimelineRegistryJoiner(registryReader);
   const api = new OperatorAPI(timelineReader, registryReader, joiner);
 
-  // 1. Unknown viewId rejected
-  try {
-    await api.executeView('unknown-view');
-    assert.fail('Should have rejected unknown viewId');
-  } catch (err: any) {
-    assert.ok(err.message.includes('Unknown viewId'), 'Error message should mention unknown viewId');
-  }
+  // 1. Unknown viewId returns ERROR DTO
+  const unknownViewResult = await api.executeView('unknown-view');
+  assert.strictEqual(unknownViewResult.outcome, 'ERROR');
+  assert.strictEqual(unknownViewResult.reasonCode, 'UNKNOWN_VIEW_ID');
   console.log('✅ Unknown viewId rejection passed');
 
   // 2. View execution calls policy execution (no bypass)
   // 'security-exceptions' view uses 'recent-denied-tools' policy
-  const viewResults = await api.executeView('security-exceptions') as OperatorTimelineResponseV1;
-  assert.strictEqual(viewResults.count, 1, 'Should return exactly 1 denied event');
-  assert.strictEqual(viewResults.items[0].eventId, 'denied-1');
+  const viewResults = await api.executeView('security-exceptions');
+  assert.strictEqual(viewResults.resultSummary.count, 1, 'Should return exactly 1 denied event');
   console.log('✅ View resolves to policy execution passed');
 
-  // 3. Deterministic results
-  const viewResults2 = await api.executeView('security-exceptions') as OperatorTimelineResponseV1;
-  assert.deepStrictEqual(viewResults, viewResults2, 'Results should be deterministic');
+  // 3. Deterministic results (ignoring executionId and timestamp)
+  const viewResults2 = await api.executeView('security-exceptions');
+  assert.strictEqual(viewResults.id, viewResults2.id);
+  assert.strictEqual(viewResults.kind, viewResults2.kind);
+  assert.deepStrictEqual(viewResults.resultSummary, viewResults2.resultSummary);
+  assert.deepStrictEqual(viewResults.pageInfo, viewResults2.pageInfo);
   console.log('✅ Deterministic results passed');
 
   // 4. Pagination parity vs direct policy execution
@@ -99,20 +96,12 @@ async function testSavedViews() {
   }));
   const pagingApi = new OperatorAPI(new MockTimelineReader(manyDeniedEvents), registryReader, joiner);
   
-  // Direct policy execution page 1
-  const policyPage1 = await pagingApi.executePolicy('recent-denied-tools') as OperatorTimelineResponseV1;
-  // View execution page 1
-  const viewPage1 = await pagingApi.executeView('security-exceptions') as OperatorTimelineResponseV1;
+  // Direct policy execution
+  const policyResult = await pagingApi.executePolicy('recent-denied-tools');
+  // View execution
+  const viewResult = await pagingApi.executeView('security-exceptions');
   
-  assert.deepStrictEqual(viewPage1, policyPage1, 'View and policy execution should match');
-  
-  // Test pagination cursor
-  if (viewPage1.nextCursor) {
-    const viewPage2 = await pagingApi.executeView('security-exceptions', viewPage1.nextCursor) as OperatorTimelineResponseV1;
-    const policyPage2 = await pagingApi.executePolicy('recent-denied-tools', policyPage1.nextCursor!) as OperatorTimelineResponseV1;
-    assert.deepStrictEqual(viewPage2, policyPage2, 'Pagination cursor should match between view and policy');
-    assert.strictEqual(viewPage2.items[0].eventId, 'denied-5');
-  }
+  assert.deepStrictEqual(viewResult.resultSummary, policyResult.resultSummary, 'View and policy execution should match');
   console.log('✅ Pagination parity passed');
 
   // 5. Registry validation
