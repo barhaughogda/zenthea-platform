@@ -1,6 +1,6 @@
 # Slice 15 – Operator UI Adapter (Headless, Read-Only)
 
-**Status:** Draft (Not Approved)  
+**Status:** Completed  
 **Owner:** Platform Architecture  
 **Scope:** Operator Experience (Read-Only)  
 **Precondition:** Slice 14 complete and sealed
@@ -47,17 +47,22 @@ Prove the control plane can drive a real operator experience without adding risk
 
 ## Acceptance Criteria
 
-- [ ] Adapter can list available views and execute them (read-only)
-- [ ] Outputs are DTO-based and UI-ready
-- [ ] No bypass of policy execution path
-- [ ] Verification passes
+- [x] Adapter can list available views and execute them (read-only)
+- [x] Outputs are DTO-based and UI-ready
+- [x] No bypass of policy execution path
+- [x] Verification passes
 
 ---
 
 ## Evidence (Fill When Complete)
 
 - Implementation:
-  - (TODO)
+  - `packages/operator-ui-adapter/` (Pure TypeScript, Headless)
 - Tests:
-  - (TODO)
+  - `packages/operator-ui-adapter/src/__tests__/slice-15.test.ts` (100% Green)
+
+---
+
+## Closure Statement
+CP-15 is sealed. The headless adapter correctly consumes CP-14 DTOs and produces UI-ready ViewModels without leaking sensitive identifiers or bypassing execution policies.
 
