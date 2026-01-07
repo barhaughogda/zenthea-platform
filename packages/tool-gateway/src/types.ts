@@ -308,6 +308,7 @@ export type OperatorAuditReasonCode =
 
 /**
  * Operator Audit Event (Metadata-only) (Slice 13)
+ * CP-18: Added version tracking.
  * 🚫 MUST NOT include PHI, tenantId, actorId, requestId, cursor, or payloads.
  */
 export interface OperatorAuditEvent {
@@ -317,7 +318,9 @@ export interface OperatorAuditEvent {
   outcome: OperatorAuditOutcome;
   reasonCode?: OperatorAuditReasonCode;
   policyId?: string;
+  policyVersion?: string; // CP-18: Resolved policy version
   viewId?: string;
+  viewVersion?: string; // CP-18: Resolved view version
   target?: 'timeline' | 'agentRegistry';
   policySnapshotHash?: string;
 }

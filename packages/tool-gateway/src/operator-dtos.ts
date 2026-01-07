@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { DecisionDtoSchema } from './operator-decision-dtos';
+import { VersionIdSchema } from './versioning/types';
 
 /**
  * Control Plane DTO Versioning.
  * Starting with "v1" for stable, metadata-only contracts.
- * "v2" adds decision hooks for CP-16.
+ * "v2" adds decision hooks for CP-16 and explicit versioning for CP-18.
  */
 export const OperatorDtoVersionSchema = z.enum(['v1', 'v2']);
 export type OperatorDtoVersion = z.infer<typeof OperatorDtoVersionSchema>;
@@ -64,6 +65,19 @@ export const PolicyDtoSchema = z.object({
 export type PolicyDto = z.infer<typeof PolicyDtoSchema>;
 
 /**
+ * Policy DTO V2 (CP-18): Includes explicit content versioning.
+ */
+export const PolicyDtoV2Schema = PolicyDtoSchema.extend({
+  version: z.literal('v2'),
+  contentVersion: VersionIdSchema,
+  isLatest: z.boolean(),
+  supersedesVersion: VersionIdSchema.optional(),
+  deprecatedAt: z.string().datetime().optional(),
+}).strict();
+
+export type PolicyDtoV2 = z.infer<typeof PolicyDtoV2Schema>;
+
+/**
  * View DTO: Safe representation of a Saved View.
  * 🚫 MUST NOT include raw filters or tenant/actor identifiers.
  */
@@ -77,6 +91,19 @@ export const ViewDtoSchema = z.object({
 }).strict();
 
 export type ViewDto = z.infer<typeof ViewDtoSchema>;
+
+/**
+ * View DTO V2 (CP-18): Includes explicit content versioning.
+ */
+export const ViewDtoV2Schema = ViewDtoSchema.extend({
+  version: z.literal('v2'),
+  contentVersion: VersionIdSchema,
+  isLatest: z.boolean(),
+  supersedesVersion: VersionIdSchema.optional(),
+  deprecatedAt: z.string().datetime().optional(),
+}).strict();
+
+export type ViewDtoV2 = z.infer<typeof ViewDtoV2Schema>;
 
 /**
  * Execution Result DTO: Safe envelope for policy/view execution results.
@@ -105,12 +132,13 @@ export const ExecutionResultDtoSchema = z.object({
 export type ExecutionResultDto = z.infer<typeof ExecutionResultDtoSchema>;
 
 /**
- * Execution Result DTO V2: Includes optional decision metadata (CP-16).
+ * Execution Result DTO V2: Includes optional decision metadata (CP-16) and version metadata (CP-18).
  * 🚫 STRICTLY NO raw results, cursors, or PHI.
  */
 export const ExecutionResultDtoV2Schema = ExecutionResultDtoSchema.extend({
   version: z.literal('v2'),
   decision: DecisionDtoSchema.optional(),
+  resolvedVersion: VersionIdSchema.optional(), // CP-18
 }).strict();
 
 export type ExecutionResultDtoV2 = z.infer<typeof ExecutionResultDtoV2Schema>;
@@ -118,6 +146,7 @@ export type ExecutionResultDtoV2 = z.infer<typeof ExecutionResultDtoV2Schema>;
 /**
  * Operator Audit DTO: Safe representation of an operator audit event.
  * Matches Slice 13 taxonomy.
+ * CP-18: Added version metadata.
  * 🚫 MUST NOT include tenantId, actorId, payload, or PHI.
  */
 export const OperatorAuditDtoSchema = z.object({
@@ -131,6 +160,8 @@ export const OperatorAuditDtoSchema = z.object({
   metadata: z.object({
     targetType: z.enum(['timeline', 'agentRegistry']),
     policySnapshotHash: z.string().optional(),
+    policyVersion: VersionIdSchema.optional(), // CP-18
+    viewVersion: VersionIdSchema.optional(), // CP-18
   }).strict(),
 }).strict();
 

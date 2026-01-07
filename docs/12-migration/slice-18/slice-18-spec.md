@@ -1,11 +1,9 @@
-# Slice 18 – Policy & View Versioning (Optional / Conditional)
+# Slice 18 – Policy & View Versioning
 
-**Status:** Draft (Not Approved)  
+**Status:** Completed (2026-01-07)  
 **Owner:** Platform Architecture  
-**Scope:** Optional / Conditional  
-**Precondition:** Slice 17 complete and sealed (only if needed)
-
-> STOP: Do not implement this slice until explicitly instructed.
+**Scope:** Control Plane Infrastructure  
+**Precondition:** CP-14, CP-15, CP-16, CP-17 complete
 
 ---
 
@@ -46,16 +44,22 @@ Allow safe evolution of policies and saved views over time without breaking audi
 
 ## Acceptance Criteria
 
-- [ ] Policies and views support explicit versioning
-- [ ] Audit trails remain reconstructable across versions
-- [ ] Tests cover backward compatibility + determinism
+- [x] Policies and views support explicit versioning
+- [x] Audit trails remain reconstructable across versions
+- [x] Tests cover backward compatibility + determinism
 
 ---
 
-## Evidence (Fill When Complete)
+## Evidence (Completed)
 
 - Implementation:
-  - (TODO)
+  - `packages/tool-gateway/src/versioning/types.ts`
+  - `packages/tool-gateway/src/versioning/resolvers.ts`
+  - `packages/tool-gateway/src/policy-registry.ts`
+  - `packages/tool-gateway/src/saved-view-registry.ts`
+  - `packages/tool-gateway/src/operator-api.ts`
+  - `packages/tool-gateway/src/operator-dtos.ts`
+  - `packages/tool-gateway/src/types.ts`
 - Tests:
-  - (TODO)
+  - `packages/tool-gateway/src/slice-18.test.ts`
 

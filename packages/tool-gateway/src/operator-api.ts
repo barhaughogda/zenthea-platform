@@ -28,11 +28,15 @@ import { NoOpOperatorAuditEmitter } from './audit';
 import * as crypto from 'crypto';
 import { 
   PolicyDto, 
+  PolicyDtoV2,
   ViewDto, 
+  ViewDtoV2,
   ExecutionResultDto, 
   ExecutionResultDtoV2,
   OperatorDtoVersion 
 } from './operator-dtos';
+import { VersionResolver } from './versioning/resolvers';
+import { VersionId } from './versioning/types';
 import { IDecisionHook, NoOpDecisionHook } from './decision-hooks/types';
 import { MutationRequestDtoV1, MutationResultDtoV1 } from './mutation-dtos';
 import { ToolExecutionCommand } from './types';
@@ -124,18 +128,57 @@ export class OperatorAPI {
   }
 
   /**
+   * Lists all registered policies as safe DTOs (V2 with content versioning).
+   */
+  listPoliciesV2(): PolicyDtoV2[] {
+    return Object.values(POLICY_REGISTRY).map(policy => ({
+      version: this.VERSION_V2 as 'v2',
+      policyId: policy.policyId,
+      contentVersion: policy.version,
+      isLatest: !!policy.isLatest,
+      supersedesVersion: policy.supersedesVersion,
+      deprecatedAt: policy.deprecatedAt,
+      name: policy.name,
+      description: policy.description,
+      category: policy.category,
+      riskTier: policy.riskTier,
+      presentation: policy.presentation,
+      inputs: policy.inputs,
+      outputs: policy.outputs,
+      links: policy.links,
+    }));
+  }
+
+  /**
+   * Lists all registered views as safe DTOs (V2 with content versioning).
+   */
+  listViewsV2(): ViewDtoV2[] {
+    return Object.values(SAVED_VIEW_REGISTRY).map(view => ({
+      version: this.VERSION_V2 as 'v2',
+      viewId: view.viewId,
+      contentVersion: view.version,
+      isLatest: !!view.isLatest,
+      supersedesVersion: view.supersedesVersion,
+      deprecatedAt: view.deprecatedAt,
+      name: view.name,
+      description: view.description,
+      policyId: view.policyId,
+      presentation: view.presentation,
+    }));
+  }
+
+  /**
    * Executes a registered Operator Query Policy.
    * Returns a safe ExecutionResultDto.
+   * Internal: Supports explicit versioning.
    */
-  async executePolicy(policyId: string, cursor?: string): Promise<ExecutionResultDto> {
+  async executePolicy(policyId: string, cursor?: string, version?: VersionId): Promise<ExecutionResultDto> {
     const timestamp = new Date().toISOString();
     const executionId = crypto.randomUUID();
 
     try {
-      const policy = POLICY_REGISTRY[policyId];
-      if (!policy) {
-        throw new Error(`Operator Error: Unknown policyId ${policyId}`);
-      }
+      // CP-18: Use Resolver for deterministic lookups
+      const policy = VersionResolver.resolvePolicy(policyId, version);
 
       let result: OperatorTimelineResponseV1 | OperatorAgentRegistryResponseV1;
       
@@ -153,6 +196,7 @@ export class OperatorAPI {
         action: 'POLICY_EXECUTE',
         outcome: 'ALLOWED',
         policyId,
+        policyVersion: policy.version, // CP-18
         target: policy.target as 'timeline' | 'agentRegistry',
       });
 
@@ -220,16 +264,15 @@ export class OperatorAPI {
   /**
    * Executes a Saved View.
    * Views must execute via the policy path (no bypass).
+   * Internal: Supports explicit versioning.
    */
-  async executeView(viewId: string, cursor?: string): Promise<ExecutionResultDto> {
+  async executeView(viewId: string, cursor?: string, version?: VersionId): Promise<ExecutionResultDto> {
     const timestamp = new Date().toISOString();
     const executionId = crypto.randomUUID();
 
     try {
-      const view = SAVED_VIEW_REGISTRY[viewId];
-      if (!view) {
-        throw new Error(`Operator Error: Unknown viewId ${viewId}`);
-      }
+      // CP-18: Use Resolver for deterministic lookups
+      const view = VersionResolver.resolveView(viewId, version);
 
       // Saved views execute via the policy path
       const policyResult = await this.executePolicy(view.policyId, cursor);
@@ -242,6 +285,7 @@ export class OperatorAPI {
           outcome: 'REJECTED',
           reasonCode: policyResult.reasonCode as 'UNKNOWN_POLICY_ID' | 'UNKNOWN_VIEW_ID' | 'UNSUPPORTED_TARGET' | 'VALIDATION_FAILED' | 'INTERNAL_ERROR',
           viewId,
+          viewVersion: view.version, // CP-18
           policyId: view.policyId,
         });
         return {
@@ -259,6 +303,7 @@ export class OperatorAPI {
         action: 'VIEW_EXECUTE',
         outcome: 'ALLOWED',
         viewId,
+        viewVersion: view.version, // CP-18
         policyId: view.policyId,
       });
       
@@ -313,11 +358,22 @@ export class OperatorAPI {
 
   /**
    * Executes a registered Operator Query Policy (v2).
-   * Includes decision hook evaluation.
+   * Includes decision hook evaluation and content versioning.
    */
-  async executePolicyV2(policyId: string, cursor?: string): Promise<ExecutionResultDtoV2> {
-    const v1Result = await this.executePolicy(policyId, cursor);
-    const policy = POLICY_REGISTRY[policyId];
+  async executePolicyV2(arg: string | { policyId: string; version?: string; cursor?: string }, cursorArg?: string): Promise<ExecutionResultDtoV2> {
+    const policyId = typeof arg === 'string' ? arg : arg.policyId;
+    const version = typeof arg === 'string' ? undefined : arg.version;
+    const cursor = typeof arg === 'string' ? cursorArg : arg.cursor;
+
+    const v1Result = await this.executePolicy(policyId, cursor, version);
+    
+    let policy: any;
+    try {
+      policy = VersionResolver.resolvePolicy(policyId, version);
+    } catch {
+      // Fallback for unknown policies to allow decision hooks to evaluate the error
+      policy = undefined;
+    }
 
     const decisionResult = await this.decisionHook.evaluate({
       policyId,
@@ -332,6 +388,7 @@ export class OperatorAPI {
     return {
       ...v1Result,
       version: 'v2',
+      resolvedVersion: policy?.version, // CP-18
       decision: decisionResult.requirement === 'required' ? {
         kind: decisionResult.decisionKind!,
         severity: decisionResult.severity!,
@@ -343,12 +400,24 @@ export class OperatorAPI {
 
   /**
    * Executes a Saved View (v2).
-   * Includes decision hook evaluation.
+   * Includes decision hook evaluation and content versioning.
    */
-  async executeViewV2(viewId: string, cursor?: string): Promise<ExecutionResultDtoV2> {
-    const v1Result = await this.executeView(viewId, cursor);
-    const view = SAVED_VIEW_REGISTRY[viewId];
-    const policy = view ? POLICY_REGISTRY[view.policyId] : undefined;
+  async executeViewV2(arg: string | { viewId: string; version?: string; cursor?: string }, cursorArg?: string): Promise<ExecutionResultDtoV2> {
+    const viewId = typeof arg === 'string' ? arg : arg.viewId;
+    const version = typeof arg === 'string' ? undefined : arg.version;
+    const cursor = typeof arg === 'string' ? cursorArg : arg.cursor;
+
+    const v1Result = await this.executeView(viewId, cursor, version);
+    
+    let view: any;
+    let policy: any;
+    try {
+      view = VersionResolver.resolveView(viewId, version);
+      policy = view ? POLICY_REGISTRY[view.policyId] : undefined;
+    } catch {
+      view = undefined;
+      policy = undefined;
+    }
 
     const decisionResult = await this.decisionHook.evaluate({
       policyId: view?.policyId ?? 'Unknown',
@@ -364,6 +433,7 @@ export class OperatorAPI {
     return {
       ...v1Result,
       version: 'v2',
+      resolvedVersion: view?.version, // CP-18
       decision: decisionResult.requirement === 'required' ? {
         kind: decisionResult.decisionKind!,
         severity: decisionResult.severity!,

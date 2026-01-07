@@ -1,5 +1,6 @@
 import { TimelineFilter } from './timeline';
 import { AgentRegistryFilter } from './agent-registry';
+import { VersionId } from './versioning/types';
 
 /**
  * Supported targets for Operator Query Policies.
@@ -28,6 +29,10 @@ export interface BoundedPresentation {
  */
 export interface OperatorQueryPolicy {
   readonly policyId: string;
+  readonly version: VersionId; // CP-18: Explicit versioning
+  readonly isLatest?: boolean; // CP-18: Optional latest flag
+  readonly supersedesVersion?: VersionId; // CP-18: Version track
+  readonly deprecatedAt?: string; // CP-18: Expiry tracking
   readonly name: string;
   readonly description: string;
   readonly category: string;
@@ -44,6 +49,7 @@ export interface OperatorQueryPolicy {
 /**
  * The Policy Registry is a code-defined allowlist of executable policies.
  * Deny-by-default: only registered policies are executable.
+ * Keys can be policyId (resolves to latest) or policyId@version.
  */
 export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
   /**
@@ -51,6 +57,32 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
    */
   'active-clinical-agents': {
     policyId: 'active-clinical-agents',
+    version: '1',
+    isLatest: true,
+    name: 'Active Clinical Agents',
+    description: 'Lists all active clinical agents in the registry.',
+    category: 'Inventory',
+    riskTier: 'low',
+    target: 'agentRegistry',
+    filters: {
+      agentType: 'clinical',
+      lifecycleState: 'active',
+    },
+    ordering: 'agentId:agentVersion',
+    presentation: {
+      icon: 'users',
+      layout: 'table',
+      columns: [
+        { key: 'agentId', label: 'Agent ID' },
+        { key: 'agentVersion', label: 'Version' },
+        { key: 'lifecycleState', label: 'State' },
+      ],
+    },
+  },
+  'active-clinical-agents@1': {
+    policyId: 'active-clinical-agents',
+    version: '1',
+    isLatest: true,
     name: 'Active Clinical Agents',
     description: 'Lists all active clinical agents in the registry.',
     category: 'Inventory',
@@ -76,6 +108,29 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
    */
   'recent-denied-tools': {
     policyId: 'recent-denied-tools',
+    version: '1',
+    isLatest: true,
+    name: 'Recent Denied Tool Requests',
+    description: 'Lists the most recent denied tool gateway events.',
+    category: 'Security',
+    riskTier: 'medium',
+    target: 'timeline',
+    filters: {
+      decision: 'denied',
+      type: 'TOOL_GATEWAY',
+      limit: 20,
+    },
+    ordering: 'chronological',
+    presentation: {
+      icon: 'shield',
+      layout: 'list',
+      badges: ['Security', 'Alert'],
+    },
+  },
+  'recent-denied-tools@1': {
+    policyId: 'recent-denied-tools',
+    version: '1',
+    isLatest: true,
     name: 'Recent Denied Tool Requests',
     description: 'Lists the most recent denied tool gateway events.',
     category: 'Security',
@@ -98,6 +153,28 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
    */
   'critical-security-audits': {
     policyId: 'critical-security-audits',
+    version: '1',
+    isLatest: true,
+    name: 'Critical Security Audits',
+    description: 'Lists high-risk security audit events.',
+    category: 'Security',
+    riskTier: 'high',
+    target: 'timeline',
+    filters: {
+      type: 'GOVERNANCE_CONTROL',
+      limit: 10,
+    },
+    ordering: 'chronological',
+    presentation: {
+      icon: 'alert-triangle',
+      layout: 'table',
+      badges: ['Critical', 'Audit'],
+    },
+  },
+  'critical-security-audits@1': {
+    policyId: 'critical-security-audits',
+    version: '1',
+    isLatest: true,
     name: 'Critical Security Audits',
     description: 'Lists high-risk security audit events.',
     category: 'Security',
@@ -122,8 +199,9 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
  */
 export function validatePolicies(): void {
   for (const [id, policy] of Object.entries(POLICY_REGISTRY)) {
-    if (id !== policy.policyId) {
-      throw new Error(`Policy Registry Error: Registry key ${id} must match policyId ${policy.policyId}`);
+    // Registry key must be either policyId or policyId@version
+    if (id !== policy.policyId && id !== `${policy.policyId}@${policy.version}`) {
+      throw new Error(`Policy Registry Error: Registry key ${id} must match policyId ${policy.policyId} or ${policy.policyId}@${policy.version}`);
     }
     
     // Validate target
@@ -135,6 +213,11 @@ export function validatePolicies(): void {
       if (policy.ordering !== 'agentId:agentVersion') {
         throw new Error(`Policy Registry Error: Policy ${id} target 'agentRegistry' must have 'agentId:agentVersion' ordering.`);
       }
+    }
+
+    // CP-18: Validate version format
+    if (!/^\d+(\.\d+)*$/.test(policy.version)) {
+      throw new Error(`Policy Registry Error: Policy ${id} has invalid version format: ${policy.version}`);
     }
 
     // Ensure no dynamic filters are allowed (by design, they are fixed in code)
