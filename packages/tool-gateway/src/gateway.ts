@@ -23,11 +23,15 @@ import { ApprovalSignalEngine } from './approval';
 import { IdempotencyStore } from './idempotency-store';
 import { MockMutationExecutor } from './mock-executor';
 import { validateToolAllowlist, TOOL_ALLOWLIST } from './tool-allowlist';
+import { Cacheability } from './performance/cache-boundaries';
 
 /**
  * Tool Execution Gateway
  */
 export class ToolExecutionGateway implements IToolExecutionGateway {
+  /** Annotates this component as strictly non-cacheable. */
+  public static readonly cacheability = Cacheability.NONE;
+
   // Simple in-memory rate limiting for demonstration/mock purposes
   private rateLimits = new Map<string, { attempts: number; windowStart: number }>();
   

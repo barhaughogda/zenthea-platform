@@ -1,9 +1,13 @@
 import { ToolExecutionCommand, ToolExecutionResult } from './types';
+import { Cacheability } from './performance/cache-boundaries';
 
 /**
  * Deterministic Mock Executor for CP-17 (Communication Tools Only).
  */
 export class MockMutationExecutor {
+  /** Annotates this component as strictly non-cacheable (Mutations must never be cached). */
+  public static readonly cacheability = Cacheability.NONE;
+
   async execute(command: ToolExecutionCommand): Promise<ToolExecutionResult> {
     const { name, version } = command.tool;
     const timestamp = new Date().toISOString();

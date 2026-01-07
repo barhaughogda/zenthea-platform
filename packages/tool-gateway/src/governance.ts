@@ -9,6 +9,7 @@ import {
   PolicyEvaluation
 } from './types';
 import { validateTransition } from './lifecycle';
+import { Cacheability } from './performance/cache-boundaries';
 
 export type ToolScope = 
   | 'consent.read' 
@@ -135,6 +136,9 @@ export const AGENT_REGISTRY: Record<string, AgentDeclaration> = {
  * Evaluates whether an agent version is permitted to execute a specific tool.
  */
 export class PolicyEvaluator {
+  /** Annotates this component as strictly non-cacheable (Evaluation depends on dynamic state). */
+  public static readonly cacheability = Cacheability.NONE;
+
   evaluate(agentId: string, agentVersion: string, toolName: string): PolicyEvaluation {
     const agent = AGENT_REGISTRY[agentId];
 

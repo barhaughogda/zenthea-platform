@@ -9,6 +9,7 @@ export * from './agent-registry';
 export * from './timeline-registry-join';
 export * from './operator-api';
 export * from './operator-decision-dtos';
+export * from './performance/cache-boundaries';
 export * from './decision-hooks/types';
 export * from './escalation/default-escalation-policy';
 export * from './policy-registry';
