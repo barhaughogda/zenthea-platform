@@ -19,6 +19,10 @@ This plan must be followed in order.
 - Compliance, auditability, and safety are first-class concerns.
 - Frontends are consumers, not authorities.
 
+Note:
+- Some low-risk and controlled migrations have already occurred after the platform baseline was established (e.g. Website Builder and Patient Portal work).
+- The intent of this plan remains: do not expand legacy migration scope until the platform surface and guardrails are structurally complete for the next step.
+
 ---
 
 ## Phase A: Complete the Agent Surface (Scaffold Only)

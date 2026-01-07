@@ -10,4 +10,12 @@ Principles:
 - Prefer composition over copying
 - No clinical logic first
 
-No code may be migrated until all planning documents in this folder are complete.
+Important:
+- This folder contains both:
+  - **Migration planning + execution artifacts** (MIG-xx product migration slices)
+  - **Control-plane hardening slices** (governance/operator read model work)
+- The birdview boards are:
+  - `docs/12-migration/migration-roadmap-birdview.md` (MIG-xx product migration)
+  - `docs/12-migration/slices-birdview.md` (control-plane slices)
+
+No additional code may be migrated until the planning documents are complete and the next slice is explicitly started.
