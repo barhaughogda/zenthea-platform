@@ -93,6 +93,27 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
       badges: ['Security', 'Alert'],
     },
   },
+  /**
+   * Example: Critical Security Audits (CP-16 High Risk Example)
+   */
+  'critical-security-audits': {
+    policyId: 'critical-security-audits',
+    name: 'Critical Security Audits',
+    description: 'Lists high-risk security audit events.',
+    category: 'Security',
+    riskTier: 'high',
+    target: 'timeline',
+    filters: {
+      type: 'GOVERNANCE_CONTROL',
+      limit: 10,
+    },
+    ordering: 'chronological',
+    presentation: {
+      icon: 'alert-triangle',
+      layout: 'table',
+      badges: ['Critical', 'Audit'],
+    },
+  },
 };
 
 /**

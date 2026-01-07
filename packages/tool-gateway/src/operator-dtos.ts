@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import { DecisionDtoSchema } from './operator-decision-dtos';
 
 /**
  * Control Plane DTO Versioning.
  * Starting with "v1" for stable, metadata-only contracts.
+ * "v2" adds decision hooks for CP-16.
  */
-export const OperatorDtoVersionSchema = z.literal('v1');
+export const OperatorDtoVersionSchema = z.enum(['v1', 'v2']);
 export type OperatorDtoVersion = z.infer<typeof OperatorDtoVersionSchema>;
 
 /**
@@ -101,6 +103,17 @@ export const ExecutionResultDtoSchema = z.object({
 }).strict();
 
 export type ExecutionResultDto = z.infer<typeof ExecutionResultDtoSchema>;
+
+/**
+ * Execution Result DTO V2: Includes optional decision metadata (CP-16).
+ * 🚫 STRICTLY NO raw results, cursors, or PHI.
+ */
+export const ExecutionResultDtoV2Schema = ExecutionResultDtoSchema.extend({
+  version: z.literal('v2'),
+  decision: DecisionDtoSchema.optional(),
+}).strict();
+
+export type ExecutionResultDtoV2 = z.infer<typeof ExecutionResultDtoV2Schema>;
 
 /**
  * Operator Audit DTO: Safe representation of an operator audit event.

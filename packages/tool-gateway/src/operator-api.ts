@@ -30,8 +30,10 @@ import {
   PolicyDto, 
   ViewDto, 
   ExecutionResultDto, 
+  ExecutionResultDtoV2,
   OperatorDtoVersion 
 } from './operator-dtos';
+import { IDecisionHook, NoOpDecisionHook } from './decision-hooks/types';
 
 /**
  * Filter Validation Schemas (Strict Allowlist)
@@ -75,12 +77,14 @@ export interface OperatorEnrichedTimelineResponseV1 extends PaginatedResponseV1<
  */
 export class OperatorAPI {
   private readonly VERSION: OperatorDtoVersion = 'v1';
+  private readonly VERSION_V2: OperatorDtoVersion = 'v2';
 
   constructor(
     private readonly timelineReader: IGovernanceTimelineReader,
     private readonly registryReader: IAgentRegistryReader,
     private readonly joiner: TimelineRegistryJoiner,
-    private readonly auditEmitter: IOperatorAuditEmitter = new NoOpOperatorAuditEmitter()
+    private readonly auditEmitter: IOperatorAuditEmitter = new NoOpOperatorAuditEmitter(),
+    private readonly decisionHook: IDecisionHook = new NoOpDecisionHook()
   ) {}
 
   /**
@@ -301,6 +305,68 @@ export class OperatorAPI {
         timestamp,
       };
     }
+  }
+
+  /**
+   * Executes a registered Operator Query Policy (v2).
+   * Includes decision hook evaluation.
+   */
+  async executePolicyV2(policyId: string, cursor?: string): Promise<ExecutionResultDtoV2> {
+    const v1Result = await this.executePolicy(policyId, cursor);
+    const policy = POLICY_REGISTRY[policyId];
+
+    const decisionResult = await this.decisionHook.evaluate({
+      policyId,
+      action: 'POLICY_EXECUTE',
+      outcome: v1Result.outcome,
+      riskTier: policy?.riskTier ?? 'low',
+      category: policy?.category ?? 'Unknown',
+      reasonCode: v1Result.reasonCode,
+      count: v1Result.resultSummary.count,
+    });
+
+    return {
+      ...v1Result,
+      version: 'v2',
+      decision: decisionResult.requirement === 'required' ? {
+        kind: decisionResult.decisionKind!,
+        severity: decisionResult.severity!,
+        reasonCode: decisionResult.reasonCode!,
+        message: decisionResult.message,
+      } : undefined,
+    };
+  }
+
+  /**
+   * Executes a Saved View (v2).
+   * Includes decision hook evaluation.
+   */
+  async executeViewV2(viewId: string, cursor?: string): Promise<ExecutionResultDtoV2> {
+    const v1Result = await this.executeView(viewId, cursor);
+    const view = SAVED_VIEW_REGISTRY[viewId];
+    const policy = view ? POLICY_REGISTRY[view.policyId] : undefined;
+
+    const decisionResult = await this.decisionHook.evaluate({
+      policyId: view?.policyId ?? 'Unknown',
+      viewId,
+      action: 'VIEW_EXECUTE',
+      outcome: v1Result.outcome,
+      riskTier: policy?.riskTier ?? 'low',
+      category: policy?.category ?? 'Unknown',
+      reasonCode: v1Result.reasonCode,
+      count: v1Result.resultSummary.count,
+    });
+
+    return {
+      ...v1Result,
+      version: 'v2',
+      decision: decisionResult.requirement === 'required' ? {
+        kind: decisionResult.decisionKind!,
+        severity: decisionResult.severity!,
+        reasonCode: decisionResult.reasonCode!,
+        message: decisionResult.message,
+      } : undefined,
+    };
   }
 
   /**
