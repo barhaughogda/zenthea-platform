@@ -1,19 +1,22 @@
-# Slice 20 – TODO (Track to Seal)
+# CP-20 Implementation Todo
 
-**Status:** Draft (Not Approved)
-
-> STOP: Do not implement this slice until explicitly instructed.
-
----
-
-## Checklist
-
-- [ ] Confirm Slice 20 is needed (explicit decision)
-- [ ] Freeze scope + acceptance criteria
-- [ ] Define integration boundary pattern + policy gating rules
-- [ ] Implement adapters and policy-gated execution (if approved)
-- [ ] Add/extend tests (no bypass, determinism, audit emission)
-- [ ] Run verification commands
-- [ ] Add Evidence links to `slice-20-spec.md`
-- [ ] Mark Slice 20 **Completed** and sealed (closure statement)
-
+- [x] Define Governance Types & Schemas (`packages/tool-gateway/src/integrations/types.ts`)
+    - [x] ConnectorId (name + version)
+    - [x] IntegrationCapability (READ_ONLY | WRITE_CONTROLLED)
+    - [x] DataClassification (NONE | PII | PHI)
+    - [x] RedactionPolicy & RetryPolicy
+    - [x] IntegrationRequestEnvelope (with Idempotency for WRITE)
+    - [x] IntegrationResultEnvelope (metadata-only, no payload)
+    - [x] FailureTaxonomy
+- [x] Define Connector Interface (`packages/tool-gateway/src/integrations/connector.ts`)
+    - [x] IExternalConnector interface
+    - [x] NoOpConnector implementation for testing
+- [x] Create Safety Tests (`packages/tool-gateway/src/slice-20.test.ts`)
+    - [x] Assert Zod rejection of payloads in Result envelopes
+    - [x] Assert idempotency requirement for WRITE_CONTROLLED
+    - [x] Assert PHI classification strictness
+    - [x] Verify failure taxonomy stability
+- [x] Verification & Roadmap
+    - [x] Run `pnpm lint`, `pnpm typecheck`, `pnpm test`
+    - [x] Update `docs/ROADMAP.md` to Completed
+    - [x] Finalize `docs/12-migration/slice-20/slice-20-complete.md`

@@ -1,60 +1,65 @@
-# Slice 20 – External Integrations & Interop (Optional / Conditional)
+# Slice 20 – External Integrations & Interop
 
-**Status:** Draft (Not Approved)  
-**Owner:** Platform Architecture  
-**Scope:** Optional / Conditional  
-**Precondition:** Slice 17 complete and sealed (only if needed)
-
-> STOP: Do not implement this slice until explicitly instructed.
+**Status:** Completed
+**Owner:** Senior Staff Platform Engineer
+**Scope:** Integration Boundary Governance
+**Precondition:** Slice 19 complete and sealed
 
 ---
 
 ## Purpose
 
-Allow controlled data exchange with external systems (interop) once the platform is stable and governed.
+Define the platform’s strict boundary for interaction with external systems. This is a governance-focused slice (types, schemas, contracts, and tests) designed to prevent unsafe, non-idempotent, or PHI-leaking integrations.
 
 ---
 
 ## Doctrine (Non-Negotiables)
 
-- Integrations are behind explicit adapters
-- Deny-by-default and least privilege
-- Auditable execution and error taxonomy
-- No PHI leakage through observability paths
-- Deterministic behavior and retry semantics
+- **Vendor Neutrality**: Contracts must not depend on vendor-specific SDKs or types.
+- **Privacy First**: Zero PHI/PII leakage into logs or audit metadata.
+- **Auditability**: Every external interaction must be traceable via correlation IDs.
+- **Reliability**: Writes require explicit idempotency keys.
+- **Determinism**: Failure taxonomy is bounded and metadata-only.
+- **No Persistence**: This layer does not store data or manage background jobs.
 
 ---
 
 ## In Scope
 
-- Integration adapter interfaces and boundaries
-- Policy gating for external calls
-- Audit events for outbound interactions (metadata-only)
-- Tests for:
-  - policy enforcement
-  - deterministic failures and retries
+- **Integration Boundary Types**: Zod-backed definitions for connectors, capabilities, and data classification.
+- **Request/Result Envelopes**: Standardized metadata-heavy envelopes for all external calls.
+- **Redaction Policy**: Declarative rules for sensitive data handling.
+- **Retry & Idempotency Contracts**: Requirements for reliability and safe retries.
+- **Connector Interface**: A unified interface (`IExternalConnector`) for all future integrations.
+- **Failure Taxonomy**: A stable set of failure codes (timeout, unreachable, auth_failed, etc.).
 
 ---
 
 ## Out of Scope
 
-- No uncontrolled direct vendor SDK usage in domain logic
-- No “quick integration” hacks bypassing governance
+- **No Network Calls**: No fetch, axios, or HTTP clients.
+- **No Credentials**: No handling of API keys or secrets.
+- **No Real Integrations**: No FHIR, n8n, or calendar implementations.
+- **No Background Jobs**: No Redis, queues, or async worker logic.
+- **No Payload in Audits**: Audit events must only contain metadata summaries.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Integration boundary pattern implemented (if approved)
-- [ ] Outbound interactions are policy-gated and auditable
-- [ ] Tests prove no bypass and deterministic outcomes
+- [x] Integration boundary types and schemas defined in `packages/tool-gateway/src/integrations/types.ts`.
+- [x] `IExternalConnector` interface defined in `packages/tool-gateway/src/integrations/connector.ts`.
+- [x] Tests in `packages/tool-gateway/src/slice-20.test.ts` assert safety and governance rules.
+- [x] PHI/PII data classification strictly enforced via Zod (no sensitive data in result envelopes).
+- [x] WRITE_CONTROLLED operations require idempotency keys.
+- [x] Failure taxonomy is exhaustive and metadata-only.
 
 ---
 
 ## Evidence (Fill When Complete)
 
 - Implementation:
-  - (TODO)
+  - `packages/tool-gateway/src/integrations/types.ts`
+  - `packages/tool-gateway/src/integrations/connector.ts`
 - Tests:
-  - (TODO)
-
+  - `packages/tool-gateway/src/slice-20.test.ts`
