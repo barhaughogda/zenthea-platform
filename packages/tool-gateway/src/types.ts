@@ -283,3 +283,46 @@ export interface ApprovalSignal {
 export interface IApprovalSignalEmitter {
   emitSignal(signal: ApprovalSignal): void;
 }
+
+/**
+ * Operator Audit Actions (Slice 13)
+ */
+export type OperatorAuditAction = 'POLICY_EXECUTE' | 'VIEW_EXECUTE';
+
+/**
+ * Operator Audit Outcomes (Slice 13)
+ */
+export type OperatorAuditOutcome = 'ALLOWED' | 'REJECTED';
+
+/**
+ * Operator Audit Reason Codes (Error Taxonomy) (Slice 13)
+ */
+export type OperatorAuditReasonCode = 
+  | 'UNKNOWN_POLICY_ID'
+  | 'UNKNOWN_VIEW_ID'
+  | 'UNSUPPORTED_TARGET'
+  | 'VALIDATION_FAILED'
+  | 'INTERNAL_ERROR';
+
+/**
+ * Operator Audit Event (Metadata-only) (Slice 13)
+ * 🚫 MUST NOT include PHI, tenantId, actorId, requestId, cursor, or payloads.
+ */
+export interface OperatorAuditEvent {
+  eventId: string;
+  timestamp: string;
+  action: OperatorAuditAction;
+  outcome: OperatorAuditOutcome;
+  reasonCode?: OperatorAuditReasonCode;
+  policyId?: string;
+  viewId?: string;
+  target?: 'timeline' | 'agentRegistry';
+  policySnapshotHash?: string;
+}
+
+/**
+ * Interface for Operator Audit Emission (Slice 13)
+ */
+export interface IOperatorAuditEmitter {
+  emit(event: OperatorAuditEvent): Promise<void>;
+}

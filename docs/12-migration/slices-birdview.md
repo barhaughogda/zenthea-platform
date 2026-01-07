@@ -37,7 +37,7 @@ Legend:
 | 10 | Governance Read Models | **Completed** | `docs/12-migration/slice-10/slice-10-complete.md` |
 | 11 | Operator APIs (Read-Only) | **Completed** | `docs/12-migration/slice-11/` |
 | 12 | Operator Query Policies + Saved Views | **Completed** | `docs/12-migration/slice-12/` |
-| 13 | Operator Audit Events & Error Taxonomy | **Draft (Not Approved)** | `docs/12-migration/slice-13/` |
+| 13 | Operator Audit Events & Error Taxonomy | **Completed** | `docs/12-migration/slice-13/` |
 | 14 | Control Plane DTOs & View Metadata | **Draft (Not Approved)** | `docs/12-migration/slice-14/` |
 | 15 | Operator UI Adapter (Headless) | **Draft (Not Approved)** | `docs/12-migration/slice-15/` |
 | 16 | Escalation Paths & Decision Hooks | **Draft (Not Approved)** | `docs/12-migration/slice-16/` |

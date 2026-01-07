@@ -1,11 +1,11 @@
 # Slice 13 – Operator Audit Events & Error Taxonomy (Read-Only)
 
-**Status:** Draft (Not Approved)  
+**Status:** Completed  
 **Owner:** Platform Architecture  
 **Scope:** Operator Control Plane  
 **Precondition:** Slice 12 complete and sealed
 
-> STOP: Do not implement this slice until explicitly instructed.
+**Scope Freeze:** No new operator capabilities beyond audit emission + stable reason codes. No persistence. No new query power. No writes.
 
 ---
 
@@ -29,6 +29,7 @@ This slice exists to eliminate:
 - Deterministic ordering and classification
 - No new query power
 - No persistence requirement (emission interface is sufficient)
+- No sensitive identifiers in operator audit events (tenantId, actorId, requestId, idempotencyKey)
 
 ---
 
@@ -111,30 +112,38 @@ Hard stops (MUST NOT appear):
 - Emit exactly once per action attempt (success or rejection).
 - Emission MUST be non-blocking and MUST NOT change control flow.
 - Unknown IDs MUST be rejected deterministically and MUST emit a `REJECTED` audit event.
+- Cursor values MUST NOT be logged or emitted (opaque; may encode ordering keys).
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Audit events emitted for:
-  - [ ] unknown policyId rejection
-  - [ ] unknown viewId rejection
-  - [ ] successful policy execution
-  - [ ] successful view execution
-- [ ] Stable reason codes are used everywhere (no ad-hoc strings).
-- [ ] Tests assert:
-  - [ ] emission on success and rejection
-  - [ ] forbidden fields never appear
-  - [ ] no cursor/payload leakage
-- [ ] Verification passes:
-  - [ ] `pnpm -r --filter @starter/tool-gateway test`
+- [x] Audit events emitted for:
+  - [x] unknown policyId rejection
+  - [x] unknown viewId rejection
+  - [x] successful policy execution
+  - [x] successful view execution
+- [x] Stable reason codes are used everywhere (no ad-hoc strings).
+- [x] Tests assert:
+  - [x] emission on success and rejection
+  - [x] forbidden fields never appear
+  - [x] no cursor/payload leakage
+- [x] Verification passes:
+  - [x] `pnpm -r --filter @starter/tool-gateway test`
 
 ---
 
 ## Evidence (Fill When Complete)
 
 - Implementation:
-  - (TODO)
+  - `packages/tool-gateway/src/types.ts`: Added `OperatorAuditEvent` and related types.
+  - `packages/tool-gateway/src/audit.ts`: Added `NoOpOperatorAuditEmitter`.
+  - `packages/tool-gateway/src/operator-api.ts`: Wired `auditEmitter` into `executePolicy` and `executeView`.
 - Tests:
-  - (TODO)
+  - `packages/tool-gateway/src/slice-13.test.ts`: Comprehensive audit and security tests.
 
+---
+
+## Closure Statement (Fill When Complete)
+
+Slice 13 is complete and sealed. Audit emission for operator actions is implemented with a stable error taxonomy and strict metadata-only guarantees.

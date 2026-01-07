@@ -19,6 +19,10 @@ import {
   decodeCursorV1 
 } from './cursor';
 import { z } from 'zod';
+import { IOperatorAuditEmitter } from './types';
+import { NoOpOperatorAuditEmitter } from './audit';
+import { POLICY_REGISTRY } from './policy-registry';
+import * as crypto from 'crypto';
 
 /**
  * Filter Validation Schemas (Strict Allowlist)
@@ -64,8 +68,135 @@ export class OperatorAPI {
   constructor(
     private readonly timelineReader: IGovernanceTimelineReader,
     private readonly registryReader: IAgentRegistryReader,
-    private readonly joiner: TimelineRegistryJoiner
+    private readonly joiner: TimelineRegistryJoiner,
+    private readonly auditEmitter: IOperatorAuditEmitter = new NoOpOperatorAuditEmitter()
   ) {}
+
+  /**
+   * Executes a registered Operator Query Policy.
+   * Deterministic, metadata-only audit emission.
+   */
+  async executePolicy(policyId: string, cursor?: string): Promise<any> {
+    const timestamp = new Date().toISOString();
+    const eventId = crypto.randomUUID();
+
+    try {
+      const policy = POLICY_REGISTRY[policyId];
+      if (!policy) {
+        await this.auditEmitter.emit({
+          eventId,
+          timestamp,
+          action: 'POLICY_EXECUTE',
+          outcome: 'REJECTED',
+          reasonCode: 'UNKNOWN_POLICY_ID',
+          policyId,
+        });
+        throw new Error(`Operator Error: Unknown policyId ${policyId}`);
+      }
+
+      // Check target support
+      if (policy.target === 'timeline') {
+        const result = await this.getTimeline({ ...policy.filters, cursor } as any);
+        await this.auditEmitter.emit({
+          eventId,
+          timestamp,
+          action: 'POLICY_EXECUTE',
+          outcome: 'ALLOWED',
+          policyId,
+          target: policy.target,
+        });
+        return result;
+      } else if (policy.target === 'agentRegistry') {
+        const result = await this.getAgents({ ...policy.filters, cursor } as any);
+        await this.auditEmitter.emit({
+          eventId,
+          timestamp,
+          action: 'POLICY_EXECUTE',
+          outcome: 'ALLOWED',
+          policyId,
+          target: policy.target,
+        });
+        return result;
+      } else {
+        await this.auditEmitter.emit({
+          eventId,
+          timestamp,
+          action: 'POLICY_EXECUTE',
+          outcome: 'REJECTED',
+          reasonCode: 'UNSUPPORTED_TARGET',
+          policyId,
+          target: policy.target as any,
+        });
+        throw new Error(`Operator Error: Unsupported policy target ${policy.target}`);
+      }
+    } catch (err: any) {
+      // If it's already one of our handled rejections, just rethrow
+      if (err.message.includes('Operator Error:')) {
+        throw err;
+      }
+
+      // Otherwise, it's an internal error
+      await this.auditEmitter.emit({
+        eventId,
+        timestamp,
+        action: 'POLICY_EXECUTE',
+        outcome: 'REJECTED',
+        reasonCode: 'INTERNAL_ERROR',
+        policyId,
+      });
+      throw err;
+    }
+  }
+
+  /**
+   * Executes a Saved View.
+   * Views must execute via the policy path (no bypass).
+   */
+  async executeView(viewId: string, cursor?: string): Promise<any> {
+    const timestamp = new Date().toISOString();
+    const eventId = crypto.randomUUID();
+
+    // For Slice 13, views are hardcoded/minimal
+    const VIEW_REGISTRY: Record<string, { policyId: string }> = {
+      'denied-tools-view': { policyId: 'recent-denied-tools' },
+    };
+
+    const view = VIEW_REGISTRY[viewId];
+    if (!view) {
+      await this.auditEmitter.emit({
+        eventId,
+        timestamp,
+        action: 'VIEW_EXECUTE',
+        outcome: 'REJECTED',
+        reasonCode: 'UNKNOWN_VIEW_ID',
+        viewId,
+      });
+      throw new Error(`Operator Error: Unknown viewId ${viewId}`);
+    }
+
+    // Saved views execute via the policy path
+    try {
+      const result = await this.executePolicy(view.policyId, cursor);
+      
+      // Emit success for view execution as well
+      await this.auditEmitter.emit({
+        eventId,
+        timestamp,
+        action: 'VIEW_EXECUTE',
+        outcome: 'ALLOWED',
+        viewId,
+        policyId: view.policyId,
+      });
+      
+      return result;
+    } catch (err: any) {
+      // executePolicy already handled its own audit emission.
+      // We don't double-emit REJECTED for the view if the policy failed,
+      // as the view is just a pointer to the policy.
+      // However, if there was an error in view-specific logic (none here yet), we would.
+      throw err;
+    }
+  }
 
   /**
    * Exposes the Governance Timeline.

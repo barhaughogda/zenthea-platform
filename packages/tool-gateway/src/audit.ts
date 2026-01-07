@@ -1,4 +1,11 @@
-import { ToolAuditLog, IToolAuditLogger, ToolGatewayEvent, IToolTelemetryLogger } from './types';
+import { 
+  ToolAuditLog, 
+  IToolAuditLogger, 
+  ToolGatewayEvent, 
+  IToolTelemetryLogger,
+  IOperatorAuditEmitter,
+  OperatorAuditEvent
+} from './types';
 
 /**
  * Basic audit logger for tool execution.
@@ -26,5 +33,14 @@ export class ToolTelemetryLogger implements IToolTelemetryLogger {
     // In a real implementation, this would emit to Datadog, CloudWatch, or similar.
     // Since it's metadata-only, it's safe to log to console in development.
     console.log(`[ToolTelemetry] [${event.timestamp}] ${event.toolName} - ${event.decision} (${event.latencyMs}ms) RequestId: ${event.requestId}`);
+  }
+}
+
+/**
+ * Safe no-op emitter for Operator Audit Events (Slice 13).
+ */
+export class NoOpOperatorAuditEmitter implements IOperatorAuditEmitter {
+  async emit(_event: OperatorAuditEvent): Promise<void> {
+    // Non-blocking no-op
   }
 }
