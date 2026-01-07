@@ -74,7 +74,7 @@ export function validatePolicies(): void {
     }
 
     // Ensure no dynamic filters are allowed (by design, they are fixed in code)
-    const filters = policy.filters as any;
+    const filters = policy.filters as Record<string, unknown>;
     if (filters.cursor !== undefined) {
       throw new Error(`Policy Registry Error: Policy ${id} MUST NOT define a default cursor.`);
     }

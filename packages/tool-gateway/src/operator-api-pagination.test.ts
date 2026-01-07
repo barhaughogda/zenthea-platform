@@ -123,7 +123,7 @@ async function testPagination() {
   assert.ok(decoded);
   const forbiddenFields = ['tenantId', 'actorId', 'requestId', 'idempotencyKey', 'payload'];
   forbiddenFields.forEach(field => {
-    assert.strictEqual((decoded as any)[field], undefined, `Cursor must NOT contain ${field}`);
+    assert.strictEqual((decoded as unknown as Record<string, unknown>)[field], undefined, `Cursor must NOT contain ${field}`);
   });
   console.log('✅ Security (forbidden fields in cursor) passed');
 

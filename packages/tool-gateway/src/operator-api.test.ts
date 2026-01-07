@@ -6,8 +6,7 @@ import {
   TimelineFilter 
 } from './timeline';
 import { 
-  AgentRegistryReader, 
-  AgentRegistryEntry
+  AgentRegistryReader
 } from './agent-registry';
 import { TimelineRegistryJoiner } from './timeline-registry-join';
 
@@ -23,15 +22,15 @@ class MockTimelineReader implements IGovernanceTimelineReader {
       filtered = filtered.filter(e => e.agentVersion === filter.agentVersion);
     }
     if (filter.toolName) {
-      filtered = filtered.filter(e => 'toolName' in e && (e as any).toolName === filter.toolName);
+      filtered = filtered.filter(e => 'toolName' in e && (e as unknown as Record<string, unknown>).toolName === filter.toolName);
     }
     if (filter.decision) {
-      filtered = filtered.filter(e => 'decision' in e && (e as any).decision === filter.decision);
+      filtered = filtered.filter(e => 'decision' in e && (e as unknown as Record<string, unknown>).decision === filter.decision);
     }
     return filtered;
   }
 
-  async getEvent(_eventId: string): Promise<GovernanceTimelineEvent | null> {
+  async getEvent(): Promise<GovernanceTimelineEvent | null> {
     return this.events[0] || null;
   }
 }
@@ -91,27 +90,30 @@ async function testOperatorAPI() {
   console.log('✅ getEnrichedTimeline passed');
 
   // 4. 🚫 Security - Forbidden fields in response contracts
-  const responses = [timelineResponse, agentsResponse, enrichedResponse] as any[];
+  const responses = [timelineResponse, agentsResponse, enrichedResponse] as unknown[];
   
   const forbiddenFields = ['tenantId', 'actorId', 'requestId', 'idempotencyKey', 'payload'];
 
   for (const res of responses) {
+    const responseObj = res as Record<string, unknown>;
     // Check root
     forbiddenFields.forEach(field => {
-      assert.strictEqual(res[field], undefined, `Response must NOT contain ${field}`);
+      assert.strictEqual(responseObj[field], undefined, `Response must NOT contain ${field}`);
     });
 
     // Check nested items
-    const items = res.items;
-    items.forEach((item: any) => {
+    const items = responseObj.items as unknown[];
+    items.forEach((item: unknown) => {
+      const itemObj = item as Record<string, unknown>;
       forbiddenFields.forEach(field => {
-        assert.strictEqual(item[field], undefined, `Item must NOT contain ${field}`);
+        assert.strictEqual(itemObj[field], undefined, `Item must NOT contain ${field}`);
       });
       
       // Enriched timeline specific nested check
-      if (item.timelineEvent) {
+      if (itemObj.timelineEvent) {
+        const timelineEvent = itemObj.timelineEvent as Record<string, unknown>;
         forbiddenFields.forEach(field => {
-          assert.strictEqual(item.timelineEvent[field], undefined, `timelineEvent must NOT contain ${field}`);
+          assert.strictEqual(timelineEvent[field], undefined, `timelineEvent must NOT contain ${field}`);
         });
       }
     });
@@ -132,10 +134,14 @@ async function testOperatorAPI() {
 
   // 7. Filtering - Invalid filters (should throw)
   try {
-    await (api as any).getTimeline({ forbiddenField: 'attack' });
+    await (api as unknown as { getTimeline: (f: unknown) => Promise<unknown> }).getTimeline({ forbiddenField: 'attack' });
     assert.fail('Should have rejected unknown filter');
-  } catch (err: any) {
-    assert.ok(err.message.includes('unrecognized_keys') || err.name === 'ZodError');
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      assert.ok(err.message.includes('unrecognized_keys') || err.name === 'ZodError');
+    } else {
+      assert.fail('Thrown error is not an Error instance');
+    }
   }
   console.log('✅ Reject unknown filters passed');
 

@@ -76,7 +76,7 @@ export class OperatorAPI {
    * Executes a registered Operator Query Policy.
    * Deterministic, metadata-only audit emission.
    */
-  async executePolicy(policyId: string, cursor?: string): Promise<any> {
+  async executePolicy(policyId: string, cursor?: string): Promise<unknown> {
     const timestamp = new Date().toISOString();
     const eventId = crypto.randomUUID();
 
@@ -96,7 +96,7 @@ export class OperatorAPI {
 
       // Check target support
       if (policy.target === 'timeline') {
-        const result = await this.getTimeline({ ...policy.filters, cursor } as any);
+        const result = await this.getTimeline({ ...policy.filters, cursor } as TimelineFilter);
         await this.auditEmitter.emit({
           eventId,
           timestamp,
@@ -107,7 +107,7 @@ export class OperatorAPI {
         });
         return result;
       } else if (policy.target === 'agentRegistry') {
-        const result = await this.getAgents({ ...policy.filters, cursor } as any);
+        const result = await this.getAgents({ ...policy.filters, cursor } as AgentRegistryFilter);
         await this.auditEmitter.emit({
           eventId,
           timestamp,
@@ -125,13 +125,13 @@ export class OperatorAPI {
           outcome: 'REJECTED',
           reasonCode: 'UNSUPPORTED_TARGET',
           policyId,
-          target: policy.target as any,
+          target: policy.target as 'timeline' | 'agentRegistry',
         });
         throw new Error(`Operator Error: Unsupported policy target ${policy.target}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If it's already one of our handled rejections, just rethrow
-      if (err.message.includes('Operator Error:')) {
+      if (err instanceof Error && err.message.includes('Operator Error:')) {
         throw err;
       }
 
@@ -152,7 +152,7 @@ export class OperatorAPI {
    * Executes a Saved View.
    * Views must execute via the policy path (no bypass).
    */
-  async executeView(viewId: string, cursor?: string): Promise<any> {
+  async executeView(viewId: string, cursor?: string): Promise<unknown> {
     const timestamp = new Date().toISOString();
     const eventId = crypto.randomUUID();
 
@@ -175,27 +175,19 @@ export class OperatorAPI {
     }
 
     // Saved views execute via the policy path
-    try {
-      const result = await this.executePolicy(view.policyId, cursor);
-      
-      // Emit success for view execution as well
-      await this.auditEmitter.emit({
-        eventId,
-        timestamp,
-        action: 'VIEW_EXECUTE',
-        outcome: 'ALLOWED',
-        viewId,
-        policyId: view.policyId,
-      });
-      
-      return result;
-    } catch (err: any) {
-      // executePolicy already handled its own audit emission.
-      // We don't double-emit REJECTED for the view if the policy failed,
-      // as the view is just a pointer to the policy.
-      // However, if there was an error in view-specific logic (none here yet), we would.
-      throw err;
-    }
+    const result = await this.executePolicy(view.policyId, cursor);
+    
+    // Emit success for view execution as well
+    await this.auditEmitter.emit({
+      eventId,
+      timestamp,
+      action: 'VIEW_EXECUTE',
+      outcome: 'ALLOWED',
+      viewId,
+      policyId: view.policyId,
+    });
+    
+    return result;
   }
 
   /**

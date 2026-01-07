@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { TimelineRegistryJoiner } from './timeline-registry-join';
-import { IAgentRegistryReader, AgentRegistryEntry, AgentRegistryFilter } from './agent-registry';
+import { IAgentRegistryReader, AgentRegistryEntry } from './agent-registry';
 import { GovernanceTimelineEvent } from './timeline';
 
 /**
@@ -8,7 +8,7 @@ import { GovernanceTimelineEvent } from './timeline';
  */
 class MockRegistryReader implements IAgentRegistryReader {
   constructor(private entries: AgentRegistryEntry[]) {}
-  listAgents(_filter: AgentRegistryFilter = {}): AgentRegistryEntry[] { return this.entries; }
+  listAgents(): AgentRegistryEntry[] { return this.entries; }
   getAgent(agentId: string): AgentRegistryEntry[] { 
     return this.entries.filter(e => e.agentId === agentId); 
   }

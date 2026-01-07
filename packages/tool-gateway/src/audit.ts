@@ -3,8 +3,7 @@ import {
   IToolAuditLogger, 
   ToolGatewayEvent, 
   IToolTelemetryLogger,
-  IOperatorAuditEmitter,
-  OperatorAuditEvent
+  IOperatorAuditEmitter
 } from './types';
 
 /**
@@ -40,7 +39,7 @@ export class ToolTelemetryLogger implements IToolTelemetryLogger {
  * Safe no-op emitter for Operator Audit Events (Slice 13).
  */
 export class NoOpOperatorAuditEmitter implements IOperatorAuditEmitter {
-  async emit(_event: OperatorAuditEvent): Promise<void> {
+  async emit(): Promise<void> {
     // Non-blocking no-op
   }
 }

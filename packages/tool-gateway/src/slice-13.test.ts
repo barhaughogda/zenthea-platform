@@ -2,8 +2,7 @@ import * as assert from 'assert';
 import { OperatorAPI } from './operator-api';
 import { 
   IGovernanceTimelineReader, 
-  GovernanceTimelineEvent, 
-  TimelineFilter 
+  GovernanceTimelineEvent 
 } from './timeline';
 import { 
   AgentRegistryReader
@@ -18,10 +17,10 @@ import {
  * Mock Timeline Reader for testing.
  */
 class MockTimelineReader implements IGovernanceTimelineReader {
-  async query(_filter: TimelineFilter): Promise<GovernanceTimelineEvent[]> {
+  async query(): Promise<GovernanceTimelineEvent[]> {
     return [];
   }
-  async getEvent(_eventId: string): Promise<GovernanceTimelineEvent | null> {
+  async getEvent(): Promise<GovernanceTimelineEvent | null> {
     return null;
   }
 }
@@ -57,8 +56,12 @@ async function testSlice13() {
   try {
     await api.executePolicy('non-existent-policy');
     assert.fail('Should have thrown');
-  } catch (err: any) {
-    assert.ok(err.message.includes('Unknown policyId'));
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      assert.ok(err.message.includes('Unknown policyId'));
+    } else {
+      assert.fail('Thrown error is not an Error instance');
+    }
   }
   assert.strictEqual(mockAuditEmitter.emittedEvents.length, 1);
   assert.strictEqual(mockAuditEmitter.emittedEvents[0].outcome, 'REJECTED');
@@ -71,8 +74,12 @@ async function testSlice13() {
   try {
     await api.executeView('non-existent-view');
     assert.fail('Should have thrown');
-  } catch (err: any) {
-    assert.ok(err.message.includes('Unknown viewId'));
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      assert.ok(err.message.includes('Unknown viewId'));
+    } else {
+      assert.fail('Thrown error is not an Error instance');
+    }
   }
   assert.strictEqual(mockAuditEmitter.emittedEvents.length, 1);
   assert.strictEqual(mockAuditEmitter.emittedEvents[0].outcome, 'REJECTED');
@@ -115,7 +122,7 @@ async function testSlice13() {
   const forbiddenFields = ['tenantId', 'actorId', 'requestId', 'idempotencyKey', 'payload', 'cursor'];
   mockAuditEmitter.emittedEvents.forEach(event => {
     forbiddenFields.forEach(field => {
-      assert.strictEqual((event as any)[field], undefined, `Audit event MUST NOT contain ${field}`);
+      assert.strictEqual((event as unknown as Record<string, unknown>)[field], undefined, `Audit event MUST NOT contain ${field}`);
     });
   });
   console.log('✅ Security (forbidden fields) in audit passed');

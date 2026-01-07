@@ -4,7 +4,7 @@ import {
   AgentVersion 
 } from './types';
 import { AGENT_REGISTRY, generatePolicySnapshot } from './governance';
-import { decodeCursorV1, encodeCursorV1 } from './cursor';
+import { decodeCursorV1 } from './cursor';
 
 /**
  * Metadata-only projection of an agent version.
@@ -138,7 +138,11 @@ export class AgentRegistryReader implements IAgentRegistryReader {
   private mapToEntry(
     agentId: string, 
     agentType: AgentType, 
-    versionInfo: any
+    versionInfo: {
+      version: AgentVersion;
+      lifecycleState: AgentLifecycleState;
+      allowedScopes: string[];
+    }
   ): AgentRegistryEntry {
     return {
       agentId,
