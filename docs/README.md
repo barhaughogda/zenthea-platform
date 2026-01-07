@@ -64,6 +64,9 @@ Examples, tutorials, and informal notes are intentionally excluded unless explic
 
 The `/docs` folder is organized as follows:
 
+- `ROADMAP.md`  
+  **Consolidated Platform Roadmap** and Strategic Timeline (Phases + Slices).
+
 - `00-overview`  
   High-level vision, principles, and non-goals
 
@@ -103,8 +106,9 @@ The `/docs` folder is organized as follows:
 
 ### For Humans
 
-1. `00-overview`
-2. `01-architecture`
+1. `ROADMAP.md` (Current Status & Phases)
+2. `00-overview`
+3. `01-architecture`
 3. `02-monorepo`
 4. `03-ai-platform`
 5. `05-services`
