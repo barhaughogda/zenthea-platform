@@ -1,19 +1,18 @@
 # Slice 13 – TODO (Track to Seal)
 
-**Status:** Draft (Not Approved)
-
-> STOP: Do not implement this slice until explicitly instructed.
+**Status:** Planned
 
 ---
 
 ## Checklist
 
 - [ ] Confirm prerequisites satisfied (Slice 12 sealed)
-- [ ] Freeze scope + acceptance criteria
+- [ ] Scope freeze confirmed in `slice-13-spec.md`
 - [ ] Implement minimal changes (read-only, metadata-only)
 - [ ] Add/extend tests
 - [ ] Verify zero PHI leakage paths
 - [ ] Run verification commands
 - [ ] Add Evidence links to `slice-13-spec.md`
 - [ ] Mark Slice 13 **Completed** and sealed (closure statement)
+- [ ] Update `docs/12-migration/slices-birdview.md`: Slice 13 -> Completed
 
