@@ -1,11 +1,9 @@
 # Slice 14 – Control Plane DTOs & View Metadata (Read-Only)
 
-**Status:** Draft (Not Approved)  
+**Status:** Completed  
 **Owner:** Platform Architecture  
 **Scope:** Control Plane → Experience Boundary  
 **Precondition:** Slice 13 complete and sealed
-
-> STOP: Do not implement this slice until explicitly instructed.
 
 ---
 
@@ -49,17 +47,20 @@ Decouple internal control-plane models from external consumers by introducing st
 
 ## Acceptance Criteria
 
-- [ ] DTO contracts defined and versioned
-- [ ] All operator/control-plane outputs return DTOs (not internals)
-- [ ] View metadata is allowlisted and non-sensitive
-- [ ] Tests cover forbidden-field absence and version stability
+- [x] DTO contracts defined and versioned
+- [x] All operator/control-plane outputs return DTOs (not internals)
+- [x] View metadata is allowlisted and non-sensitive
+- [x] Tests cover forbidden-field absence and version stability
 
 ---
 
 ## Evidence (Fill When Complete)
 
 - Implementation:
-  - (TODO)
+  - `packages/tool-gateway/src/operator-dtos.ts` (Canonical DTO Definitions)
+  - `packages/tool-gateway/src/operator-api.ts` (Updated to return DTOs)
+  - `packages/tool-gateway/src/policy-registry.ts` (Updated metadata)
+  - `packages/tool-gateway/src/saved-view-registry.ts` (Updated metadata)
 - Tests:
-  - (TODO)
+  - `packages/tool-gateway/src/slice-14.test.ts` (100% Pass)
 

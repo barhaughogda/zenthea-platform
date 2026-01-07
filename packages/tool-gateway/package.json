@@ -8,7 +8,7 @@
     "build": "tsc",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx src/governance.test.ts && npx tsx src/agent-registry.test.ts && npx tsx src/timeline-registry-join.test.ts && npx tsx src/operator-api.test.ts && npx tsx src/saved-view.test.ts && npx tsx src/slice-13.test.ts"
+    "test": "npx tsx src/governance.test.ts && npx tsx src/agent-registry.test.ts && npx tsx src/timeline-registry-join.test.ts && npx tsx src/operator-api.test.ts && npx tsx src/saved-view.test.ts && npx tsx src/slice-13.test.ts && npx tsx src/slice-14.test.ts"
   },
   "dependencies": {
     "zod": "^3.23.8",

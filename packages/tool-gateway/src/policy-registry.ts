@@ -7,15 +7,38 @@ import { AgentRegistryFilter } from './agent-registry';
 export type PolicyTarget = 'timeline' | 'agentRegistry';
 
 /**
+ * Bounded Risk Tiers for Policies.
+ */
+export type RiskTier = 'low' | 'medium' | 'high';
+
+/**
+ * Bounded Presentation Metadata for Operator UIs.
+ */
+export interface BoundedPresentation {
+  readonly icon?: 'list' | 'shield' | 'activity' | 'users' | 'clock' | 'alert-triangle';
+  readonly layout?: 'table' | 'list' | 'grid';
+  readonly columns?: Array<{ key: string; label: string }>;
+  readonly defaultSort?: { field: string; direction: 'asc' | 'desc' };
+  readonly badges?: string[];
+}
+
+/**
  * Strict Policy type for Operator Query Policies.
  * Policies are named, code-defined, and immutable query definitions.
  */
 export interface OperatorQueryPolicy {
   readonly policyId: string;
+  readonly name: string;
   readonly description: string;
+  readonly category: string;
+  readonly riskTier: RiskTier;
   readonly target: PolicyTarget;
   readonly filters: TimelineFilter | AgentRegistryFilter;
   readonly ordering: string; // Documentation requirement: must match underlying API
+  readonly presentation: BoundedPresentation;
+  readonly inputs?: Array<{ name: string; type: string; description: string }>;
+  readonly outputs?: Array<{ name: string; type: string; description: string }>;
+  readonly links?: Array<{ label: string; url: string }>;
 }
 
 /**
@@ -28,20 +51,35 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
    */
   'active-clinical-agents': {
     policyId: 'active-clinical-agents',
+    name: 'Active Clinical Agents',
     description: 'Lists all active clinical agents in the registry.',
+    category: 'Inventory',
+    riskTier: 'low',
     target: 'agentRegistry',
     filters: {
       agentType: 'clinical',
       lifecycleState: 'active',
     },
     ordering: 'agentId:agentVersion',
+    presentation: {
+      icon: 'users',
+      layout: 'table',
+      columns: [
+        { key: 'agentId', label: 'Agent ID' },
+        { key: 'agentVersion', label: 'Version' },
+        { key: 'lifecycleState', label: 'State' },
+      ],
+    },
   },
   /**
    * Example: Recent Denied Tool Requests
    */
   'recent-denied-tools': {
     policyId: 'recent-denied-tools',
+    name: 'Recent Denied Tool Requests',
     description: 'Lists the most recent denied tool gateway events.',
+    category: 'Security',
+    riskTier: 'medium',
     target: 'timeline',
     filters: {
       decision: 'denied',
@@ -49,6 +87,11 @@ export const POLICY_REGISTRY: Record<string, OperatorQueryPolicy> = {
       limit: 20,
     },
     ordering: 'chronological',
+    presentation: {
+      icon: 'shield',
+      layout: 'list',
+      badges: ['Security', 'Alert'],
+    },
   },
 };
 

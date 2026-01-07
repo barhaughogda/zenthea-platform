@@ -19,15 +19,19 @@ import {
   decodeCursorV1 
 } from './cursor';
 import { 
-  POLICY_REGISTRY, 
-  OperatorQueryPolicy 
+  POLICY_REGISTRY
 } from './policy-registry';
 import { SAVED_VIEW_REGISTRY } from './saved-view-registry';
 import { z } from 'zod';
 import { IOperatorAuditEmitter } from './types';
 import { NoOpOperatorAuditEmitter } from './audit';
-import { POLICY_REGISTRY } from './policy-registry';
 import * as crypto from 'crypto';
+import { 
+  PolicyDto, 
+  ViewDto, 
+  ExecutionResultDto, 
+  OperatorDtoVersion 
+} from './operator-dtos';
 
 /**
  * Filter Validation Schemas (Strict Allowlist)
@@ -70,6 +74,8 @@ export interface OperatorEnrichedTimelineResponseV1 extends PaginatedResponseV1<
  * Metadata only. Deterministic. Stable ordering.
  */
 export class OperatorAPI {
+  private readonly VERSION: OperatorDtoVersion = 'v1';
+
   constructor(
     private readonly timelineReader: IGovernanceTimelineReader,
     private readonly registryReader: IAgentRegistryReader,
@@ -78,78 +84,128 @@ export class OperatorAPI {
   ) {}
 
   /**
-   * Executes a registered Operator Query Policy.
-   * Deterministic, metadata-only audit emission.
+   * Lists all registered policies as safe DTOs.
    */
-  async executePolicy(policyId: string, cursor?: string): Promise<unknown> {
+  listPolicies(): PolicyDto[] {
+    return Object.values(POLICY_REGISTRY).map(policy => ({
+      version: this.VERSION,
+      policyId: policy.policyId,
+      name: policy.name,
+      description: policy.description,
+      category: policy.category,
+      riskTier: policy.riskTier,
+      presentation: policy.presentation,
+      inputs: policy.inputs,
+      outputs: policy.outputs,
+      links: policy.links,
+    }));
+  }
+
+  /**
+   * Lists all registered views as safe DTOs.
+   */
+  listViews(): ViewDto[] {
+    return Object.values(SAVED_VIEW_REGISTRY).map(view => ({
+      version: this.VERSION,
+      viewId: view.viewId,
+      name: view.name,
+      description: view.description,
+      policyId: view.policyId,
+      presentation: view.presentation,
+    }));
+  }
+
+  /**
+   * Executes a registered Operator Query Policy.
+   * Returns a safe ExecutionResultDto.
+   */
+  async executePolicy(policyId: string, cursor?: string): Promise<ExecutionResultDto> {
     const timestamp = new Date().toISOString();
-    const eventId = crypto.randomUUID();
+    const executionId = crypto.randomUUID();
 
     try {
       const policy = POLICY_REGISTRY[policyId];
       if (!policy) {
-        await this.auditEmitter.emit({
-          eventId,
-          timestamp,
-          action: 'POLICY_EXECUTE',
-          outcome: 'REJECTED',
-          reasonCode: 'UNKNOWN_POLICY_ID',
-          policyId,
-        });
         throw new Error(`Operator Error: Unknown policyId ${policyId}`);
       }
 
-      // Check target support
+      let result: OperatorTimelineResponseV1 | OperatorAgentRegistryResponseV1;
+      
       if (policy.target === 'timeline') {
-        const result = await this.getTimeline({ ...policy.filters, cursor } as TimelineFilter);
-        await this.auditEmitter.emit({
-          eventId,
-          timestamp,
-          action: 'POLICY_EXECUTE',
-          outcome: 'ALLOWED',
-          policyId,
-          target: policy.target,
-        });
-        return result;
+        result = await this.getTimeline({ ...policy.filters, cursor } as TimelineFilter);
       } else if (policy.target === 'agentRegistry') {
-        const result = await this.getAgents({ ...policy.filters, cursor } as AgentRegistryFilter);
-        await this.auditEmitter.emit({
-          eventId,
-          timestamp,
-          action: 'POLICY_EXECUTE',
-          outcome: 'ALLOWED',
-          policyId,
-          target: policy.target,
-        });
-        return result;
+        result = await this.getAgents({ ...policy.filters, cursor } as AgentRegistryFilter);
       } else {
-        await this.auditEmitter.emit({
-          eventId,
-          timestamp,
-          action: 'POLICY_EXECUTE',
-          outcome: 'REJECTED',
-          reasonCode: 'UNSUPPORTED_TARGET',
-          policyId,
-          target: policy.target as 'timeline' | 'agentRegistry',
-        });
         throw new Error(`Operator Error: Unsupported policy target ${policy.target}`);
       }
+
+      await this.auditEmitter.emit({
+        eventId: executionId,
+        timestamp,
+        action: 'POLICY_EXECUTE',
+        outcome: 'ALLOWED',
+        policyId,
+        target: policy.target as 'timeline' | 'agentRegistry',
+      });
+
+      return {
+        version: this.VERSION,
+        executionId,
+        kind: 'policy',
+        id: policyId,
+        outcome: 'ALLOWED',
+        resultSummary: {
+          message: `Policy ${policyId} executed successfully.`,
+          count: result.count,
+        },
+        pageInfo: {
+          hasNextPage: result.hasMore,
+          count: result.count,
+          limit: (policy.filters as { limit?: number }).limit ?? 50,
+        },
+        timestamp,
+      };
     } catch (err: unknown) {
-      // If it's already one of our handled rejections, just rethrow
+      const outcome = 'ERROR';
+      let reasonCode: 'UNKNOWN_POLICY_ID' | 'UNKNOWN_VIEW_ID' | 'UNSUPPORTED_TARGET' | 'VALIDATION_FAILED' | 'INTERNAL_ERROR' = 'INTERNAL_ERROR';
+      
       if (err instanceof Error && err.message.includes('Operator Error:')) {
-        throw err;
+        if (err.message.includes('Unknown policyId')) {
+          reasonCode = 'UNKNOWN_POLICY_ID';
+        } else if (err.message.includes('Unsupported policy target')) {
+          reasonCode = 'UNSUPPORTED_TARGET';
+        } else {
+          reasonCode = 'VALIDATION_FAILED';
+        }
       }
 
-      // Otherwise, it's an internal error
       await this.auditEmitter.emit({
-        eventId,
+        eventId: executionId,
         timestamp,
         action: 'POLICY_EXECUTE',
         outcome: 'REJECTED',
-        reasonCode: 'INTERNAL_ERROR',
+        reasonCode,
         policyId,
       });
-      throw err;
+
+      return {
+        version: this.VERSION,
+        executionId,
+        kind: 'policy',
+        id: policyId,
+        outcome,
+        reasonCode,
+        resultSummary: {
+          message: err instanceof Error ? err.message : 'Unknown error during policy execution.',
+          count: 0,
+        },
+        pageInfo: {
+          hasNextPage: false,
+          count: 0,
+          limit: 1,
+        },
+        timestamp,
+      };
     }
   }
 
@@ -157,42 +213,94 @@ export class OperatorAPI {
    * Executes a Saved View.
    * Views must execute via the policy path (no bypass).
    */
-  async executeView(viewId: string, cursor?: string): Promise<unknown> {
+  async executeView(viewId: string, cursor?: string): Promise<ExecutionResultDto> {
     const timestamp = new Date().toISOString();
-    const eventId = crypto.randomUUID();
+    const executionId = crypto.randomUUID();
 
-    // For Slice 13, views are hardcoded/minimal
-    const VIEW_REGISTRY: Record<string, { policyId: string }> = {
-      'denied-tools-view': { policyId: 'recent-denied-tools' },
-    };
+    try {
+      const view = SAVED_VIEW_REGISTRY[viewId];
+      if (!view) {
+        throw new Error(`Operator Error: Unknown viewId ${viewId}`);
+      }
 
-    const view = VIEW_REGISTRY[viewId];
-    if (!view) {
+      // Saved views execute via the policy path
+      const policyResult = await this.executePolicy(view.policyId, cursor);
+      
+      if (policyResult.outcome === 'ERROR') {
+        await this.auditEmitter.emit({
+          eventId: executionId,
+          timestamp,
+          action: 'VIEW_EXECUTE',
+          outcome: 'REJECTED',
+          reasonCode: policyResult.reasonCode as 'UNKNOWN_POLICY_ID' | 'UNKNOWN_VIEW_ID' | 'UNSUPPORTED_TARGET' | 'VALIDATION_FAILED' | 'INTERNAL_ERROR',
+          viewId,
+          policyId: view.policyId,
+        });
+        return {
+          ...policyResult,
+          executionId,
+          kind: 'view',
+          id: viewId,
+        };
+      }
+
+      // Emit success for view execution as well
       await this.auditEmitter.emit({
-        eventId,
+        eventId: executionId,
+        timestamp,
+        action: 'VIEW_EXECUTE',
+        outcome: 'ALLOWED',
+        viewId,
+        policyId: view.policyId,
+      });
+      
+      // Transform policy result to view result
+      return {
+        ...policyResult,
+        executionId, // New executionId for the view execution
+        kind: 'view',
+        id: viewId,
+      };
+    } catch (err: unknown) {
+      const outcome = 'ERROR';
+      let reasonCode: 'UNKNOWN_POLICY_ID' | 'UNKNOWN_VIEW_ID' | 'UNSUPPORTED_TARGET' | 'VALIDATION_FAILED' | 'INTERNAL_ERROR' = 'INTERNAL_ERROR';
+
+      if (err instanceof Error && err.message.includes('Operator Error:')) {
+        if (err.message.includes('Unknown viewId')) {
+          reasonCode = 'UNKNOWN_VIEW_ID';
+        } else {
+          reasonCode = 'VALIDATION_FAILED';
+        }
+      }
+
+      await this.auditEmitter.emit({
+        eventId: executionId,
         timestamp,
         action: 'VIEW_EXECUTE',
         outcome: 'REJECTED',
-        reasonCode: 'UNKNOWN_VIEW_ID',
+        reasonCode,
         viewId,
       });
-      throw new Error(`Operator Error: Unknown viewId ${viewId}`);
-    }
 
-    // Saved views execute via the policy path
-    const result = await this.executePolicy(view.policyId, cursor);
-    
-    // Emit success for view execution as well
-    await this.auditEmitter.emit({
-      eventId,
-      timestamp,
-      action: 'VIEW_EXECUTE',
-      outcome: 'ALLOWED',
-      viewId,
-      policyId: view.policyId,
-    });
-    
-    return result;
+      return {
+        version: this.VERSION,
+        executionId,
+        kind: 'view',
+        id: viewId,
+        outcome,
+        reasonCode,
+        resultSummary: {
+          message: err instanceof Error ? err.message : 'Unknown error during view execution.',
+          count: 0,
+        },
+        pageInfo: {
+          hasNextPage: false,
+          count: 0,
+          limit: 1,
+        },
+        timestamp,
+      };
+    }
   }
 
   /**
@@ -326,42 +434,5 @@ export class OperatorAPI {
       hasMore,
       count: enrichedEntries.length,
     };
-  }
-
-  /**
-   * Executes a named policy.
-   * Resolves policyId to a fixed definition and executes via existing APIs.
-   * Supports pagination but NOT runtime filters.
-   */
-  async executePolicy(policyId: string, cursor?: string): Promise<OperatorTimelineResponseV1 | OperatorAgentRegistryResponseV1> {
-    const policy = POLICY_REGISTRY[policyId];
-    if (!policy) {
-      throw new Error(`Policy Rejection: Unknown policyId '${policyId}'`);
-    }
-
-    if (policy.target === 'timeline') {
-      const filter = { ...policy.filters, cursor } as TimelineFilter;
-      return this.getTimeline(filter);
-    } else if (policy.target === 'agentRegistry') {
-      const filter = { ...policy.filters, cursor } as AgentRegistryFilter;
-      return this.getAgents(filter);
-    }
-
-    throw new Error(`Policy Rejection: Unsupported target '${policy.target}' for policy '${policyId}'`);
-  }
-
-  /**
-   * Executes a named saved view.
-   * Resolves viewId to a policyId and executes via the existing policy execution path.
-   */
-  async executeView(viewId: string, cursor?: string): Promise<OperatorTimelineResponseV1 | OperatorAgentRegistryResponseV1> {
-    const view = SAVED_VIEW_REGISTRY[viewId];
-    if (!view) {
-      throw new Error(`View Rejection: Unknown viewId '${viewId}'`);
-    }
-
-    // Saved views execute by calling the policy execution path.
-    // This ensures no query logic is duplicated and governance is preserved.
-    return this.executePolicy(view.policyId, cursor);
   }
 }
