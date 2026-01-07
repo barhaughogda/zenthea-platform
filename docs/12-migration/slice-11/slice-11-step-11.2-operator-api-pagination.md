@@ -1,7 +1,12 @@
 # Slice 11 – Step 11.2: Operator API Pagination & Cursors (Read-Only)
 
 ## Status
-Planned
+Completed
+
+## Evidence
+- `packages/tool-gateway/src/operator-api.ts`: Implements cursor-based pagination for timeline and registry endpoints.
+- `packages/tool-gateway/src/operator-api-pagination.test.ts`: Asserts cursor stability, ordering, and boundary conditions.
+- `packages/tool-gateway/src/cursor.ts`: Centralized logic for opaque, deterministic cursor generation.
 
 ## Purpose
 Introduce deterministic, audit-safe pagination for operator-facing read-only APIs.

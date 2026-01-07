@@ -1,7 +1,12 @@
 # Slice 11 – Operator APIs (Read-Only)
 
 ## Status
-Planned
+Completed
+
+## Evidence
+- `packages/tool-gateway/src/operator-api.ts`: Implements read-only `OperatorApi` for timeline and agent registry access.
+- `packages/tool-gateway/src/operator-api-pagination.test.ts`: Verifies pagination parity and read-only behavior.
+- `packages/tool-gateway/src/types.ts`: Defines strict, metadata-only response envelopes for operator visibility.
 
 ## Purpose
 Expose governance observability primitives as stable, read-only APIs for operators, auditors, and internal tooling.

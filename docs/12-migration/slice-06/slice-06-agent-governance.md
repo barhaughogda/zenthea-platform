@@ -1,11 +1,18 @@
 # Slice 06: Agent Governance and Permissions
 
-Status: Planned  
-Owner: Platform Architecture  
-Phase: Governance  
-Prerequisites:
-- Slice 02B complete (controlled reads and writes)
-- Slice 04 complete (telemetry, metrics, abuse signals, runbooks)
+Status: Completed
+
+## Evidence
+- `packages/tool-gateway/src/governance.ts`: Centralizes `AGENT_REGISTRY`, `TOOL_SCOPE_MAPPING`, `PolicyEvaluator`, and `generatePolicySnapshot`.
+- `packages/tool-gateway/src/gateway.ts`: Enforces policies via `emitGovernanceControl` on the validation path.
+- `packages/tool-gateway/src/metrics.ts`: Implements governance-specific counters for observability (denies, reason codes).
+- `packages/tool-gateway/src/governance.test.ts`: Validates the policy evaluator and snapshot deterministic logic.
+
+## Progress Detail
+- **Step 06.1**: Completed (Agent permission model and registry)
+- **Step 06.2**: Completed (Governance telemetry and metrics)
+- **Step 06.3**: Completed (Enforcement in Tool Gateway)
+- **Step 06.4**: Completed (Governance policy snapshots)
 
 ---
 

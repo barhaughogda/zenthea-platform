@@ -1,7 +1,12 @@
 # Slice 11 – Step 11.3: Operator API Filtering & Query Controls (Read-Only)
 
 ## Status
-Planned
+Completed
+
+## Evidence
+- `packages/tool-gateway/src/operator-api.ts`: Implements allowlisted filtering for `getTimeline` and `getAgents`.
+- `packages/tool-gateway/src/operator-api.test.ts`: Verifies filter validation, correct subset returns, and rejection of unknown filters.
+- `packages/tool-gateway/src/types.ts`: Defines `OperatorTimelineFilterV1` and `OperatorAgentFilterV1` for strict boundary validation.
 
 ## Purpose
 Introduce **explicit, safe, server-side filtering** for Operator APIs to support operational analysis without overfetching or client-side filtering.
