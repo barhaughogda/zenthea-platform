@@ -1,51 +1,94 @@
+import { 
+  ClinicalNoteDraft, 
+  DraftVersion, 
+  Amendment, 
+  AttestationProposal 
+} from '../domain/types';
+
 /**
  * Data Layer: Clinical Documentation Agent
  * 
  * Responsibilities:
- * - Persistence abstraction (Repository pattern).
- * - Draft storage and audit record management.
- * - SAFETY: Ensure immutability of audit logs and traceability of all drafts.
+ * - Repository interfaces for storing and retrieving drafts and versions 
+ *   within the draft workspace.
+ * - Storage-agnostic contracts.
+ * - Explicit boundaries around metadata-only audit storage.
+ * 
+ * FORBIDDEN:
+ * - Concrete database implementations in Phase 3.
+ * - Any schema additions implying finalization (isSigned, etc.).
+ * - Any deletion of history.
  */
 
-import { ClinicalNoteDraft } from '../domain/index';
-
-/**
- * Interface for storing and retrieving clinical documentation drafts.
- */
 export interface IDraftRepository {
   /**
-   * Saves a new draft. Drafts should be immutable once accepted or rejected;
-   * revisions should create new records or versioned entries.
+   * Creates a new draft shell.
    */
-  saveDraft(draft: ClinicalNoteDraft): Promise<string>;
+  createDraft(draft: ClinicalNoteDraft): Promise<void>;
 
   /**
-   * Retrieves a draft by ID.
+   * Retrieves a draft metadata by ID.
    */
   getDraft(draftId: string): Promise<ClinicalNoteDraft | null>;
 
   /**
-   * Lists drafts for a specific patient/provider context.
+   * Adds a new version to a draft.
    */
-  listDrafts(patientId: string, providerId: string): Promise<ClinicalNoteDraft[]>;
+  saveVersion(version: DraftVersion): Promise<void>;
+
+  /**
+   * Retrieves a specific version by ID.
+   */
+  getVersion(versionId: string): Promise<DraftVersion | null>;
+
+  /**
+   * Retrieves all versions for a draft.
+   */
+  getVersionHistory(draftId: string): Promise<DraftVersion[]>;
+
+  /**
+   * Saves an amendment/addendum.
+   */
+  saveAmendment(amendment: Amendment): Promise<void>;
+
+  /**
+   * Retrieves amendments for a draft.
+   */
+  getAmendments(draftId: string): Promise<Amendment[]>;
+
+  /**
+   * Saves an attestation proposal (ready for signoff state).
+   */
+  saveAttestationProposal(proposal: AttestationProposal): Promise<void>;
+
+  /**
+   * Lists drafts for a patient.
+   */
+  listDraftsByPatient(patientId: string): Promise<ClinicalNoteDraft[]>;
 }
 
-/**
- * Interface for capturing audit records related to documentation activities.
- */
-export interface IAuditRepository {
+export type AuditEventType = 
+  | 'CREATE_DRAFT' 
+  | 'UPDATE_DRAFT' 
+  | 'VIEW_DRAFT' 
+  | 'DISCARD_DRAFT';
+
+export interface IAuditSink {
   /**
-   * Logs a documentation event (e.g., draft created, draft revised).
-   * Logs must be immutable and traceable to the provider and patient.
+   * Emits a metadata-only audit event.
+   * Payloads must not contain raw clinical content unless explicitly approved.
    */
-  logEvent(event: {
-    type: string;
-    providerId: string;
+  emitEvent(event: {
+    eventType: AuditEventType;
+    actorId: string;
+    role: string;
+    tenantId: string;
     patientId: string;
+    encounterId?: string;
+    draftId?: string;
+    versionId?: string;
     metadata: Record<string, any>;
-    timestamp: Date;
+    timestamp: string;
+    correlationId: string;
   }): Promise<void>;
 }
-
-// TODO: Implement concrete repositories using the platform's database adapters
-// TODO: Define data retention and encryption-at-rest policies
