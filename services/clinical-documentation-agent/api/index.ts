@@ -48,6 +48,9 @@ export const CreateDraftRequestSchema = z.object({
   encounterId: z.string().optional(),
   documentationType: z.enum([
     'ENCOUNTER_NOTE',
+    'SOAP_NOTE',
+    'CONSULT_NOTE',
+    'DISCHARGE_SUMMARY',
     'PROCEDURE_OPERATIVE_NOTE',
     'NURSING_ALLIED_HEALTH_NOTE',
     'DIAGNOSTIC_NARRATIVE',
