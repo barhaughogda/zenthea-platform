@@ -1,5 +1,7 @@
 # MIG-04A Specification (Phase 1): Clinical Documentation — Draft Only, HITL
 
+**Status: PHASE 4 COMPLETE (Validated & Sealed)**
+
 This document is the **authoritative contract** for **MIG-04A**.
 
 It is derived strictly from:
