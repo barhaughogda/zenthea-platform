@@ -23,6 +23,7 @@ export const dynamic = 'force-dynamic';
  */
 export default function ClinicSubscriptionPage() {
   const { data: session, status } = useZentheaSession();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
   const { usage, isLoading: usageLoading } = useSubscriptionUsage() as any;
 
   if (status === "loading" || usageLoading) {
@@ -65,7 +66,7 @@ export default function ClinicSubscriptionPage() {
       </ClinicLayout>
     );
   }
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
   const planInfoMap: any = {
     free: { name: "Zenthea Free", icon: Shield, color: "text-text-secondary" },
     pro: { name: "Zenthea Pro with AI", icon: Zap, color: "text-zenthea-teal" },

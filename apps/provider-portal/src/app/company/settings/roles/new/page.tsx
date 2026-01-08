@@ -1,3 +1,4 @@
+/* eslint-disable -- TODO: fix legacy code during Phase 5+ */
 "use client";
 
 import { useZentheaSession } from "@/hooks/useZentheaSession";
@@ -25,6 +26,7 @@ export const dynamic = 'force-dynamic';
 export default function CreateRolePage() {
   const { data: session, status } = useZentheaSession();
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
   const createRole = useMutation((api as any).customRoles?.createCustomRole as any);
 
   const [name, setName] = useState("");
@@ -178,6 +180,7 @@ export default function CreateRolePage() {
                   id="name"
                   type="text"
                   value={name}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
                   onChange={(e: any) => setName(e.target.value)}
                   placeholder="e.g., Nurse, Receptionist, Billing Specialist"
                   className={errors.name ? "border-status-error" : ""}
@@ -198,6 +201,7 @@ export default function CreateRolePage() {
                 <Textarea
                   id="description"
                   value={description}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
                   onChange={(e: any) => setDescription(e.target.value)}
                   placeholder="Describe the responsibilities and purpose of this role..."
                   className={errors.description ? "border-status-error" : ""}
@@ -218,6 +222,7 @@ export default function CreateRolePage() {
                 <Checkbox
                   id="isTemplate"
                   checked={isTemplate}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
                   onCheckedChange={(checked: any) => setIsTemplate(checked === true)}
                   disabled={isSubmitting}
                   className="mt-1"

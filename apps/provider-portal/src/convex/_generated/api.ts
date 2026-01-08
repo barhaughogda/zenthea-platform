@@ -1,3 +1,4 @@
+/* eslint-disable */
 
 export const api = new Proxy({}, {
   get: (target, prop) => {
@@ -7,4 +8,5 @@ export const api = new Proxy({}, {
       }
     });
   }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
 }) as any;

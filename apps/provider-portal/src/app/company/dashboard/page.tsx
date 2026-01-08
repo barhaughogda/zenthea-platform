@@ -74,6 +74,7 @@ export default function ClinicDashboard() {
   const pendingAlerts = useMemo(() => {
     if (!notifications) return 0;
     return notifications.notifications.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix legacy code
       (n: any): n is typeof n & { type: "warning" } => n.type === "warning"
     ).length;
   }, [notifications]);

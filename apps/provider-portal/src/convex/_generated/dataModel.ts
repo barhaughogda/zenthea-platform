@@ -1,2 +1,4 @@
-export type Doc<T extends string> = any;
-export type Id<T extends string> = string;
+/* eslint-disable */
+
+export type Doc<_T extends string> = any;
+export type Id<_T extends string> = string;

@@ -2,14 +2,9 @@
   "extends": ["next/core-web-vitals", "../../.eslintrc.json"],
   "rules": {
     "import/no-unresolved": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
-    "import/no-duplicates": "off",
-    "import/no-named-as-default-member": "off",
-    "@next/next/no-img-element": "off",
-    "no-case-declarations": "error",
-    "react/display-name": "off",
-    "react-hooks/exhaustive-deps": "off"
-  }
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-case-declarations": "error"
+  },
+  "ignorePatterns": ["src/convex/_generated/**"]
 }

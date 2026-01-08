@@ -1,3 +1,4 @@
+/* eslint-disable */
 export const useClinics = () => ({ clinics: [], isLoading: false, error: null });
 export const useClinicProfile = () => ({ 
   data: null, 
