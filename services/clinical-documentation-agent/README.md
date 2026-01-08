@@ -1,175 +1,67 @@
-# Clinical Documentation Agent (Draft-only)
+# Clinical Documentation Agent (MIG-04A: Draft-only)
 
 ## Overview
 
-The Clinical Documentation Agent assists healthcare providers in creating, reviewing, and refining **clinical documentation** for the electronic health record (EHR). 
+The Clinical Documentation Agent (MIG-04A) delivers a **regulated-safe, draft-only workspace** for clinical documentation. It assists healthcare providers by generating draft proposals for clinical notes while enforcing strict governance and compliance boundaries.
 
-It produces **draft documentation only**, never final records, and operates under strict clinical, legal, and compliance constraints.
+**HARD CONSTRAINT: MIG-04A is draft-only.** This service does NOT support signing, attesting, finalizing, locking, or writing back to external EHRs. Those capabilities are reserved for MIG-04B.
 
-This agent exists to:
-- Reduce clinician administrative burden
-- Improve documentation completeness and consistency
-- Preserve clinician authority and accountability
+## Implementation Status: Phase 3 (Deterministic Core)
 
-## Primary Users
-
-- Physicians
-- Nurses
-- Allied health professionals
-- Medical scribes (where applicable)
-
-This agent is **provider-facing only**.
+The current implementation (Phase 3) provides the deterministic core and service skeleton:
+- **Domain Layer**: Fully versioned, immutable draft models.
+- **API Layer**: Zod-validated contracts for draft lifecycle.
+- **Orchestration Layer**: Workflow sequencing with consent gates and audit emission.
+- **AI Layer**: Draft-only generation logic with safety refusals and provenance capture.
+- **Data/Integration**: Defined contracts and interfaces for repositories and EHR/Transcription read-access.
 
 ## Core Responsibilities
 
-The Clinical Documentation Agent assists with:
-- Drafting clinical notes (e.g. SOAP, progress notes)
-- Summarizing patient encounters
-- Structuring documentation from transcripts or inputs
-- Highlighting missing documentation elements
-- Normalizing language and formatting
-- Suggesting documentation improvements
+- **Draft Note Generation**: AI-assisted proposals for encounter notes, procedure notes, etc.
+- **Versioned History**: Every save produces a new immutable version. No silent overwrites.
+- **Amendments & Addenda**: Append-only corrections linked to prior versions.
+- **Evidence Provenance**: Pointers to chart evidence and external guidelines.
+- **Attestation Proposals**: "Ready for signoff" state (proposal-only; no signing action).
 
-All outputs are **drafts** requiring clinician review and approval.
+## Explicit Non-Goals (MIG-04A)
 
-## Explicit Non-Goals
+- **NO Signing/Attestation**: AI and the service are forbidden from creating legal medical records.
+- **NO EHR Write-back**: All outbound mutations to clinical record stores are blocked.
+- **NO Background Jobs**: No unattended state transitions or PHI mutations.
+- **NO Diagnosis/Treatment Plans**: AI may only propose narrative based on provided facts.
 
-This agent must never:
-- Finalize or sign clinical documentation
-- Modify the legal medical record autonomously
-- Introduce new clinical facts not provided
-- Diagnose conditions
-- Recommend treatments
-- Override clinician judgment
-- Act without explicit clinician initiation
+## AI Safety Contract
 
-Clinicians remain fully responsible for all documentation.
+- **Labeling**: Every output is labeled: `DRAFT ONLY (AI-assisted). Not signed. Not a legal medical record.`
+- **Refusal**: AI refuses requests to sign, attest, finalize, or fabricate facts.
+- **Provenance**: Full traceability of model, prompt version, and retrieval sources.
+- **Consent Gate**: Hard-stop if `consent-agent` does not verify documentation consent.
 
-## Data Access Model
+## Observability & Audit
 
-### Provider-Initiated Access Only
-- Access is initiated by authenticated clinicians
-- Data access must be:
-  - Patient-scoped
-  - Purpose-limited (documentation)
-  - Consent-validated
+The following metadata-only events are emitted to the audit sink:
+- `CREATE_DRAFT`: On draft shell or AI-accepted creation.
+- `UPDATE_DRAFT`: On new version, state change, or amendment.
+- `VIEW_DRAFT`: On read access.
+- `DISCARD_DRAFT`: When a draft is marked as discarded (preserving history).
 
-No background or passive data access is permitted.
+## Developer Guide
 
-## Consent and Authorization
+### Testing
+```bash
+pnpm test          # Run domain and orchestration unit tests
+pnpm eval:ai       # Run AI safety and refusal evals
+```
 
-- All access is gated by the Consent Agent
-- Documentation must respect:
-  - Patient consent
-  - Jurisdictional rules
-  - Provider role and scope of practice
-- Revoked consent must immediately prevent further processing
+### Build
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+```
 
-The agent must fail closed if consent cannot be verified.
+## Compliance Notes
 
-## AI Behavior and Constraints
-
-### Draft-Only Outputs
-- All outputs must be clearly labeled as **Draft**
-- No language implying finality or authority
-- Explicit reminders that clinician review is required
-
-### Clinical Safety
-- Conservative tone
-- No hallucinated facts
-- No speculative diagnoses
-- No prescriptive language
-
-## Retrieval-Augmented Generation (RAG)
-
-When referencing existing records:
-- Retrieval must be:
-  - Patient-specific
-  - Minimal (minimum necessary)
-  - Purpose-scoped (documentation only)
-- Retrieved data must:
-  - Be summarized, not copied verbatim unless required
-  - Preserve original clinical meaning
-  - Avoid exposing irrelevant historical data
-
-The agent must not hallucinate documentation content.
-
-## Prompt Injection and Safety
-
-The agent must be resilient to:
-- Attempts to insert unverified facts
-- Attempts to bypass clinician review
-- Attempts to escalate privileges
-- Attempts to modify historical records improperly
-
-Any unsafe input must result in refusal or warning.
-
-## HIPAA Compliance
-
-The Clinical Documentation Agent enforces:
-- Minimum necessary access
-- Purpose limitation
-- Audit logging of all accesses
-- Safeguards against improper disclosure
-
-No PHI may be logged or exposed outside approved systems.
-
-## GDPR Compliance
-
-The agent supports GDPR obligations including:
-- Lawful basis enforcement
-- Purpose limitation
-- Data minimization
-- Right to access and explanation
-- Jurisdiction-aware behavior
-
-## Tool Usage Policy
-
-- The agent may propose tools only
-- No tools are executed directly
-- Any actions affecting records must:
-  - Go through orchestration
-  - Require explicit clinician approval
-  - Be executed via the Tool Execution Gateway
-
-## Orchestration Expectations
-
-The orchestration layer must enforce:
-- Provider identity verification
-- Role and scope validation
-- Consent checks
-- Input validation
-- AI invocation governance
-- Approval checkpoints
-- Observability and audit hooks
-
-Bypassing orchestration is a platform violation.
-
-## Observability and Auditability
-
-The following must be captured:
-- Clinician identity
-- Patient context (metadata only)
-- Consent decisions
-- AI invocation metadata
-- Draft acceptance or rejection
-- Safety refusals
-
-Logs must be immutable and auditable.
-
-## Backup and Recovery
-
-### Backup Scope
-- Prompt definitions
-- Configuration
-- Documentation metadata
-- Audit records
-
-### Backup Frequency
-- Daily for production environments.
-
-### Restore Expectations
-- Draft history must be recoverable
-- No loss of audit trail is acceptable
-- Versioned prompt behavior must be preserved
-- Restore Procedure: See platform disaster recovery guide for standard service restoration.
+- **HIPAA**: Enforces minimum necessary access and metadata-only audit logging.
+- **HITL**: Requires explicit clinician review and editing for all AI-proposed content.
+- **Provenance**: Maintains a clear chain of custody from AI proposal to human edit.

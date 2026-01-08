@@ -2,32 +2,61 @@
  * Integrations Layer: Clinical Documentation Agent
  * 
  * Responsibilities:
- * - Define boundaries for external systems (EHR, Transcription services, etc.).
- * - Placeholder interfaces for future integrations.
- * - SAFETY: No direct writes to external systems without orchestration and approval.
+ * - Interfaces/adapters for read-only context inputs.
+ * - Consent verification hard gate.
+ * 
+ * FORBIDDEN:
+ * - Any write-back to external systems.
+ * - Any uncontrolled retrieval beyond patient/tenant scope.
  */
 
-/**
- * Interface for reading clinical context from external sources (e.g., EHR).
- */
-export interface IEHRIntegration {
+export interface IEHRReadIntegration {
   /**
-   * Fetches patient context relevant for documentation.
-   * TODO: Implement patient-scoped, purpose-limited data retrieval.
+   * Fetches minimal necessary patient context for drafting.
    */
-  getPatientContext(patientId: string): Promise<any>;
+  getPatientSummary(patientId: string): Promise<{
+    patientId: string;
+    recentLabs?: any[];
+    medications?: any[];
+    allergies?: any[];
+    recentNotes?: any[];
+  }>;
+
+  /**
+   * Fetches encounter details.
+   */
+  getEncounterContext(encounterId: string): Promise<{
+    encounterId: string;
+    patientId: string;
+    type: string;
+    startTime: string;
+  }>;
 }
 
-/**
- * Interface for receiving transcription inputs.
- */
-export interface ITranscriptionIntegration {
+export interface ITranscriptionReadIntegration {
   /**
-   * Streams or fetches transcripts from a recording service.
+   * Fetches transcript content by ID.
    */
-  getTranscript(transcriptId: string): Promise<string>;
+  getTranscript(transcriptId: string): Promise<{
+    id: string;
+    text: string;
+    metadata: Record<string, any>;
+  }>;
 }
 
-// TODO: Implement adapters for specific EHR vendors (e.g., Epic, Cerner)
-// TODO: Ensure all integration calls are logged for auditability
-// NOTE: Direct writes to EHR are EXPLICITLY out of scope for this agent.
+export type ConsentScope = 'clinical_documentation' | 'ai_assistance';
+
+export interface IConsentAgent {
+  /**
+   * Verifies if consent is granted for a specific scope.
+   * MUST be a hard gate for any AI-assisted drafting involving PHI.
+   */
+  verifyConsent(params: {
+    patientId: string;
+    scope: ConsentScope;
+    tenantId: string;
+  }): Promise<{
+    granted: boolean;
+    reason?: string;
+  }>;
+}

@@ -2,48 +2,51 @@ import { z } from 'zod';
 
 /**
  * Config Layer: Clinical Documentation Agent
- * 
- * Responsibilities:
- * - Typed configuration schema using Zod.
- * - Environment-variable driven only.
- * - SAFETY: Invalid configuration must fail the service at startup.
  */
 
 export const ServiceConfigSchema = z.object({
   env: z.enum(['development', 'staging', 'production']),
-  jurisdiction: z.enum(['US-CA', 'US-NY', 'EU-DE', 'UK']), // Jurisdiction-aware behavior
+  complianceMode: z.enum(['HIPAA', 'GDPR', 'NONE']).default('HIPAA'),
   safety: z.object({
-    enforceDraftOnly: z.boolean().default(true),
+    enforceDraftOnly: z.literal(true), // Hard constraint
     strictNoDiagnosis: z.boolean().default(true),
     logAuditEvents: z.boolean().default(true),
+    requireEvidenceForPatientFacts: z.boolean().default(true),
   }),
-  templates: z.array(z.string()).default(['SOAP', 'ProgressNote']),
   ai: z.object({
-    modelName: z.string(),
-    temperature: z.number().min(0).max(1).default(0.2), // Low temperature for consistency
+    defaultModelProvider: z.string().default('zenthea-internal'),
+    defaultModelName: z.string().default('clinical-draft-v1'),
+    defaultModelVersion: z.string().default('1.0.0'),
+    defaultPromptVersion: z.string().default('v1.0.0'),
+    temperature: z.number().min(0).max(1).default(0.2),
   }),
+  tenantId: z.string().default('default-tenant'),
 });
 
 export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
 
 /**
  * Loads and validates configuration from environment variables.
- * TODO: Integrate with process.env and provide defaults.
  */
 export function loadConfig(): ServiceConfig {
-  // Placeholder: In a real implementation, this would read from process.env
+  // In a real implementation, this would read from process.env
+  // For Phase 3, we provide a valid default that satisfies the schema.
   return ServiceConfigSchema.parse({
-    env: 'development',
-    jurisdiction: 'US-CA',
+    env: process.env.NODE_ENV || 'development',
+    complianceMode: 'HIPAA',
     safety: {
       enforceDraftOnly: true,
       strictNoDiagnosis: true,
       logAuditEvents: true,
+      requireEvidenceForPatientFacts: true,
     },
-    templates: ['SOAP', 'ProgressNote'],
     ai: {
-      modelName: 'gpt-4o',
+      defaultModelProvider: 'zenthea-internal',
+      defaultModelName: 'clinical-draft-v1',
+      defaultModelVersion: '1.0.0',
+      defaultPromptVersion: 'v1.0.0',
       temperature: 0.2,
     },
+    tenantId: 'zenthea-core',
   });
 }
