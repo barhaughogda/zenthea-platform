@@ -52,4 +52,7 @@ This table tracks both **Control Plane (CP)** and **Migration (MIG)** slices in 
 ---
 
 ## 3. Active Workstream
-Currently executing **Phase A (Scaffolding)** and **MIG-04A (Clinical Documentation – Draft Only, HITL)**. MIG-04B remains blocked pending MIG-04A completion.
+
+Currently executing Phase A (Scaffolding).
+MIG-04A (Clinical Documentation – Draft Only, HITL) is complete.
+MIG-04B remains blocked by explicit stop condition.
