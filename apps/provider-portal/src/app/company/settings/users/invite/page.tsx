@@ -64,7 +64,7 @@ export default function InviteUserPage() {
   // Get selected role's permissions for preview
   const selectedRole = useMemo(() => {
     if (!formData.customRoleId || !customRoles) return null;
-    return customRoles.find((role) => role._id === formData.customRoleId) || null;
+    return customRoles.find((role: any) => role._id === formData.customRoleId) || null;
   }, [formData.customRoleId, customRoles]);
 
   const previewPermissions: PermissionTree = useMemo(() => {
@@ -84,7 +84,7 @@ export default function InviteUserPage() {
   // Filter active clinics only - must be before conditional returns
   const activeClinics = useMemo(() => {
     if (!clinics) return [];
-    return clinics.filter((clinic) => clinic.isActive);
+    return clinics.filter((clinic: any) => clinic.isActive);
   }, [clinics]);
 
   // Handle loading state
@@ -194,7 +194,7 @@ export default function InviteUserPage() {
   };
 
   const handleInputChange = (field: keyof InvitationFormData, value: string | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
     // Clear errors when user starts typing
     if (errors.length > 0) {
       setErrors([]);
@@ -202,9 +202,9 @@ export default function InviteUserPage() {
   };
 
   const handleClinicToggle = (clinicId: string) => {
-    setFormData((prev) => {
+    setFormData((prev: any) => {
       const newClinicIds = prev.clinicIds.includes(clinicId)
-        ? prev.clinicIds.filter((id) => id !== clinicId)
+        ? prev.clinicIds.filter((id: any) => id !== clinicId)
         : [...prev.clinicIds, clinicId];
       return { ...prev, clinicIds: newClinicIds };
     });
@@ -259,11 +259,11 @@ export default function InviteUserPage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    onChange={(e: any) => handleInputChange("email", e.target.value)}
                     disabled={isSubmitting}
                     required
                     aria-required="true"
-                    aria-invalid={errors.some((e) => e.includes("email"))}
+                    aria-invalid={errors.some((e: any) => e.includes("email"))}
                     placeholder="user@example.com"
                     className="pl-10"
                   />
@@ -287,7 +287,7 @@ export default function InviteUserPage() {
                   </Alert>
                 ) : (
                   <div className="space-y-2 rounded-lg border p-4 bg-surface-elevated">
-                    {activeClinics.map((clinic) => (
+                    {activeClinics.map((clinic: any) => (
                       <div
                         key={clinic._id}
                         className="flex items-center space-x-2 p-2 hover:bg-background-secondary rounded cursor-pointer"
@@ -328,7 +328,7 @@ export default function InviteUserPage() {
                 </Label>
                 <Select
                   value={formData.customRoleId}
-                  onValueChange={(value) => handleInputChange("customRoleId", value)}
+                  onValueChange={(value: any) => handleInputChange("customRoleId", value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger id="customRoleId" aria-required="true">
@@ -336,7 +336,7 @@ export default function InviteUserPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {customRoles && customRoles.length > 0 ? (
-                      customRoles.map((role) => (
+                      customRoles.map((role: any) => (
                         <SelectItem key={role._id} value={role._id}>
                           {role.name}
                           {role.description && ` - ${role.description}`}

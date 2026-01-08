@@ -62,7 +62,7 @@ export default function MessagesPage() {
     
     return convs
       .filter(conv => conv.otherUser?.role === 'patient') // Only show conversations with patients
-      .map((conv) => {
+      .map((conv: any) => {
         const otherUser = conv.otherUser;
         const lastMsg = conv.lastMessage;
         const patientName = otherUser 
@@ -146,7 +146,7 @@ export default function MessagesPage() {
       if (!res.ok) throw new Error('Failed to fetch thread');
       const threadMessages = await res.json();
 
-      const conversation = conversations?.find((c: any) => c.threadId === message.threadId);
+      const conversation: any = (conversations as any)?.find((c: any) => c.threadId === message.threadId);
       const otherUser = conversation?.otherUser;
 
       // Map thread messages with proper structure
@@ -278,11 +278,11 @@ export default function MessagesPage() {
         </div>
       ),
       sortable: false,
-      render: (value, row) => (
+      render: (value: any, row: any) => (
         <input
           type="checkbox"
           checked={selectedMessages.includes(row.id)}
-          onChange={(e) => {
+          onChange={(e: any) => {
             e.stopPropagation();
             if (selectedMessages.includes(row.id)) {
               setSelectedMessages(prev => prev.filter(id => id !== row.id));
@@ -298,7 +298,7 @@ export default function MessagesPage() {
       key: 'patientName',
       label: 'Patient',
       sortable: true,
-      render: (value, row) => (
+      render: (value: any, row: any) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={undefined} alt={row.patientName} />
@@ -324,7 +324,7 @@ export default function MessagesPage() {
       key: 'priority',
       label: 'Priority',
       sortable: true,
-      render: (value) => {
+      render: (value: any) => {
         const priorityColors = {
           critical: 'bg-status-critical/10 text-status-critical border-status-critical/20',
           high: 'bg-status-error/10 text-status-error border-status-error/20',
@@ -345,7 +345,7 @@ export default function MessagesPage() {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (value) => {
+      render: (value: any) => {
         const statusColors = {
           new: 'bg-status-info/10 text-status-info border-status-info/20',
           'in-progress': 'bg-status-warning/10 text-status-warning border-status-warning/20',
@@ -366,7 +366,7 @@ export default function MessagesPage() {
       key: 'time',
       label: 'Time',
       sortable: true,
-      render: (value, row) => (
+      render: (value: any, row: any) => (
         <div className="flex flex-col items-end">
           <div className="text-sm font-medium text-muted-foreground">{row.time}</div>
           {row.threadCount > 1 && (
@@ -381,7 +381,7 @@ export default function MessagesPage() {
     {
       key: 'actions' as keyof Message,
       label: 'Actions',
-      render: (_, row) => (
+      render: (_: any, row: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">

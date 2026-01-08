@@ -37,7 +37,7 @@ function ClinicCalendarPageContent() {
   // Find active appointment card in create/edit mode for visual selection
   const activeAppointmentSelection = useMemo(() => {
     const appointmentCard = cards.find(
-      card => card.type === 'appointment' && 
+      (card: any) => card.type === 'appointment' && 
       card.appointmentData && 
       (card.appointmentData.mode === 'create' || card.appointmentData.mode === 'edit')
     );
@@ -315,7 +315,7 @@ function ClinicCalendarPageContent() {
                 tenantId={tenantId!}
                 clinics={clinics as any}
                 selectedClinicId={selectedClinicId as any}
-                onClinicChange={(clinicId) => setSelectedClinicId(clinicId as any)}
+                onClinicChange={(clinicId: any) => setSelectedClinicId(clinicId as any)}
                 selectedUserIds={selectedUserIds}
                 onSelectionChange={setSelectedUserIds}
               />

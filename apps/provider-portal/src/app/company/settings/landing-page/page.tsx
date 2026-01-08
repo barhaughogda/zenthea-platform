@@ -293,7 +293,7 @@ export default function LandingPageSettingsPage() {
                   <Input
                     id="heroTitle"
                     value={formData.heroTitle}
-                    onChange={(e) => setFormData(prev => ({ ...prev, heroTitle: e.target.value }))}
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, heroTitle: e.target.value }))}
                     placeholder={`Welcome to ${config?.name || 'Our Clinic'}`}
                   />
                 </div>
@@ -302,7 +302,7 @@ export default function LandingPageSettingsPage() {
                   <Input
                     id="heroCtaText"
                     value={formData.heroCtaText}
-                    onChange={(e) => setFormData(prev => ({ ...prev, heroCtaText: e.target.value }))}
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, heroCtaText: e.target.value }))}
                     placeholder="Book an Appointment"
                   />
                 </div>
@@ -313,7 +313,7 @@ export default function LandingPageSettingsPage() {
                 <Textarea
                   id="heroSubtitle"
                   value={formData.heroSubtitle}
-                  onChange={(e) => setFormData(prev => ({ ...prev, heroSubtitle: e.target.value }))}
+                  onChange={(e: any) => setFormData(prev => ({ ...prev, heroSubtitle: e.target.value }))}
                   placeholder="Quality healthcare for you and your family"
                   rows={2}
                 />
@@ -325,7 +325,7 @@ export default function LandingPageSettingsPage() {
                   <Input
                     id="heroImage"
                     value={formData.heroImage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, heroImage: e.target.value }))}
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, heroImage: e.target.value }))}
                     placeholder="https://your-cdn.com/hero-image.jpg"
                   />
                   <p className="text-xs text-text-tertiary">
@@ -337,7 +337,7 @@ export default function LandingPageSettingsPage() {
                   <Input
                     id="heroCtaLink"
                     value={formData.heroCtaLink}
-                    onChange={(e) => setFormData(prev => ({ ...prev, heroCtaLink: e.target.value }))}
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, heroCtaLink: e.target.value }))}
                     placeholder="/book (default)"
                   />
                 </div>
@@ -381,7 +381,7 @@ export default function LandingPageSettingsPage() {
                   </div>
                   <Switch
                     checked={formData.showServices}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showServices: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, showServices: checked }))}
                   />
                 </div>
 
@@ -396,7 +396,7 @@ export default function LandingPageSettingsPage() {
                   </div>
                   <Switch
                     checked={formData.showCareTeam}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showCareTeam: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, showCareTeam: checked }))}
                   />
                 </div>
 
@@ -411,7 +411,7 @@ export default function LandingPageSettingsPage() {
                   </div>
                   <Switch
                     checked={formData.showClinics}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showClinics: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, showClinics: checked }))}
                   />
                 </div>
 
@@ -426,7 +426,7 @@ export default function LandingPageSettingsPage() {
                   </div>
                   <Switch
                     checked={formData.showBooking}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showBooking: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, showBooking: checked }))}
                     disabled={!config?.features?.onlineScheduling}
                   />
                 </div>
@@ -442,7 +442,7 @@ export default function LandingPageSettingsPage() {
                   </div>
                   <Switch
                     checked={formData.showTestimonials}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showTestimonials: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, showTestimonials: checked }))}
                     disabled
                   />
                 </div>
@@ -497,7 +497,7 @@ export default function LandingPageSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Switch
                           checked={section.enabled}
-                          onCheckedChange={(checked) => handleToggleSection(section.id, checked)}
+                          onCheckedChange={(checked: any) => handleToggleSection(section.id, checked)}
                         />
                         <Button
                           variant="ghost"
@@ -521,7 +521,7 @@ export default function LandingPageSettingsPage() {
                   <Input
                     id="newSectionTitle"
                     value={newSection.title}
-                    onChange={(e) => setNewSection(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e: any) => setNewSection(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="About Us"
                   />
                 </div>
@@ -530,7 +530,7 @@ export default function LandingPageSettingsPage() {
                   <Textarea
                     id="newSectionContent"
                     value={newSection.content}
-                    onChange={(e) => setNewSection(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e: any) => setNewSection(prev => ({ ...prev, content: e.target.value }))}
                     placeholder="Tell visitors about your clinic..."
                     rows={4}
                   />

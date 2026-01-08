@@ -52,7 +52,7 @@ export default function PatientsPage() {
       key: 'name',
       label: 'Patient',
       sortable: true,
-      render: (value, row) => (
+      render: (value: any, row: any) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={row.avatar || undefined} alt={row.name} />
@@ -76,7 +76,7 @@ export default function PatientsPage() {
       key: 'age',
       label: 'Age',
       sortable: true,
-      render: (value, row) => (
+      render: (value: any, row: any) => (
         <div>
           <div>{row.age}</div>
           <div className="text-sm text-muted-foreground">{row.gender}</div>
@@ -87,7 +87,7 @@ export default function PatientsPage() {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (value) => (
+      render: (value: any) => (
         <Badge 
           variant={value === 'Active' ? 'default' : 'secondary'}
           className={value === 'Active' 
@@ -108,7 +108,7 @@ export default function PatientsPage() {
       key: 'nextAppointment',
       label: 'Next Appointment',
       sortable: true,
-      render: (value) => (
+      render: (value: any) => (
         <div className="text-sm">
           {value ? value : <span className="text-muted-foreground">Not scheduled</span>}
         </div>
@@ -117,7 +117,7 @@ export default function PatientsPage() {
     {
       key: 'actions' as keyof PatientWithComputedFields,
       label: 'Actions',
-      render: (_, row) => (
+      render: (_: any, row: any) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -227,7 +227,7 @@ export default function PatientsPage() {
               </div>
               
               {/* Patient Filter Tabs */}
-              <Tabs value={patientFilter} onValueChange={(v) => setPatientFilter(v as 'all' | 'my-primary')}>
+              <Tabs value={patientFilter} onValueChange={(v: any) => setPatientFilter(v as 'all' | 'my-primary')}>
                 <TabsList>
                   <TabsTrigger value="all">
                     All Patients

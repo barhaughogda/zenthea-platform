@@ -60,8 +60,8 @@ export default function BookingSettingsPage() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const newSet = new Set(prev);
+    setExpandedSections((prev: any) => {
+      const newSet = new Set<string>(prev as any);
       if (newSet.has(sectionId)) {
         newSet.delete(sectionId);
       } else {
@@ -194,7 +194,7 @@ export default function BookingSettingsPage() {
     );
   }
 
-  const services: ServiceCardData[] = (config?.bookingSettings?.appointmentTypes || []).map((s) => ({
+  const services: ServiceCardData[] = (config?.bookingSettings?.appointmentTypes || []).map((s: any) => ({
     id: s.id,
     name: s.name,
     duration: s.duration,
@@ -454,7 +454,7 @@ export default function BookingSettingsPage() {
               </p>
               <Select
                 value={formData.mode}
-                onValueChange={(value) => setFormData(prev => ({ 
+                onValueChange={(value: any) => setFormData(prev => ({ 
                   ...prev, 
                   mode: value as typeof formData.mode 
                 }))}
@@ -534,7 +534,7 @@ export default function BookingSettingsPage() {
               
               {publicProviderProfiles && publicProviderProfiles.length > 0 ? (
                 <div className="space-y-3">
-                  {publicProviderProfiles.map((provider) => (
+                  {publicProviderProfiles.map((provider: any) => (
                     <div 
                       key={provider._id}
                       className="flex items-center justify-between p-4 bg-surface-secondary rounded-lg border border-border-primary"
@@ -616,7 +616,7 @@ export default function BookingSettingsPage() {
                   <Switch
                     id="requirePhone"
                     checked={formData.requirePhone}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requirePhone: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, requirePhone: checked }))}
                   />
                 </div>
                 <div className="flex items-center justify-between p-4 bg-surface-secondary rounded-lg">
@@ -624,7 +624,7 @@ export default function BookingSettingsPage() {
                   <Switch
                     id="requireDob"
                     checked={formData.requireDateOfBirth}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requireDateOfBirth: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, requireDateOfBirth: checked }))}
                   />
                 </div>
                 <div className="flex items-center justify-between p-4 bg-surface-secondary rounded-lg">
@@ -632,7 +632,7 @@ export default function BookingSettingsPage() {
                   <Switch
                     id="requireInsurance"
                     checked={formData.requireInsurance}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requireInsurance: checked }))}
+                    onCheckedChange={(checked: any) => setFormData(prev => ({ ...prev, requireInsurance: checked }))}
                   />
                 </div>
               </div>
@@ -646,7 +646,7 @@ export default function BookingSettingsPage() {
                     min={1}
                     max={365}
                     value={formData.advanceBookingDays}
-                    onChange={(e) => setFormData(prev => ({ ...prev, advanceBookingDays: parseInt(e.target.value) || 30 }))}
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, advanceBookingDays: parseInt(e.target.value) || 30 }))}
                   />
                   <p className="text-xs text-text-tertiary">How many days ahead patients can book</p>
                 </div>
@@ -658,7 +658,7 @@ export default function BookingSettingsPage() {
                     min={0}
                     max={168}
                     value={formData.minimumNoticeHours}
-                    onChange={(e) => setFormData(prev => ({ ...prev, minimumNoticeHours: parseInt(e.target.value) || 24 }))}
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, minimumNoticeHours: parseInt(e.target.value) || 24 }))}
                   />
                   <p className="text-xs text-text-tertiary">Minimum hours before appointment</p>
                 </div>
@@ -699,7 +699,7 @@ export default function BookingSettingsPage() {
               {/* Services list */}
               {services.length > 0 ? (
                 <div className="space-y-3">
-                  {services.map((service) => (
+                  {services.map((service: any) => (
                     <ServiceCard
                       key={service.id}
                       service={service}
@@ -740,7 +740,7 @@ export default function BookingSettingsPage() {
                 <Textarea
                   id="welcomeMessage"
                   value={formData.welcomeMessage}
-                  onChange={(e) => setFormData(prev => ({ ...prev, welcomeMessage: e.target.value }))}
+                  onChange={(e: any) => setFormData(prev => ({ ...prev, welcomeMessage: e.target.value }))}
                   placeholder="Welcome! Please fill out the form below to request an appointment."
                   rows={2}
                 />
@@ -751,7 +751,7 @@ export default function BookingSettingsPage() {
                 <Textarea
                   id="confirmationMessage"
                   value={formData.confirmationMessage}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmationMessage: e.target.value }))}
+                  onChange={(e: any) => setFormData(prev => ({ ...prev, confirmationMessage: e.target.value }))}
                   placeholder="Thank you! We will contact you shortly to confirm your appointment."
                   rows={2}
                 />

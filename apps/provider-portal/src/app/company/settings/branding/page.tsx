@@ -39,7 +39,7 @@ export default function BrandingSettingsPage() {
     hasError, 
     canQuery, 
     updateBranding
-  } = useClinicProfile();
+  } = useClinicProfile() as any;
 
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -347,7 +347,7 @@ export default function BrandingSettingsPage() {
                           src={watchedFavicon} 
                           alt="Favicon preview" 
                           className="max-h-full max-w-full object-contain"
-                          onError={(e) => {
+                          onError={(e: any) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
@@ -386,4 +386,3 @@ export default function BrandingSettingsPage() {
     </ClinicLayout>
   );
 }
-

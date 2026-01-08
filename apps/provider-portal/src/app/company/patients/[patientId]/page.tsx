@@ -34,7 +34,7 @@ function PatientProfileContent() {
   const [activeMedicalTab, setActiveMedicalTab] = useState('timeline');
   
   const patientId = params.patientId as string;
-  const patient = patients?.find(p => p.id === patientId);
+  const patient: any = (patients as any)?.find((p: any) => p.id === patientId);
   
   // Convert dateOfBirth from timestamp (number) to string format (YYYY-MM-DD)
   const patientDateOfBirth = patient?.dateOfBirth 
@@ -339,10 +339,10 @@ function PatientProfileContent() {
                     <div data-testid="bodymap-timeline-view" className="space-y-6">
                       <InteractiveBodyMap 
                         patientId={patientId}
-                        onBodyPartClick={(bodyPart) => {
+                        onBodyPartClick={(bodyPart: any) => {
                           console.log('Body part clicked:', bodyPart);
                         }}
-                        onDiagnosisClick={(diagnosis) => {
+                        onDiagnosisClick={(diagnosis: any) => {
                           console.log('Diagnosis clicked:', diagnosis);
                         }}
                         selectedDiagnoses={[]}

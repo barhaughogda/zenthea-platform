@@ -161,7 +161,7 @@ export default function RolesListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 router.push(`/company/settings/roles/${role._id}`);
               }}
@@ -173,7 +173,7 @@ export default function RolesListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 setRoleToDelete(role);
                 setDeleteDialogOpen(true);
@@ -246,7 +246,7 @@ export default function RolesListPage() {
                   searchKeys={["name", "description"]}
                   searchPlaceholder="Search roles by name or description..."
                   entityLabel="roles"
-                  onRowClick={(role) => router.push(`/company/settings/roles/${role._id}`)}
+                  onRowClick={(role: any) => router.push(`/company/settings/roles/${role._id}`)}
                 />
               </div>
             )}

@@ -178,7 +178,7 @@ export default function BillingPage() {
   const uniquePatientIds = useMemo(() => {
     if (!claimsListResponse?.claims) return [];
     const patientIdSet = new Set<Id<'patients'>>();
-    claimsListResponse.claims.forEach((claim) => {
+    claimsListResponse.claims.forEach((claim: any) => {
       patientIdSet.add(claim.patientId);
     });
     return Array.from(patientIdSet);
@@ -209,7 +209,7 @@ export default function BillingPage() {
   // Build payers list for filters (use actual payer data)
   const payers = useMemo(() => {
     if (!insurancePayers) return [];
-    return insurancePayers.map((payer) => ({
+    return insurancePayers.map((payer: any) => ({
       id: payer._id,
       name: payer.name,
     }));
@@ -219,7 +219,7 @@ export default function BillingPage() {
   const availableStatuses = useMemo(() => {
     if (!claimsListResponse?.claims) return [];
     const statusSet = new Set<ClaimStatus>();
-    claimsListResponse.claims.forEach((claim) => {
+    claimsListResponse.claims.forEach((claim: any) => {
       statusSet.add(claim.status);
     });
     return Array.from(statusSet);
@@ -265,21 +265,21 @@ export default function BillingPage() {
 
   // Count denied claims for the alert banner
   const deniedClaimsCount = useMemo(() => {
-    return transformedClaims.filter((claim) => claim.status === 'denied').length;
+    return transformedClaims.filter((claim: any) => claim.status === 'denied').length;
   }, [transformedClaims]);
 
   // Calculate total amount of denied claims
   const deniedClaimsTotalAmount = useMemo(() => {
     return transformedClaims
-      .filter((claim) => claim.status === 'denied')
-      .reduce((sum, claim) => sum + claim.totalCharges, 0);
+      .filter((claim: any) => claim.status === 'denied')
+      .reduce((sum: any, claim: any) => sum + claim.totalCharges, 0);
   }, [transformedClaims]);
 
   // Build name maps for ClaimsTable
   const patientNames = useMemo(() => {
     if (!patientsForMapping) return {};
     const map: Record<string, string> = {};
-    patientsForMapping.forEach((patient) => {
+    patientsForMapping.forEach((patient: any) => {
       map[patient._id] = `${patient.firstName} ${patient.lastName}`;
     });
     return map;
@@ -288,7 +288,7 @@ export default function BillingPage() {
   const providerNames = useMemo(() => {
     if (!providers) return {};
     const map: Record<string, string> = {};
-    providers.forEach((provider) => {
+    providers.forEach((provider: any) => {
       map[provider._id] = `${provider.firstName} ${provider.lastName}`;
     });
     return map;
@@ -297,7 +297,7 @@ export default function BillingPage() {
   const payerNames = useMemo(() => {
     if (!insurancePayers) return {};
     const map: Record<string, string> = {};
-    insurancePayers.forEach((payer) => {
+    insurancePayers.forEach((payer: any) => {
       map[payer._id] = payer.name;
     });
     return map;
@@ -329,7 +329,7 @@ export default function BillingPage() {
     try {
       // Find the original claim from the list response to get its _id
       const originalClaim = claimsListResponse.claims.find(
-        (c) => c.claimId === selectedClaimForAppeal.claimId
+        (c: any) => c.claimId === selectedClaimForAppeal.claimId
       );
 
       if (!originalClaim) {
@@ -413,14 +413,14 @@ export default function BillingPage() {
             <div className="mb-6">
               <ClinicBillingFilters
                 providers={
-                  providers?.map((p) => ({
+                  providers?.map((p: any) => ({
                     id: p._id,
                     name: `${p.firstName} ${p.lastName}`,
                   })) || []
                 }
                 payers={payers}
                 patients={
-                  allPatients?.map((p) => ({
+                  allPatients?.map((p: any) => ({
                     id: p._id,
                     name: `${p.firstName} ${p.lastName}`,
                   })) || []
@@ -443,7 +443,7 @@ export default function BillingPage() {
               {/* Claims List Skeleton */}
               <div className="space-y-4">
                 <div className="h-6 w-32 bg-surface-interactive rounded animate-pulse" />
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[1, 2, 3, 4, 5].map((i: any) => (
                   <div 
                     key={i} 
                     className="bg-surface-elevated rounded-xl border border-border-primary/20 p-5 animate-pulse"
@@ -521,25 +521,25 @@ export default function BillingPage() {
 
                     {/* Claims Cards */}
                     <div className="space-y-3">
-                      {transformedClaims.map((claim) => (
+                      {transformedClaims.map((claim: any) => (
                         <ClinicClaimCard
                           key={claim.claimId}
                           claim={claim}
                           patientName={patientNames[claim.patientId] || claim.patientId}
                           providerName={providerNames[claim.providerId] || claim.providerId}
                           payerName={payerNames[claim.payerId] || claim.payerId}
-                          onViewDetails={(c) => {
+                          onViewDetails={(c: any) => {
                             const claimIdentifier = c.claimId || c.claimControlNumber;
                             if (claimIdentifier) {
                               setSelectedClaimId(claimIdentifier);
                               setIsDrawerOpen(true);
                             }
                           }}
-                          onAppeal={(c) => {
+                          onAppeal={(c: any) => {
                             setSelectedClaimForAppeal(c);
                             setAppealDialogOpen(true);
                           }}
-                          onDownload={(c) => {
+                          onDownload={(c: any) => {
                             // Export claim data as JSON
                             try {
                               const claimData = {
@@ -550,7 +550,7 @@ export default function BillingPage() {
                                 payer: payerNames[c.payerId] || c.payerId,
                                 status: c.status,
                                 totalCharges: formatCurrency(c.totalCharges),
-                                datesOfService: c.datesOfService?.map((date) =>
+                                datesOfService: c.datesOfService?.map((date: any) =>
                                   new Date(date).toLocaleDateString()
                                 ) || [],
                                 createdAt: new Date(c.createdAt).toLocaleString(),

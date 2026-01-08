@@ -207,7 +207,7 @@ export default function ClinicsListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 setClinicForHours(clinic);
                 setHoursDialogOpen(true);
@@ -221,7 +221,7 @@ export default function ClinicsListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 setClinicToAssign(clinic);
                 setAssignmentDialogOpen(true);
@@ -235,7 +235,7 @@ export default function ClinicsListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 setClinicToEdit(clinic);
                 setFormDialogOpen(true);
@@ -248,7 +248,7 @@ export default function ClinicsListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 setClinicToDelete(clinic);
                 setDeleteDialogOpen(true);
@@ -369,7 +369,7 @@ export default function ClinicsListPage() {
         <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
           <DialogContent 
             className="max-w-2xl max-h-[90vh] overflow-y-auto"
-            onInteractOutside={(e) => {
+            onInteractOutside={(e: any) => {
               // Prevent dialog from closing when clicking on Google Maps autocomplete dropdown
               const target = e.target as HTMLElement;
               
@@ -384,7 +384,7 @@ export default function ClinicsListPage() {
                 
                 // Also check the event path (composedPath) for better detection
                 const path = e.composedPath?.() || [];
-                const isClickingDropdown = path.some((node) => {
+                const isClickingDropdown = path.some((node: any) => {
                   if (node instanceof HTMLElement) {
                     return node.classList?.contains('pac-container') || 
                            node.closest?.('.pac-container') !== null;

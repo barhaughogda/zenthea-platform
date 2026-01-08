@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
  */
 export default function ClinicSubscriptionPage() {
   const { data: session, status } = useZentheaSession();
-  const { usage, isLoading: usageLoading } = useSubscriptionUsage();
+  const { usage, isLoading: usageLoading } = useSubscriptionUsage() as any;
 
   if (status === "loading" || usageLoading) {
     return (
@@ -66,11 +66,13 @@ export default function ClinicSubscriptionPage() {
     );
   }
 
-  const planInfo = {
+  const planInfoMap: any = {
     free: { name: "Zenthea Free", icon: Shield, color: "text-text-secondary" },
     pro: { name: "Zenthea Pro with AI", icon: Zap, color: "text-zenthea-teal" },
     enterprise: { name: "Zenthea Enterprise", icon: Rocket, color: "text-zenthea-purple" },
-  }[usage?.plan || "free"] || { name: usage?.plan, icon: Shield, color: "text-text-primary" };
+  };
+  
+  const planInfo = planInfoMap[usage?.plan || "free"] || { name: usage?.plan, icon: Shield, color: "text-text-primary" };
 
   return (
     <ClinicLayout>
@@ -140,8 +142,8 @@ export default function ClinicSubscriptionPage() {
                   </p>
                 </div>
                 <Progress 
-                  value={usage?.providerLimit === Infinity ? 0 : (usage!.activeProviders / usage!.providerLimit) * 100} 
-                  className={usage?.activeProviders! >= usage!.providerLimit! ? 'bg-status-error/20' : ''}
+                  value={usage?.providerLimit === Infinity ? 0 : (usage?.activeProviders / usage?.providerLimit) * 100} 
+                  className={usage?.activeProviders >= usage?.providerLimit ? 'bg-status-error/20' : ''}
                 />
               </div>
 
@@ -157,8 +159,8 @@ export default function ClinicSubscriptionPage() {
                   </p>
                 </div>
                 <Progress 
-                  value={usage?.patientLimit === Infinity ? 0 : (usage!.activePatients / usage!.patientLimit) * 100}
-                  className={usage?.activePatients! >= usage!.patientLimit! ? 'bg-status-error/20' : ''}
+                  value={usage?.patientLimit === Infinity ? 0 : (usage?.activePatients / usage?.patientLimit) * 100}
+                  className={usage?.activePatients >= usage?.patientLimit ? 'bg-status-error/20' : ''}
                 />
               </div>
 

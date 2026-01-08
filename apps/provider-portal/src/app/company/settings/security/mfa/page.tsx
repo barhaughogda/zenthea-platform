@@ -441,7 +441,7 @@ export default function MFASetupPage() {
                   pattern="[0-9]*"
                   maxLength={6}
                   value={verificationCode}
-                  onChange={(e) => {
+                  onChange={(e: any) => {
                     const value = e.target.value.replace(/\D/g, "").slice(0, 6);
                     setVerificationCode(value);
                     setError(null);

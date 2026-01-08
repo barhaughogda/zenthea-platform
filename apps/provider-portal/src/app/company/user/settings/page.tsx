@@ -374,7 +374,7 @@ function CompanyUserSettingsContent() {
                         id="current-password"
                         type="password"
                         value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        onChange={(e: any) => setCurrentPassword(e.target.value)}
                         placeholder="Enter current password"
                       />
                     </div>
@@ -384,7 +384,7 @@ function CompanyUserSettingsContent() {
                         id="new-password"
                         type="password"
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={(e: any) => setNewPassword(e.target.value)}
                         placeholder="Enter new password"
                       />
                     </div>
@@ -394,7 +394,7 @@ function CompanyUserSettingsContent() {
                         id="confirm-password"
                         type="password"
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onChange={(e: any) => setConfirmPassword(e.target.value)}
                         placeholder="Confirm new password"
                       />
                     </div>
@@ -438,7 +438,7 @@ function CompanyUserSettingsContent() {
                     <Palette className="h-4 w-4" />
                     Theme
                   </Label>
-                  <Select value={theme} onValueChange={(value) => handleThemeChange(value as 'light' | 'dark' | 'system')}>
+                  <Select value={theme} onValueChange={(value: any) => handleThemeChange(value as 'light' | 'dark' | 'system')}>
                     <SelectTrigger id="theme">
                       <SelectValue placeholder="Select theme" />
                     </SelectTrigger>
@@ -501,12 +501,12 @@ function CompanyUserSettingsContent() {
                     <Clock className="h-4 w-4" />
                     Time Format
                   </Label>
-                  <Select value={timeFormat} onValueChange={(v) => handleTimeFormatChange(v as TimeFormat)}>
+                  <Select value={timeFormat} onValueChange={(v: any) => handleTimeFormatChange(v as TimeFormat)}>
                     <SelectTrigger id="time-format">
                       <SelectValue placeholder="Select time format" />
                     </SelectTrigger>
                     <SelectContent>
-                      {TIME_FORMAT_OPTIONS.map((option) => (
+                      {TIME_FORMAT_OPTIONS.map((option: any) => (
                         <SelectItem key={option.value} value={option.value}>
                           <span className="flex items-center gap-2">
                             <span>{option.label}</span>
@@ -529,12 +529,12 @@ function CompanyUserSettingsContent() {
                     <CalendarDays className="h-4 w-4" />
                     Date Format
                   </Label>
-                  <Select value={dateFormat} onValueChange={(v) => handleDateFormatChange(v as DateFormat)}>
+                  <Select value={dateFormat} onValueChange={(v: any) => handleDateFormatChange(v as DateFormat)}>
                     <SelectTrigger id="date-format">
                       <SelectValue placeholder="Select date format" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DATE_FORMAT_OPTIONS.map((option) => (
+                      {DATE_FORMAT_OPTIONS.map((option: any) => (
                         <SelectItem key={option.value} value={option.value}>
                           <span className="flex items-center gap-2">
                             <span>{option.label}</span>

@@ -171,7 +171,7 @@ export default function AIAssistantPage() {
             {/* Chat Interface */}
             <div className="p-6">
               <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                {messages.map((message) => (
+                {messages.map((message: any) => (
                   <div
                     key={message.id}
                     className={`flex items-start space-x-3 ${
@@ -224,7 +224,7 @@ export default function AIAssistantPage() {
                   <input
                     type="text"
                     value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
+                    onChange={(e: any) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message or ask a question..."
                     disabled={isLoading}

@@ -148,7 +148,7 @@ export default function AcceptInvitationPage() {
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
     // Clear errors when user starts typing
     if (errors.length > 0) {
       setErrors([]);
@@ -172,7 +172,7 @@ export default function AcceptInvitationPage() {
   }
 
   // Error state (invalid/expired invitation)
-  if (invitation === null || errors.some((e) => e.includes("expired") || e.includes("already") || e.includes("cancelled") || e.includes("Invalid"))) {
+  if (invitation === null || errors.some((e: any) => e.includes("expired") || e.includes("already") || e.includes("cancelled") || e.includes("Invalid"))) {
     const hasError = errors.length > 0;
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -305,11 +305,11 @@ export default function AcceptInvitationPage() {
                   id="name"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  onChange={(e: any) => handleInputChange("name", e.target.value)}
                   disabled={isSubmitting}
                   required
                   aria-required="true"
-                  aria-invalid={errors.some((e) => e.includes("name"))}
+                  aria-invalid={errors.some((e: any) => e.includes("name"))}
                   placeholder="Enter your full name"
                   className="pl-10"
                 />
@@ -327,11 +327,11 @@ export default function AcceptInvitationPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={(e: any) => handleInputChange("password", e.target.value)}
                   disabled={isSubmitting}
                   required
                   aria-required="true"
-                  aria-invalid={errors.some((e) => e.includes("password"))}
+                  aria-invalid={errors.some((e: any) => e.includes("password"))}
                   placeholder="Create a password"
                   className="pl-10 pr-10"
                 />
@@ -364,11 +364,11 @@ export default function AcceptInvitationPage() {
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                  onChange={(e: any) => handleInputChange("confirmPassword", e.target.value)}
                   disabled={isSubmitting}
                   required
                   aria-required="true"
-                  aria-invalid={errors.some((e) => e.includes("match"))}
+                  aria-invalid={errors.some((e: any) => e.includes("match"))}
                   placeholder="Confirm your password"
                   className="pl-10 pr-10"
                 />

@@ -74,7 +74,7 @@ export default function ClinicDashboard() {
   const pendingAlerts = useMemo(() => {
     if (!notifications) return 0;
     return notifications.notifications.filter(
-      (n): n is typeof n & { type: "warning" } => n.type === "warning"
+      (n: any): n is typeof n & { type: "warning" } => n.type === "warning"
     ).length;
   }, [notifications]);
 

@@ -352,7 +352,7 @@ export default function DomainSettingsPage() {
                         id="newDomain"
                         type="text"
                         value={newDomain}
-                        onChange={(e) => setNewDomain(e.target.value)}
+                        onChange={(e: any) => setNewDomain(e.target.value)}
                         placeholder="portal.yourclinic.com"
                         disabled={isAdding}
                       />

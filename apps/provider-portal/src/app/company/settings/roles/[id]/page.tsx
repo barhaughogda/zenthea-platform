@@ -319,7 +319,7 @@ export default function EditRolePage() {
                   id="name"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e: any) => setName(e.target.value)}
                   placeholder="e.g., Nurse, Receptionist, Billing Specialist"
                   className={errors.name ? "border-status-error" : ""}
                   disabled={isSubmitting}
@@ -339,7 +339,7 @@ export default function EditRolePage() {
                 <Textarea
                   id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e: any) => setDescription(e.target.value)}
                   placeholder="Describe the responsibilities and purpose of this role..."
                   className={errors.description ? "border-status-error" : ""}
                   disabled={isSubmitting}
@@ -359,7 +359,7 @@ export default function EditRolePage() {
                 <Checkbox
                   id="isTemplate"
                   checked={isTemplate}
-                  onCheckedChange={(checked) => setIsTemplate(checked === true)}
+                  onCheckedChange={(checked: any) => setIsTemplate(checked === true)}
                   disabled={isSubmitting}
                   className="mt-1"
                 />

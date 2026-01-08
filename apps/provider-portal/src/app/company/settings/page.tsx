@@ -60,8 +60,8 @@ export default function ClinicSettingsPage() {
   );
 
   const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const newSet = new Set(prev);
+    setExpandedSections((prev: any) => {
+      const newSet = new Set<string>(prev as any);
       if (newSet.has(sectionId)) {
         newSet.delete(sectionId);
       } else {
@@ -72,9 +72,9 @@ export default function ClinicSettingsPage() {
   };
 
   // Company info from tenant data
-  const companyLogo = tenantData?.branding?.logo;
-  const companyName = tenantData?.name || 'Company';
-  const companyEmail = tenantData?.contactInfo?.email;
+  const companyLogo =  (tenantData as any)?.branding?.logo;
+  const companyName =  (tenantData as any)?.name || 'Company';
+  const companyEmail =  (tenantData as any)?.contactInfo?.email;
 
   if (status === "loading") {
     return (
@@ -270,7 +270,7 @@ export default function ClinicSettingsPage() {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={(e) => {
+            onClick={(e: any) => {
               e.stopPropagation();
               handleAction();
             }}
@@ -347,7 +347,7 @@ export default function ClinicSettingsPage() {
             </div>
 
             {/* Other Settings Sections */}
-            {allSections.map((section) => (
+            {allSections.map((section: any) => (
               <ProfileSection
                 key={section.id}
                 title={section.title}
