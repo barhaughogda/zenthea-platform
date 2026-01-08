@@ -36,7 +36,7 @@ This table tracks both **Control Plane (CP)** and **Migration (MIG)** slices in 
 | **CP-11** | Control | Operator APIs (Read-Only) | **Completed** | `docs/12-migration/slice-11/` |
 | **CP-12** | Control | Operator Query Policies | **Completed** | `docs/12-migration/slice-12/` |
 | **CP-13** | Control | Operator Audit & Error Taxonomy | **Completed** | `docs/12-migration/slice-13/` |
-| **MIG-03** | Migration | Provider Portal (Clinical) | **Draft** | `docs/12-migration/mig-03-provider-portal.md` |
+| **MIG-03** | Migration | Provider Portal (Clinical) | **Planned (Approved)** | `docs/12-migration/mig-03-provider-portal.md` |
 | **CP-14** | Control | Control Plane DTOs & Metadata | **Completed** | `docs/12-migration/slice-14/` |
 | **CP-15** | Control | Operator UI Adapter (Headless) | **Completed** | `docs/12-migration/slice-15/` |
 | **MIG-04** | Migration | Clinical Documentation (HITL) | **Planned** | — |

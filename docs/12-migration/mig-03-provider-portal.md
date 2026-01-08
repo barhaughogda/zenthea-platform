@@ -98,3 +98,12 @@ The following are explicitly NOT part of MIG-03:
 - `billing/accounting` (future app)
 - `reports/analytics` (future app)
 - Any other future application or domain surface not explicitly included in §3
+
+## Approval Status
+
+- **Status:** Approved for execution
+- **Approved Scope:** Raw UI migration and stabilization only
+- **Source of Truth:** Legacy `company` route (provider-facing UI)
+- **Explicit Exclusions:** No service logic, no write paths, no agent execution
+
+Approval Date: 2026-01-08
