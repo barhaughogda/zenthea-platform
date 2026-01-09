@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { BlockEditorProps } from '../block-registry';
-import { TrustBarContentConfigForm } from '@/components/website-builder/block-config/TrustBarContentConfigForm';
+import { TrustBarContentConfigForm } from '@/components/website-builder/block-config/content/TrustBarContentConfigForm';
 
 export default function TrustBarBlockEditor({ props, onChange }: BlockEditorProps) {
   return (

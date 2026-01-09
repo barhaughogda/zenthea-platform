@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@starter/ui';
-import { ImageUpload } from '../ImageUpload';
+import { ImageUpload } from '../../ImageUpload';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 
 // =============================================================================
@@ -153,7 +153,7 @@ export function MediaContentConfigForm({
                 <Label>Image</Label>
                 <ImageUpload
                   value={imageUrl}
-                  onChange={(url) => onUpdate({ ...props, imageUrl: url })}
+                  onChange={(url: string) => onUpdate({ ...props, imageUrl: url })}
                   disabled={disabled}
                   aspectRatio={aspect === 'square' ? 'square' : 'landscape'}
                   imageType="block"
@@ -225,7 +225,7 @@ export function MediaContentConfigForm({
                   {/* Image Upload */}
                   <ImageUpload
                     value={image.url}
-                    onChange={(url) =>
+                    onChange={(url: string) =>
                       handleUpdateGalleryImage(index, { url })
                     }
                     disabled={disabled}
@@ -286,7 +286,7 @@ export function MediaContentConfigForm({
             <Label>Thumbnail (Optional)</Label>
             <ImageUpload
               value={imageUrl}
-              onChange={(url) => onUpdate({ ...props, imageUrl: url })}
+              onChange={(url: string) => onUpdate({ ...props, imageUrl: url })}
               disabled={disabled}
               aspectRatio={aspect === 'square' ? 'square' : 'landscape'}
               imageType="block"

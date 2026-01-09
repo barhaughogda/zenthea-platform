@@ -33,7 +33,7 @@ import {
   ChevronDown as Collapse,
   ChevronRight as Expand,
 } from 'lucide-react';
-import { ImageUpload } from '../ImageUpload';
+import { ImageUpload } from '../../ImageUpload';
 import { TrustBarItem } from '@/lib/website-builder/schema';
 import {
   TRUST_CATEGORIES,
@@ -380,7 +380,7 @@ function TrustItemEditor({
             <Label className="text-xs">Logo / Badge (optional)</Label>
             <ImageUpload
               value={item.imageUrl || ''}
-              onChange={(url) => onUpdate({ imageUrl: url || undefined })}
+              onChange={(url: string) => onUpdate({ imageUrl: url || undefined })}
               disabled={disabled}
               aspectRatio="square"
               maxSize={2}

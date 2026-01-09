@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@starter/ui';
-import { ImageUpload } from '../ImageUpload';
+import { ImageUpload } from '../../ImageUpload';
 
 // =============================================================================
 // TYPES
@@ -58,7 +58,7 @@ export function PhotoTextContentConfigForm({
           <Label htmlFor="photo-text-image">Photo</Label>
           <ImageUpload
             value={imageUrl}
-            onChange={(url) => onUpdate({ ...props, imageUrl: url })}
+            onChange={(url: string) => onUpdate({ ...props, imageUrl: url })}
             disabled={disabled}
             aspectRatio={
               imageAspect === 'square'

@@ -13,7 +13,7 @@ import { Input } from '@starter/ui';
 import { Textarea } from '@starter/ui';
 import { Button } from '@starter/ui';
 import { Plus, Trash2, Star, ChevronUp, ChevronDown } from 'lucide-react';
-import { ImageUpload } from '../ImageUpload';
+import { ImageUpload } from '../../ImageUpload';
 
 // =============================================================================
 // TYPES
@@ -255,7 +255,7 @@ export function TestimonialsContentConfigForm({
               <Label className="text-xs text-text-secondary">Photo (optional)</Label>
               <ImageUpload
                 value={item.imageUrl || ''}
-                onChange={(url) => handleUpdateItem(index, { imageUrl: url || undefined })}
+                onChange={(url: string) => handleUpdateItem(index, { imageUrl: url || undefined })}
                 disabled={disabled}
                 aspectRatio="square"
                 maxSize={5}
