@@ -15,7 +15,8 @@ export interface PolicyDecision {
 }
 
 /**
- * Authoritative interface for policy evaluation.
+ * Adapter interface for policy evaluation within the control plane.
+ * Semantic authority resides in packages/policy.
  * Implementations must fail-closed.
  */
 export interface IPolicyEvaluator {
