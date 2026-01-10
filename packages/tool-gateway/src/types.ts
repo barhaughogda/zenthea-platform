@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
+import { ControlPlaneContext } from '@starter/service-control-adapter';
 
 /**
  * Validated and approved execution command.
@@ -197,7 +198,7 @@ export interface GovernanceControlResult {
  * Interface for the Execution Gateway.
  */
 export interface IToolExecutionGateway {
-  execute(command: ToolExecutionCommand): Promise<ToolExecutionResult>;
+  execute(command: ToolExecutionCommand, ctx: ControlPlaneContext): Promise<ToolExecutionResult>;
 }
 
 /**

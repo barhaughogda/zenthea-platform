@@ -13,6 +13,7 @@ import {
   EnrichedTimelineEntry, 
   TimelineRegistryJoiner 
 } from './timeline-registry-join';
+import { ControlPlaneContext } from '@starter/service-control-adapter';
 import { 
   PaginatedResponseV1, 
   encodeCursorV1, 
@@ -446,14 +447,15 @@ export class OperatorAPI {
   /**
    * Headless Mutation Endpoint (CP-17).
    * Executes a mutation and returns a metadata-only result DTO.
+   * CP-21: Requires explicit ControlPlaneContext.
    * 🚫 NO sensitive fields in output.
    */
-  async executeMutationV1(command: ToolExecutionCommand): Promise<MutationResultDtoV1> {
+  async executeMutationV1(command: ToolExecutionCommand, ctx: ControlPlaneContext): Promise<MutationResultDtoV1> {
     if (!this.gateway) {
       throw new Error('Operator Error: Gateway not configured for mutations');
     }
 
-    const result = await this.gateway.execute(command);
+    const result = await this.gateway.execute(command, ctx);
     
     return {
       executionId: result.executionId,

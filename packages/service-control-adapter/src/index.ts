@@ -9,6 +9,24 @@ export interface ControlPlaneContext {
   readonly policyVersion: string;
 }
 
+/**
+ * CP-21: Mandatory Gate Enforcement Utility
+ */
+export const GovernanceGuard = {
+  /**
+   * Validates that the context is present and has required fields.
+   * Throws if validation fails (Fail Closed).
+   */
+  enforce(ctx: ControlPlaneContext): void {
+    if (!ctx) {
+      throw new Error('GOVERNANCE_FAILURE: Missing mandatory ControlPlaneContext (CP-21)');
+    }
+    if (!ctx.traceId || !ctx.actorId || !ctx.policyVersion) {
+      throw new Error('GOVERNANCE_FAILURE: Incomplete ControlPlaneContext (CP-21)');
+    }
+  }
+};
+
 export interface PolicyDecision {
   readonly allowed: boolean;
   readonly reason?: string;

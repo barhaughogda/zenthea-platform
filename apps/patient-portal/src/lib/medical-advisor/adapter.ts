@@ -3,6 +3,7 @@ import {
   ClinicalQueryResponse 
 } from '@starter/medical-advisor-agent-sdk';
 import { MedicalAdvisorService, MedicalAdvisory } from '../contracts/medical-advisor';
+import { ControlPlaneContext } from '@starter/service-control-adapter';
 
 /**
  * Adapter translating Medical Advisor Agent SDK responses to the Patient Portal UI contract.
@@ -15,9 +16,11 @@ import { MedicalAdvisorService, MedicalAdvisory } from '../contracts/medical-adv
  */
 export class MedicalAdvisorAgentAdapter implements MedicalAdvisorService {
   private client: MedicalAdvisorAgentClient;
+  private ctx: ControlPlaneContext;
 
-  constructor(config: { baseUrl: string; getToken?: () => Promise<string> }) {
+  constructor(config: { baseUrl: string; getToken?: () => Promise<string>; ctx: ControlPlaneContext }) {
     this.client = new MedicalAdvisorAgentClient(config);
+    this.ctx = config.ctx;
   }
 
   async getAdvisory(patientId: string, query?: string): Promise<MedicalAdvisory | null> {
@@ -29,7 +32,7 @@ export class MedicalAdvisorAgentAdapter implements MedicalAdvisorService {
 
       // Following Step 4.4 requirements: ADVISORY ONLY and READ-ONLY.
       // We pass the minimum necessary context to the agent.
-      const response = await this.client.submitQuery({
+      const response = await this.client.submitQuery(this.ctx, {
         query: query || 'Provide a general health advisory summary based on my records.',
         context: {
           patientId,

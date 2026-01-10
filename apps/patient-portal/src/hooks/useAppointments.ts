@@ -4,6 +4,7 @@ import { useFeatureFlag } from '@/config/features';
 import { AppointmentAgentAdapter } from '@/lib/appointments/adapter';
 import { Appointment } from '@/lib/contracts/patient';
 import { mockAppointmentService } from '@/mocks/patient';
+import { ControlPlaneContext } from '@starter/service-control-adapter';
 
 export const useAppointments = (status?: string) => {
   const { data: session } = useZentheaSession();
@@ -15,15 +16,26 @@ export const useAppointments = (status?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // CP-21: Derive Governance Context from Session
+  const ctx = useMemo<ControlPlaneContext | null>(() => {
+    if (!session?.user?.id) return null;
+    return {
+      traceId: crypto.randomUUID(),
+      actorId: session.user.id,
+      policyVersion: '1.0.0',
+    };
+  }, [session]);
+
   const adapter = useMemo(() => {
-    if (useRealAgent) {
+    if (useRealAgent && ctx) {
       return new AppointmentAgentAdapter({
         baseUrl: process.env.NEXT_PUBLIC_APPOINTMENT_BOOKING_AGENT_URL || 'http://localhost:3002',
         enableWrites,
+        ctx,
       });
     }
     return null;
-  }, [useRealAgent, enableWrites]);
+  }, [useRealAgent, enableWrites, ctx]);
 
   useEffect(() => {
     if (!useRealAgent) {

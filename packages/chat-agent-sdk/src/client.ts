@@ -12,6 +12,7 @@ import {
   StreamChunk,
   StreamChunkSchema,
 } from './types';
+import { ControlPlaneContext, GovernanceGuard } from '@starter/service-control-adapter';
 import {
   ChatAgentClientError,
   ChatAgentNetworkError,
@@ -36,9 +37,10 @@ export class ChatAgentClient {
 
   /**
    * Create a new conversation
+   * CP-21: Requires Governance context.
    */
-  async createConversation(request: CreateConversationRequest): Promise<Conversation> {
-    const data = await this.request('/conversations', {
+  async createConversation(ctx: ControlPlaneContext, request: CreateConversationRequest): Promise<Conversation> {
+    const data = await this.request(ctx, '/conversations', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -48,8 +50,8 @@ export class ChatAgentClient {
   /**
    * Get conversation metadata
    */
-  async getConversation(id: string): Promise<Conversation> {
-    const data = await this.request(`/conversations/${id}`, {
+  async getConversation(ctx: ControlPlaneContext, id: string): Promise<Conversation> {
+    const data = await this.request(ctx, `/conversations/${id}`, {
       method: 'GET',
     });
     return this.validate(ConversationSchema, data);
@@ -59,6 +61,7 @@ export class ChatAgentClient {
    * List all conversations for a tenant/patient
    */
   async listConversations(
+    ctx: ControlPlaneContext,
     options: { cursor?: string; limit?: number } = {}
   ): Promise<ConversationList> {
     const params = new URLSearchParams();
@@ -66,7 +69,7 @@ export class ChatAgentClient {
     if (options.limit) params.append('limit', options.limit.toString());
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const data = await this.request(`/conversations${queryString}`, {
+    const data = await this.request(ctx, `/conversations${queryString}`, {
       method: 'GET',
     });
     return this.validate(ConversationListSchema, data);
@@ -76,6 +79,7 @@ export class ChatAgentClient {
    * Get message history for a conversation
    */
   async getMessages(
+    ctx: ControlPlaneContext,
     conversationId: string,
     options: { cursor?: string; limit?: number } = {}
   ): Promise<ConversationHistory> {
@@ -84,7 +88,7 @@ export class ChatAgentClient {
     if (options.limit) params.append('limit', options.limit.toString());
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const data = await this.request(`/conversations/${conversationId}/messages${queryString}`, {
+    const data = await this.request(ctx, `/conversations/${conversationId}/messages${queryString}`, {
       method: 'GET',
     });
     return this.validate(ConversationHistorySchema, data);
@@ -93,8 +97,8 @@ export class ChatAgentClient {
   /**
    * Send a message and get a full response (non-streaming)
    */
-  async sendMessage(conversationId: string, request: CreateMessageRequest): Promise<Message> {
-    const data = await this.request(`/conversations/${conversationId}/messages`, {
+  async sendMessage(ctx: ControlPlaneContext, conversationId: string, request: CreateMessageRequest): Promise<Message> {
+    const data = await this.request(ctx, `/conversations/${conversationId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ ...request, stream: false }),
     });
@@ -105,10 +109,11 @@ export class ChatAgentClient {
    * Send a message and stream the response
    */
   async *streamMessage(
+    ctx: ControlPlaneContext,
     conversationId: string,
     request: CreateMessageRequest
   ): AsyncIterableIterator<StreamChunk> {
-    const response = await this.rawRequest(`/conversations/${conversationId}/messages`, {
+    const response = await this.rawRequest(ctx, `/conversations/${conversationId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ ...request, stream: true }),
     });
@@ -150,8 +155,8 @@ export class ChatAgentClient {
     }
   }
 
-  private async request(path: string, options: RequestInit): Promise<unknown> {
-    const response = await this.rawRequest(path, options);
+  private async request(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<unknown> {
+    const response = await this.rawRequest(ctx, path, options);
     const contentType = response.headers.get('content-type');
     
     if (contentType?.includes('application/json')) {
@@ -161,11 +166,19 @@ export class ChatAgentClient {
     return response.text();
   }
 
-  private async rawRequest(path: string, options: RequestInit): Promise<Response> {
+  private async rawRequest(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<Response> {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(ctx);
+
     const url = `${this.baseUrl}${path}`;
     const headers = new Headers(this.config.headers);
     headers.set('Content-Type', 'application/json');
     headers.set('Accept', 'application/json');
+
+    // CP-21: Propagate governance context via headers
+    headers.set('X-Control-Plane-Trace-Id', ctx.traceId);
+    headers.set('X-Control-Plane-Actor-Id', ctx.actorId);
+    headers.set('X-Control-Plane-Policy-Version', ctx.policyVersion);
 
     if (this.config.apiKey) {
       headers.set('X-API-Key', this.config.apiKey);

@@ -1,6 +1,7 @@
 import { ChatAgentClient, Conversation, Message as SDKMessage } from '@starter/chat-agent-sdk';
 import { MessagingService, UIConversation, MessageData } from '../contracts/messaging';
 import { ToolExecutionGateway, ToolAuditLogger } from '@starter/tool-gateway';
+import { ControlPlaneContext } from '@starter/service-control-adapter';
 
 /**
  * Adapter translating Chat Agent SDK responses to the Patient Portal UI contract.
@@ -15,15 +16,18 @@ export class MessagingAgentAdapter implements MessagingService {
   private client: ChatAgentClient;
   private toolGateway: ToolExecutionGateway;
   private enableWrites: boolean;
+  private ctx: ControlPlaneContext;
 
   constructor(config: { 
     baseUrl: string; 
     getToken?: () => Promise<string>;
     enableWrites?: boolean;
+    ctx: ControlPlaneContext;
   }) {
     this.client = new ChatAgentClient(config);
     this.toolGateway = new ToolExecutionGateway(new ToolAuditLogger());
     this.enableWrites = config.enableWrites || false;
+    this.ctx = config.ctx;
   }
 
   async getConversations(patientId: string): Promise<UIConversation[]> {
@@ -33,7 +37,7 @@ export class MessagingAgentAdapter implements MessagingService {
         patientId: patientId.slice(0, 4) + '...' // Redacting PHI
       });
       
-      const response = await this.client.listConversations();
+      const response = await this.client.listConversations(this.ctx);
       
       const mapped = response.conversations.map((conv) => this.mapToUIConversation(conv));
       
@@ -60,7 +64,7 @@ export class MessagingAgentAdapter implements MessagingService {
         conversationId: conversationId.slice(0, 4) + '...' // Redacting PHI
       });
       
-      const response = await this.client.getMessages(conversationId);
+      const response = await this.client.getMessages(this.ctx, conversationId);
       
       const mapped = response.messages.map((msg) => this.mapToUIMessage(msg));
       
@@ -106,7 +110,7 @@ export class MessagingAgentAdapter implements MessagingService {
       metadata: { correlationId: crypto.randomUUID() },
     };
 
-    const result = await this.toolGateway.execute(command);
+    const result = await this.toolGateway.execute(command, this.ctx);
 
     if (result.status === 'failure') {
       throw new Error(result.error?.code || 'GATEWAY_ERROR');
@@ -140,7 +144,7 @@ export class MessagingAgentAdapter implements MessagingService {
       metadata: { correlationId: crypto.randomUUID() },
     };
 
-    const result = await this.toolGateway.execute(command);
+    const result = await this.toolGateway.execute(command, this.ctx);
 
     if (result.status === 'failure') {
       throw new Error(result.error?.code || 'GATEWAY_ERROR');

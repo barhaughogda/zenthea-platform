@@ -1,5 +1,6 @@
 import { ToolExecutionGateway } from './gateway';
 import { IToolAuditLogger, ToolAuditLog, ToolExecutionCommand } from './types';
+import { ControlPlaneContext } from '@starter/service-control-adapter';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -20,6 +21,12 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
     auditLogger = new MockAuditLogger();
     gateway = new ToolExecutionGateway(auditLogger);
   };
+
+  const getMockCtx = (actorId: string = 'human-1'): ControlPlaneContext => ({
+    traceId: uuidv4(),
+    actorId,
+    policyVersion: '1.0.0',
+  });
 
   const getBaseCommand = (): ToolExecutionCommand => ({
     commandId: uuidv4(),
@@ -45,7 +52,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
   await it('should allow a valid mutation tool (comm.send_message)', async () => {
     setup();
     const baseCommand = getBaseCommand();
-    const result = await gateway.execute(baseCommand);
+    const result = await gateway.execute(baseCommand, getMockCtx());
     expect(result.status).toBe('success');
     expect(result.data?.messageDispatched).toBe(true);
     
@@ -70,7 +77,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
       idempotencyKey: 'key-notify',
     };
 
-    const result = await gateway.execute(command);
+    const result = await gateway.execute(command, getMockCtx());
     expect(result.status).toBe('success');
     expect(result.data?.notificationCreated).toBe(true);
   });
@@ -83,7 +90,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
       tool: { name: 'unknown.tool', version: 'v1' },
     };
 
-    const result = await gateway.execute(command);
+    const result = await gateway.execute(command, getMockCtx());
     expect(result.status).toBe('failure');
     expect(result.error?.code).toBe('UNKNOWN_TOOL');
   });
@@ -96,7 +103,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
       tool: { name: 'comm.send_message', version: 'v99' },
     };
 
-    const result = await gateway.execute(command);
+    const result = await gateway.execute(command, getMockCtx());
     expect(result.status).toBe('failure');
     expect(result.error?.code).toBe('UNKNOWN_VERSION');
   });
@@ -112,7 +119,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
       },
     };
 
-    const result = await gateway.execute(command);
+    const result = await gateway.execute(command, getMockCtx());
     expect(result.status).toBe('failure');
     expect(result.error?.code).toBe('INVALID_PARAMS');
   });
@@ -125,7 +132,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
       approval: undefined as any,
     };
 
-    const result = await gateway.execute(command);
+    const result = await gateway.execute(command, getMockCtx());
     expect(result.status).toBe('failure');
     // Error will come from validateExecutionCommand or our manual check
     expect(result.error?.code).toBe('VALIDATION_FAILED'); 
@@ -134,8 +141,9 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
   await it('should enforce idempotency: same key returns prior result', async () => {
     setup();
     const baseCommand = getBaseCommand();
-    const result1 = await gateway.execute(baseCommand);
-    const result2 = await gateway.execute({ ...baseCommand, commandId: uuidv4() });
+    const ctx = getMockCtx();
+    const result1 = await gateway.execute(baseCommand, ctx);
+    const result2 = await gateway.execute({ ...baseCommand, commandId: uuidv4() }, ctx);
 
     expect(result1.executionId).toBe(result2.executionId);
     expect(result1.timestamp).toBe(result2.timestamp);
@@ -148,7 +156,8 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
   await it('should reject idempotency collision (same key, different params)', async () => {
     setup();
     const baseCommand = getBaseCommand();
-    await gateway.execute(baseCommand);
+    const ctx = getMockCtx();
+    await gateway.execute(baseCommand, ctx);
 
     const command2 = {
       ...baseCommand,
@@ -159,7 +168,7 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
       },
     };
 
-    const result = await gateway.execute(command2);
+    const result = await gateway.execute(command2, ctx);
     expect(result.status).toBe('failure');
     expect(result.error?.code).toBe('IDEMPOTENCY_COLLISION');
   });
@@ -167,11 +176,22 @@ describe('CP-17: Controlled Mutations (Slice 17)', async () => {
   await it('should maintain audit safety: no sensitive leakage in mutation audit', async () => {
     setup();
     const baseCommand = getBaseCommand();
-    await gateway.execute(baseCommand);
+    await gateway.execute(baseCommand, getMockCtx());
 
     const receivedEvent = auditLogger.events.find(e => e.action === 'command_received');
     expect(receivedEvent?.payload).toBeUndefined(); // Parameters must be omitted
     expect(receivedEvent?.tenantId).toBeDefined(); // Internal audit store can have tenantId
+  });
+
+  await it('should reject if actor mismatch (CP-21)', async () => {
+    setup();
+    const baseCommand = getBaseCommand(); // actorId: human-1
+    const ctx = getMockCtx('different-actor');
+    
+    const result = await gateway.execute(baseCommand, ctx);
+    expect(result.status).toBe('failure');
+    expect(result.error?.code).toBe('FORBIDDEN');
+    expect(result.error?.message).toContain('CP-21');
   });
 });
 

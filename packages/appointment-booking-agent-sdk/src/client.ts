@@ -4,6 +4,7 @@ import {
   AppointmentList,
   AppointmentListSchema,
 } from './types';
+import { ControlPlaneContext, GovernanceGuard } from '@starter/service-control-adapter';
 import {
   AppointmentBookingAgentClientError,
   AppointmentBookingAgentNetworkError,
@@ -29,15 +30,15 @@ export class AppointmentBookingAgentClient {
   /**
    * Get appointments for a patient
    */
-  async getAppointments(patientId: string): Promise<AppointmentList> {
-    const data = await this.request(`/patients/${patientId}/appointments`, {
+  async getAppointments(ctx: ControlPlaneContext, patientId: string): Promise<AppointmentList> {
+    const data = await this.request(ctx, `/patients/${patientId}/appointments`, {
       method: 'GET',
     });
     return this.validate(AppointmentListSchema, data);
   }
 
-  private async request(path: string, options: RequestInit): Promise<unknown> {
-    const response = await this.rawRequest(path, options);
+  private async request(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<unknown> {
+    const response = await this.rawRequest(ctx, path, options);
     const contentType = response.headers.get('content-type');
     
     if (contentType?.includes('application/json')) {
@@ -47,11 +48,19 @@ export class AppointmentBookingAgentClient {
     return response.text();
   }
 
-  private async rawRequest(path: string, options: RequestInit): Promise<Response> {
+  private async rawRequest(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<Response> {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(ctx);
+
     const url = `${this.baseUrl}${path}`;
     const headers = new Headers(this.config.headers);
     headers.set('Content-Type', 'application/json');
     headers.set('Accept', 'application/json');
+
+    // CP-21: Propagate governance context via headers
+    headers.set('X-Control-Plane-Trace-Id', ctx.traceId);
+    headers.set('X-Control-Plane-Actor-Id', ctx.actorId);
+    headers.set('X-Control-Plane-Policy-Version', ctx.policyVersion);
 
     if (this.config.apiKey) {
       headers.set('X-API-Key', this.config.apiKey);

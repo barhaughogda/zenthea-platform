@@ -58,8 +58,14 @@ async function testSlice19() {
     metadata: { correlationId: 'corr-001' }
   };
 
-  const res1 = await gateway.execute(command);
-  const res2 = await gateway.execute(command);
+  const ctx = {
+    traceId: 'trace-123',
+    actorId: 'actor-456',
+    policyVersion: '1.0.0'
+  };
+
+  const res1 = await gateway.execute(command, ctx);
+  const res2 = await gateway.execute(command, ctx);
 
   // Execution IDs must be different because chat.getHistory is NOT a mutation (not in TOOL_ALLOWLIST)
   // so the gateway does not use idempotency/caching for it.

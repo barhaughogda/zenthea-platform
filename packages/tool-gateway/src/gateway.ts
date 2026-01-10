@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as crypto from 'crypto';
+import { ControlPlaneContext, GovernanceGuard } from '@starter/service-control-adapter';
 import { 
   IToolExecutionGateway, 
   ToolExecutionCommand, 
@@ -107,8 +108,9 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
 
   /**
    * Executes an approved tool command.
+   * CP-21: Mandatory Gate Enforcement. Requires ControlPlaneContext.
    */
-  async execute(command: unknown): Promise<ToolExecutionResult> {
+  async execute(command: unknown, ctx: ControlPlaneContext): Promise<ToolExecutionResult> {
     const startTime = Date.now();
     const startTimestamp = new Date().toISOString();
     let validatedCommand: ToolExecutionCommand | undefined;
@@ -116,9 +118,17 @@ export class ToolExecutionGateway implements IToolExecutionGateway {
     let errorCode: string | undefined;
 
     try {
+      // CP-21: Mandatory Gate Enforcement - Fail Closed if context is missing or invalid
+      GovernanceGuard.enforce(ctx);
+
       // 1. Validate the command defensively
       try {
         validatedCommand = validateExecutionCommand(command);
+
+        // CP-21: Contextual Integrity Check - Ensure context matches command actor
+        if (validatedCommand.approval.approvedBy !== ctx.actorId) {
+          throw new Error('FORBIDDEN: Governance context actor mismatch (CP-21)');
+        }
 
         // CP-17: Mutation Guard (Allowlist + Approval)
         const isMutation = (validatedCommand.tool.name in TOOL_ALLOWLIST);

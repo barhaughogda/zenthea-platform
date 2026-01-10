@@ -61,7 +61,13 @@ async function testSnapshotCorrelation() {
     metadata: { correlationId: 'corr-1' }
   };
 
-  await gateway.execute(validCommand);
+  const getCtx = (actorId: string = 'actor-1') => ({
+    traceId: 'trace-1',
+    actorId,
+    policyVersion: '1.0.0'
+  });
+
+  await gateway.execute(validCommand, getCtx());
 
   const telemetryEvent = telemetryLogger.events[0];
   assert.ok(telemetryEvent, 'Should have emitted a telemetry event');
@@ -77,7 +83,7 @@ async function testSnapshotCorrelation() {
     agentId: 'unknown-agent'
   };
 
-  await gateway.execute(invalidCommand);
+  await gateway.execute(invalidCommand, getCtx());
 
   const governanceResult = governanceLogger.results[0];
   assert.ok(governanceResult, 'Should have emitted a governance result');
@@ -100,7 +106,7 @@ async function testSnapshotCorrelation() {
     tool: { name: 'chat.getHistory', version: '1.0.0' },
   };
 
-  await gateway.execute(deprecatedCommand);
+  await gateway.execute(deprecatedCommand, getCtx());
 
   const warningResult = governanceLogger.results.find(r => r.decision === 'WARNING');
   assert.ok(warningResult, 'Should have emitted a governance warning');

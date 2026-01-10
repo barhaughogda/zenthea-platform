@@ -4,6 +4,9 @@ import { QueryCtx, MutationCtx } from './_generated/server'
 import { verifyClinicUserAccess } from './utils/authorization'
 import { api } from './_generated/api'
 import { Id } from './_generated/dataModel'
+import { getGovernance } from './lib/controlAdapter'
+import { ControlPlaneContext } from '@starter/service-control-adapter'
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Website Builder - Queries and Mutations
@@ -612,7 +615,7 @@ export const initializeWebsiteBuilder = mutation({
     siteStructure: v.optional(siteStructureValidator),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Authentication & Identity
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -622,8 +625,34 @@ export const initializeWebsiteBuilder = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
+    // 2. Governance Surface Initialization
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy Evaluation (E2)
+    const decision = await gov.evaluatePolicy(cpCtx, "initialize", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
+    }
+
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
-    return await initializeHandler(ctx, args, tenant, authResult.userId);
+    const result = await initializeHandler(ctx, args, tenant, authResult.userId);
+
+    // 4. Audit Emission (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_initialized",
+      metadata: {
+        tenantId: args.tenantId,
+        siteStructure: args.siteStructure || 'multi-page',
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 })
 
@@ -1003,19 +1032,6 @@ async function initializeHandler(ctx: MutationCtx, args: any, tenant: any, userI
       updatedAt: Date.now(),
     })
 
-    // Log audit event
-    await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      userId,
-      'website_builder_initialized',
-      {
-        siteStructure: defaultWebsiteBuilder.siteStructure,
-        templateId: defaultWebsiteBuilder.templateId,
-        version: defaultWebsiteBuilder.version,
-      }
-    )
-
     return { success: true, websiteBuilder: defaultWebsiteBuilder }
 }
 
@@ -1029,7 +1045,7 @@ export const updateSiteStructure = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Authentication
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1037,6 +1053,20 @@ export const updateSiteStructure = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 2. Governance Context
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy Evaluation
+    const decision = await gov.evaluatePolicy(cpCtx, "update_structure", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1136,17 +1166,16 @@ export const updateSiteStructure = mutation({
       updatedAt: Date.now(),
     })
 
-    // Log audit event
-    await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
-      'website_builder_structure_updated',
-      {
+    // 4. Audit Emission (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_structure_updated",
+      metadata: {
+        tenantId: args.tenantId,
         previousStructure,
         newStructure: args.siteStructure,
-      }
-    )
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true }
   },
@@ -1216,7 +1245,7 @@ export const updateHeader = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1224,6 +1253,20 @@ export const updateHeader = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 2. Governance
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy (E2)
+    const decision = await gov.evaluatePolicy(cpCtx, "update_header", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1241,16 +1284,15 @@ export const updateHeader = mutation({
       updatedAt: Date.now(),
     })
 
-    // Log audit event
-    await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
-      'website_builder_header_updated',
-      {
+    // 4. Audit (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_header_updated",
+      metadata: {
+        tenantId: args.tenantId,
         headerVariant: args.header.variant,
-      }
-    )
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true }
   },
@@ -1266,7 +1308,7 @@ export const updateFooter = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1274,6 +1316,20 @@ export const updateFooter = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 2. Governance
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy (E2)
+    const decision = await gov.evaluatePolicy(cpCtx, "update_footer", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1291,16 +1347,15 @@ export const updateFooter = mutation({
       updatedAt: Date.now(),
     })
 
-    // Log audit event
-    await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
-      'website_builder_footer_updated',
-      {
+    // 4. Audit (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_footer_updated",
+      metadata: {
+        tenantId: args.tenantId,
         footerVariant: args.footer.variant,
-      }
-    )
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true }
   },
@@ -1654,7 +1709,7 @@ export const publishWebsite = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1664,6 +1719,20 @@ export const publishWebsite = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
+    // 2. Governance
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy (E2)
+    const decision = await gov.evaluatePolicy(cpCtx, "publish", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
+    }
+
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
 
     if (!tenant.websiteBuilder) {
@@ -1671,16 +1740,6 @@ export const publishWebsite = mutation({
     }
 
     const publishedAt = Date.now()
-
-    // TODO: Version history functionality requires websiteBuilderVersions table in schema
-    // Version snapshot creation temporarily disabled until table is added
-    // const latestVersion = await ctx.db
-    //   .query('websiteBuilderVersions')
-    //   .withIndex('by_tenant_created', (q) => q.eq('tenantId', args.tenantId))
-    //   .order('desc')
-    //   .first()
-    // const newVersionNumber = (latestVersion?.versionNumber ?? 0) + 1
-    // const version = `1.${newVersionNumber}.0`
     const version = '1.0.0'
 
     // Update the tenant with new published state
@@ -1699,17 +1758,16 @@ export const publishWebsite = mutation({
       updatedAt: publishedAt,
     })
 
-    // Log audit event
-    await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
-      'website_builder_published',
-      {
+    // 4. Audit (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_published",
+      metadata: {
+        tenantId: args.tenantId,
         version,
         templateId: tenant.websiteBuilder.templateId,
-      }
-    )
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return {
       success: true,
@@ -1728,7 +1786,7 @@ export const unpublishWebsite = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1736,6 +1794,20 @@ export const unpublishWebsite = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 2. Governance
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy (E2)
+    const decision = await gov.evaluatePolicy(cpCtx, "unpublish", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1757,16 +1829,15 @@ export const unpublishWebsite = mutation({
       updatedAt: Date.now(),
     })
 
-    // Log audit event
-    await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
-      'website_builder_unpublished',
-      {
+    // 4. Audit (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_unpublished",
+      metadata: {
+        tenantId: args.tenantId,
         previousVersion: tenant.websiteBuilder.version,
-      }
-    )
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true }
   },
@@ -1794,7 +1865,7 @@ export const saveWebsiteBuilder = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1802,6 +1873,20 @@ export const saveWebsiteBuilder = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 2. Governance
+    const gov = getGovernance(ctx);
+    const cpCtx: ControlPlaneContext = {
+      traceId: uuidv4(),
+      actorId: `${args.tenantId}:${authResult.userId}`,
+      policyVersion: "1.0.0"
+    };
+
+    // 3. Policy (E2)
+    const decision = await gov.evaluatePolicy(cpCtx, "save", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1813,6 +1898,16 @@ export const saveWebsiteBuilder = mutation({
       },
       updatedAt: Date.now(),
     })
+
+    // 4. Audit (E3)
+    await gov.emit(cpCtx, {
+      type: "website_builder_saved",
+      metadata: {
+        tenantId: args.tenantId,
+        version: args.websiteBuilder.version,
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true }
   },

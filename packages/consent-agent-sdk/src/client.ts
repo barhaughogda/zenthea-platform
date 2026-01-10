@@ -6,6 +6,7 @@ import {
   ConsentDecisionResponse,
   ConsentDecisionResponseSchema,
 } from './types';
+import { ControlPlaneContext, GovernanceGuard } from '@starter/service-control-adapter';
 import {
   ConsentAgentClientError,
   ConsentAgentNetworkError,
@@ -31,8 +32,8 @@ export class ConsentAgentClient {
   /**
    * Get consent history for a patient
    */
-  async getHistory(patientId: string): Promise<ConsentHistory> {
-    const data = await this.request(`/patients/${patientId}/history`, {
+  async getHistory(ctx: ControlPlaneContext, patientId: string): Promise<ConsentHistory> {
+    const data = await this.request(ctx, `/patients/${patientId}/history`, {
       method: 'GET',
     });
     return this.validate(ConsentHistorySchema, data);
@@ -41,21 +42,21 @@ export class ConsentAgentClient {
   /**
    * Check if access is allowed
    */
-  async checkConsent(request: {
+  async checkConsent(ctx: ControlPlaneContext, request: {
     patientId: string;
     actorId: string;
     purpose: string;
     resourceId?: string;
   }): Promise<ConsentDecisionResponse> {
-    const data = await this.request('/check', {
+    const data = await this.request(ctx, '/check', {
       method: 'POST',
       body: JSON.stringify(request),
     });
     return this.validate(ConsentDecisionResponseSchema, data);
   }
 
-  private async request(path: string, options: RequestInit): Promise<unknown> {
-    const response = await this.rawRequest(path, options);
+  private async request(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<unknown> {
+    const response = await this.rawRequest(ctx, path, options);
     const contentType = response.headers.get('content-type');
     
     if (contentType?.includes('application/json')) {
@@ -65,11 +66,19 @@ export class ConsentAgentClient {
     return response.text();
   }
 
-  private async rawRequest(path: string, options: RequestInit): Promise<Response> {
+  private async rawRequest(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<Response> {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(ctx);
+
     const url = `${this.baseUrl}${path}`;
     const headers = new Headers(this.config.headers);
     headers.set('Content-Type', 'application/json');
     headers.set('Accept', 'application/json');
+
+    // CP-21: Propagate governance context via headers
+    headers.set('X-Control-Plane-Trace-Id', ctx.traceId);
+    headers.set('X-Control-Plane-Actor-Id', ctx.actorId);
+    headers.set('X-Control-Plane-Policy-Version', ctx.policyVersion);
 
     if (this.config.apiKey) {
       headers.set('X-API-Key', this.config.apiKey);

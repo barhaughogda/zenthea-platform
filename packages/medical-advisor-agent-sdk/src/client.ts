@@ -3,6 +3,7 @@ import {
   ClinicalQueryResponse,
   ClinicalQueryResponseSchema,
 } from './types';
+import { ControlPlaneContext, GovernanceGuard } from '@starter/service-control-adapter';
 import {
   MedicalAdvisorAgentClientError,
   MedicalAdvisorAgentNetworkError,
@@ -28,16 +29,16 @@ export class MedicalAdvisorAgentClient {
   /**
    * Submit a clinical query to the advisor
    */
-  async submitQuery(request: ClinicalQueryRequest): Promise<ClinicalQueryResponse> {
-    const data = await this.request('/clinical/query', {
+  async submitQuery(ctx: ControlPlaneContext, request: ClinicalQueryRequest): Promise<ClinicalQueryResponse> {
+    const data = await this.request(ctx, '/clinical/query', {
       method: 'POST',
       body: JSON.stringify(request),
     });
     return this.validate(ClinicalQueryResponseSchema, data);
   }
 
-  private async request(path: string, options: RequestInit): Promise<unknown> {
-    const response = await this.rawRequest(path, options);
+  private async request(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<unknown> {
+    const response = await this.rawRequest(ctx, path, options);
     const contentType = response.headers.get('content-type');
     
     if (contentType?.includes('application/json')) {
@@ -47,11 +48,19 @@ export class MedicalAdvisorAgentClient {
     return response.text();
   }
 
-  private async rawRequest(path: string, options: RequestInit): Promise<Response> {
+  private async rawRequest(ctx: ControlPlaneContext, path: string, options: RequestInit): Promise<Response> {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(ctx);
+
     const url = `${this.baseUrl}${path}`;
     const headers = new Headers(this.config.headers);
     headers.set('Content-Type', 'application/json');
     headers.set('Accept', 'application/json');
+
+    // CP-21: Propagate governance context via headers
+    headers.set('X-Control-Plane-Trace-Id', ctx.traceId);
+    headers.set('X-Control-Plane-Actor-Id', ctx.actorId);
+    headers.set('X-Control-Plane-Policy-Version', ctx.policyVersion);
 
     if (this.config.apiKey) {
       headers.set('X-API-Key', this.config.apiKey);
