@@ -63,10 +63,10 @@ The following table SHALL be the authoritative Phase E artifact set.
 | E-02 | Evidence Pack and Exit Criteria (EEC) | `docs/16-phase-e/e-02-evidence-and-exit-criteria.md` | DRAFT | Governance |
 | E-03 | Orchestration Interface & Contract Catalog | `docs/16-phase-e/e-03-orchestration-interface-and-contract-catalog.md` | DRAFT | Platform Architecture |
 | E-04 | Dependency & Readiness Model | `docs/16-phase-e/e-04-dependency-and-readiness-model.md` | DRAFT | Platform Architecture |
-| E-05 | Failure Modes & Fail-Closed Policy | `docs/16-phase-e/e-05-failure-modes-and-fail-closed-policy.md` | NOT AUTHORED | Platform Architecture |
-| E-06 | Risk Register and Control Mapping | `docs/16-phase-e/e-06-risk-register-and-control-mapping.md` | NOT AUTHORED | Governance |
-| E-07 | Security & Compliance Impact Statement (Phase E) | `docs/16-phase-e/e-07-security-and-compliance-impact-statement.md` | NOT AUTHORED | Governance |
-| E-08 | Observability & Audit Evidence Requirements | `docs/16-phase-e/e-08-observability-and-audit-evidence-requirements.md` | NOT AUTHORED | Governance |
+| E-05 | Failure Taxonomy & Abort Semantics | `docs/16-phase-e/e-05-failure-taxonomy-and-abort-semantics.md` | DRAFT | Platform Architecture |
+| E-06 | Observability & Traceability Requirements | `docs/16-phase-e/e-06-observability-and-traceability-requirements.md` | DRAFT | Governance |
+| E-07 | Risk Register and Control Mapping | `docs/16-phase-e/e-07-risk-register-and-control-mapping.md` | NOT AUTHORED | Governance |
+| E-08 | Security & Compliance Impact Statement (Phase E) | `docs/16-phase-e/e-08-security-and-compliance-impact-statement.md` | NOT AUTHORED | Governance |
 | E-09 | Runbook: Orchestration Operations | `docs/16-phase-e/e-09-runbook-orchestration-operations.md` | NOT AUTHORED | Platform Architecture |
 | E-10 | Test & Verification Strategy (Orchestration Readiness) | `docs/16-phase-e/e-10-test-and-verification-strategy.md` | NOT AUTHORED | Platform Architecture |
 | E-11 | Phase E Readiness Checklist | `docs/16-phase-e/e-11-phase-e-readiness-checklist.md` | NOT AUTHORED | Governance |
