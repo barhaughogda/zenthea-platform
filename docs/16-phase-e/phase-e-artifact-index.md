@@ -61,8 +61,8 @@ The following table SHALL be the authoritative Phase E artifact set.
 | E-00 | Phase E — Artifact Index and Numbering Authority | `docs/16-phase-e/phase-e-artifact-index.md` | DRAFT | Governance |
 | E-01 | Orchestration Design Specification (ODS) | `docs/16-phase-e/e-01-orchestration-design-spec.md` | DRAFT | Platform Architecture |
 | E-02 | Evidence Pack and Exit Criteria (EEC) | `docs/16-phase-e/e-02-evidence-and-exit-criteria.md` | DRAFT | Governance |
-| E-03 | Orchestration Interface & Contract Catalog | `docs/16-phase-e/e-03-orchestration-interface-and-contract-catalog.md` | NOT AUTHORED | Platform Architecture |
-| E-04 | Dependency & Readiness Model | `docs/16-phase-e/e-04-dependency-and-readiness-model.md` | NOT AUTHORED | Platform Architecture |
+| E-03 | Orchestration Interface & Contract Catalog | `docs/16-phase-e/e-03-orchestration-interface-and-contract-catalog.md` | DRAFT | Platform Architecture |
+| E-04 | Dependency & Readiness Model | `docs/16-phase-e/e-04-dependency-and-readiness-model.md` | DRAFT | Platform Architecture |
 | E-05 | Failure Modes & Fail-Closed Policy | `docs/16-phase-e/e-05-failure-modes-and-fail-closed-policy.md` | NOT AUTHORED | Platform Architecture |
 | E-06 | Risk Register and Control Mapping | `docs/16-phase-e/e-06-risk-register-and-control-mapping.md` | NOT AUTHORED | Governance |
 | E-07 | Security & Compliance Impact Statement (Phase E) | `docs/16-phase-e/e-07-security-and-compliance-impact-statement.md` | NOT AUTHORED | Governance |
