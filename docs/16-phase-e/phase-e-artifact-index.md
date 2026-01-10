@@ -65,12 +65,13 @@ The following table SHALL be the authoritative Phase E artifact set.
 | E-04 | Dependency & Readiness Model | `docs/16-phase-e/e-04-dependency-and-readiness-model.md` | DRAFT | Platform Architecture |
 | E-05 | Failure Taxonomy & Abort Semantics | `docs/16-phase-e/e-05-failure-taxonomy-and-abort-semantics.md` | DRAFT | Platform Architecture |
 | E-06 | Observability & Traceability Requirements | `docs/16-phase-e/e-06-observability-and-traceability-requirements.md` | DRAFT | Governance |
-| E-07 | Risk Register and Control Mapping | `docs/16-phase-e/e-07-risk-register-and-control-mapping.md` | NOT AUTHORED | Governance |
-| E-08 | Security & Compliance Impact Statement (Phase E) | `docs/16-phase-e/e-08-security-and-compliance-impact-statement.md` | NOT AUTHORED | Governance |
-| E-09 | Runbook: Orchestration Operations | `docs/16-phase-e/e-09-runbook-orchestration-operations.md` | NOT AUTHORED | Platform Architecture |
-| E-10 | Test & Verification Strategy (Orchestration Readiness) | `docs/16-phase-e/e-10-test-and-verification-strategy.md` | NOT AUTHORED | Platform Architecture |
-| E-11 | Phase E Readiness Checklist | `docs/16-phase-e/e-11-phase-e-readiness-checklist.md` | NOT AUTHORED | Governance |
-| E-12 | MIG-06 Unblock Record | `docs/16-phase-e/e-12-mig-06-unblock-record.md` | NOT AUTHORED | Governance |
+| E-07 | Readiness Evidence Schema (RES) | `docs/16-phase-e/e-07-readiness-evidence-schema.md` | DRAFT | Platform Governance |
+| E-08 | Risk Register and Control Mapping | `docs/16-phase-e/e-08-risk-register-and-control-mapping.md` | NOT AUTHORED | Governance |
+| E-09 | Security & Compliance Impact Statement (Phase E) | `docs/16-phase-e/e-09-security-and-compliance-impact-statement.md` | NOT AUTHORED | Governance |
+| E-10 | Runbook: Orchestration Operations | `docs/16-phase-e/e-10-runbook-orchestration-operations.md` | NOT AUTHORED | Platform Architecture |
+| E-11 | Test & Verification Strategy (Orchestration Readiness) | `docs/16-phase-e/e-11-test-and-verification-strategy.md` | NOT AUTHORED | Platform Architecture |
+| E-12 | Phase E Readiness Checklist | `docs/16-phase-e/e-12-phase-e-readiness-checklist.md` | NOT AUTHORED | Governance |
+| E-13 | MIG-06 Unblock Record | `docs/16-phase-e/e-13-mig-06-unblock-record.md` | NOT AUTHORED | Governance |
 
 ---
 
