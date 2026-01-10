@@ -8,6 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@starter/observability": "workspace:*",
+    "@starter/policy": "workspace:*",
     "typescript": "^5.7.2"
   }
 }
