@@ -5,8 +5,8 @@ import { verifyClinicUserAccess } from './utils/authorization'
 import { api } from './_generated/api'
 import { Id } from './_generated/dataModel'
 import { getGovernance } from './lib/controlAdapter'
-import { ControlPlaneContext } from '@starter/service-control-adapter'
-import { v4 as uuidv4 } from 'uuid'
+import { ControlPlaneContext, GovernanceGuard } from '@starter/service-control-adapter'
+import { controlPlaneContextValidator } from './validators'
 
 /**
  * Website Builder - Queries and Mutations
@@ -572,29 +572,18 @@ export const getPublishedWebsiteBySlug = query({
  * Helper function to log audit events for website builder changes
  */
 async function logWebsiteBuilderAudit(
-  ctx: MutationCtx,
-  tenantId: string,
-  userId: Id<'users'> | undefined,
+  gov: any,
+  cpCtx: ControlPlaneContext,
   action: string,
   details?: Record<string, unknown>
 ) {
-  try {
-    await ctx.runMutation(api.auditLogs.create, {
-      tenantId,
-      userId,
-      action,
-      resource: 'website_builder',
-      resourceId: tenantId,
-      details: {
-        ...details,
-        timestamp: Date.now(),
-      },
-      timestamp: Date.now(),
-    })
-  } catch (error) {
-    // Non-blocking: audit logging failures shouldn't break the operation
-    console.error('Failed to log website builder audit event:', error)
-  }
+  await gov.emit(cpCtx, {
+    type: action,
+    metadata: {
+      ...details,
+    },
+    timestamp: new Date().toISOString()
+  });
 }
 
 // =============================================================================
@@ -610,12 +599,17 @@ async function logWebsiteBuilderAudit(
  */
 export const initializeWebsiteBuilder = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     userEmail: v.string(),
     siteStructure: v.optional(siteStructureValidator),
   },
   handler: async (ctx, args) => {
-    // 1. Authentication & Identity
+    // 1. Governance Surface Initialization
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Authentication & Identity
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -625,16 +619,8 @@ export const initializeWebsiteBuilder = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance Surface Initialization
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy Evaluation (E2)
-    const decision = await gov.evaluatePolicy(cpCtx, "initialize", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "initialize", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -643,7 +629,7 @@ export const initializeWebsiteBuilder = mutation({
     const result = await initializeHandler(ctx, args, tenant, authResult.userId);
 
     // 4. Audit Emission (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_initialized",
       metadata: {
         tenantId: args.tenantId,
@@ -1040,12 +1026,17 @@ async function initializeHandler(ctx: MutationCtx, args: any, tenant: any, userI
  */
 export const updateSiteStructure = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     siteStructure: siteStructureValidator,
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Authentication
+    // 1. Governance Context
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Authentication
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1055,16 +1046,8 @@ export const updateSiteStructure = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance Context
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy Evaluation
-    const decision = await gov.evaluatePolicy(cpCtx, "update_structure", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "update_structure", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -1167,7 +1150,7 @@ export const updateSiteStructure = mutation({
     })
 
     // 4. Audit Emission (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_structure_updated",
       metadata: {
         tenantId: args.tenantId,
@@ -1187,12 +1170,17 @@ export const updateSiteStructure = mutation({
  */
 export const updateTemplate = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     templateId: templateIdValidator,
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Governance Context
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Authentication
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1200,6 +1188,12 @@ export const updateTemplate = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 3. Policy Evaluation
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "update_template", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1221,9 +1215,8 @@ export const updateTemplate = mutation({
 
     // Log audit event
     await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
+      gov,
+      args.controlPlaneContext,
       'website_builder_template_updated',
       {
         previousTemplateId,
@@ -1240,12 +1233,17 @@ export const updateTemplate = mutation({
  */
 export const updateHeader = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     header: headerConfigValidator,
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Auth
+    // 1. Governance
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1255,16 +1253,8 @@ export const updateHeader = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy (E2)
-    const decision = await gov.evaluatePolicy(cpCtx, "update_header", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "update_header", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -1285,7 +1275,7 @@ export const updateHeader = mutation({
     })
 
     // 4. Audit (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_header_updated",
       metadata: {
         tenantId: args.tenantId,
@@ -1303,12 +1293,17 @@ export const updateHeader = mutation({
  */
 export const updateFooter = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     footer: footerConfigValidator,
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Auth
+    // 1. Governance
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1318,16 +1313,8 @@ export const updateFooter = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy (E2)
-    const decision = await gov.evaluatePolicy(cpCtx, "update_footer", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "update_footer", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -1348,7 +1335,7 @@ export const updateFooter = mutation({
     })
 
     // 4. Audit (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_footer_updated",
       metadata: {
         tenantId: args.tenantId,
@@ -1704,12 +1691,17 @@ export const updateSEO = mutation({
  */
 export const publishWebsite = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     createdBy: v.optional(v.string()),
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Auth
+    // 1. Governance
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1719,16 +1711,8 @@ export const publishWebsite = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy (E2)
-    const decision = await gov.evaluatePolicy(cpCtx, "publish", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "publish", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -1759,7 +1743,7 @@ export const publishWebsite = mutation({
     })
 
     // 4. Audit (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_published",
       metadata: {
         tenantId: args.tenantId,
@@ -1782,11 +1766,16 @@ export const publishWebsite = mutation({
  */
 export const unpublishWebsite = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Auth
+    // 1. Governance
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1796,16 +1785,8 @@ export const unpublishWebsite = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy (E2)
-    const decision = await gov.evaluatePolicy(cpCtx, "unpublish", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "unpublish", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -1830,7 +1811,7 @@ export const unpublishWebsite = mutation({
     })
 
     // 4. Audit (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_unpublished",
       metadata: {
         tenantId: args.tenantId,
@@ -1848,6 +1829,7 @@ export const unpublishWebsite = mutation({
  */
 export const saveWebsiteBuilder = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     websiteBuilder: v.object({
       version: v.string(),
@@ -1865,7 +1847,11 @@ export const saveWebsiteBuilder = mutation({
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Auth
+    // 1. Governance
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1875,16 +1861,8 @@ export const saveWebsiteBuilder = mutation({
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
     }
 
-    // 2. Governance
-    const gov = getGovernance(ctx);
-    const cpCtx: ControlPlaneContext = {
-      traceId: uuidv4(),
-      actorId: `${args.tenantId}:${authResult.userId}`,
-      policyVersion: "1.0.0"
-    };
-
     // 3. Policy (E2)
-    const decision = await gov.evaluatePolicy(cpCtx, "save", "website_builder");
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "save", "website_builder");
     if (!decision.allowed) {
       throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -1900,7 +1878,7 @@ export const saveWebsiteBuilder = mutation({
     })
 
     // 4. Audit (E3)
-    await gov.emit(cpCtx, {
+    await gov.emit(args.controlPlaneContext, {
       type: "website_builder_saved",
       metadata: {
         tenantId: args.tenantId,
@@ -1922,12 +1900,17 @@ export const saveWebsiteBuilder = mutation({
  */
 export const updatePages = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     pages: v.array(pageConfigValidator),
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify user has access to this tenant
+    // 1. Governance
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // 2. Auth
     const authResult = await verifyClinicUserAccess(
       ctx,
       args.userEmail,
@@ -1935,6 +1918,12 @@ export const updatePages = mutation({
     )
     if (!authResult.authorized) {
       throw new Error(authResult.error || ERROR_MESSAGES.UNAUTHORIZED)
+    }
+
+    // 3. Policy (E2)
+    const decision = await gov.evaluatePolicy(args.controlPlaneContext, "update_pages", "website_builder");
+    if (!decision.allowed) {
+      throw new Error(decision.reason || ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const tenant = await getOrCreateTenant(ctx, args.tenantId);
@@ -1954,9 +1943,8 @@ export const updatePages = mutation({
 
     // Log audit event
     await logWebsiteBuilderAudit(
-      ctx,
-      args.tenantId,
-      authResult.userId,
+      gov,
+      args.controlPlaneContext,
       'website_builder_pages_updated',
       {
         pageCount: args.pages.length,

@@ -1,6 +1,9 @@
 import { mutation, query, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 // Create a new user with authentication
 export const createUser = action({
@@ -55,6 +58,7 @@ export const createUser = action({
 // Internal mutation for creating user (called by action)
 export const createUserMutation = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     email: v.string(),
     name: v.string(),
     role: v.union(
@@ -74,7 +78,9 @@ export const createUserMutation = mutation({
     updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("users", args);
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const { controlPlaneContext, ...userData } = args;
+    return await ctx.db.insert("users", userData);
   },
 });
 
@@ -379,6 +385,7 @@ export const getCustomRole = query({
 // Update user
 export const updateUser = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("users"),
     name: v.optional(v.string()),
     firstName: v.optional(v.string()),
@@ -396,7 +403,15 @@ export const updateUser = mutation({
     timezone: v.optional(v.union(v.string(), v.null())), // User's personal timezone (IANA format). Null to inherit from clinic/company.
   },
   handler: async (ctx, args) => {
-    const { id, password, ...updates } = args;
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    const { id, password, controlPlaneContext, ...updates } = args;
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(controlPlaneContext, 'user:update', `user:${id}`);
+
     const patchData: any = {
       ...updates,
       updatedAt: Date.now(),
@@ -410,7 +425,19 @@ export const updateUser = mutation({
       patchData.lastPasswordChange = Date.now();
     }
     
-    return await ctx.db.patch(id, patchData);
+    const result = await ctx.db.patch(id, patchData);
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(controlPlaneContext, {
+      type: 'user:update',
+      metadata: {
+        userId: id,
+        updatedFields: Object.keys(updates)
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 });
 
@@ -418,6 +445,7 @@ export const updateUser = mutation({
 // Supports all user fields including isOwner, departments, customRoleId, email, and user identity fields
 export const updateUserMutation = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("users"),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -442,7 +470,8 @@ export const updateUserMutation = mutation({
     updatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { id, updatedAt, ...updates } = args;
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const { id, updatedAt, controlPlaneContext, ...updates } = args;
     const patchData: any = {
       ...updates,
       updatedAt: updatedAt || Date.now(),
@@ -597,11 +626,19 @@ export const checkPasswordInHistory = action({
 // Change password with current password verification
 export const changePassword = action({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     userId: v.id("users"),
     currentPassword: v.string(),
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    // Note: Actions don't have a direct MutationCtx, but we can still use the adapter
+    // if we pass a mock or get it from elsewhere. However, getGovernance(ctx) 
+    // expects MutationCtx. For actions, we might need a different approach or 
+    // just enforce context.
+    
     // Check rate limit first
     await ctx.runMutation(api.users.checkPasswordChangeRateLimit, {
       userId: args.userId,
@@ -702,9 +739,30 @@ export const changePassword = action({
 
 // Delete user
 export const deleteUser = mutation({
-  args: { id: v.id("users") },
+  args: { 
+    controlPlaneContext: controlPlaneContextValidator,
+    id: v.id("users") 
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.delete(args.id);
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'user:delete', `user:${args.id}`);
+
+    const result = await ctx.db.delete(args.id);
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'user:delete',
+      metadata: {
+        userId: args.id
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 });
 

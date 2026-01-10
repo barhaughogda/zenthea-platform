@@ -7,6 +7,9 @@ import {
   verifyPatientAccess,
   AuthorizationResult,
 } from "./utils/authorization";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 /**
  * Default insurance/patient responsibility split
@@ -2000,6 +2003,7 @@ export const getPatientClaimDetails = query({
  */
 export const createClaimForAppointment = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     appointmentId: v.id("appointments"),
     payerId: v.id("insurancePayers"),
     userEmail: v.string(),
@@ -2015,6 +2019,10 @@ export const createClaimForAppointment = mutation({
     invoiceId: v.optional(v.id("invoices")),
   },
   handler: async (ctx, args) => {
+    // 1. Governance Context
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     const now = Date.now();
 
     // Verify clinic user authorization
@@ -2025,6 +2033,9 @@ export const createClaimForAppointment = mutation({
     }
 
     const tenantId = appointment.tenantId;
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'billing:create_claim', `appointment:${args.appointmentId}`);
 
     const authResult = await verifyClinicBillingAccess(
       ctx,
@@ -2208,63 +2219,33 @@ export const createClaimForAppointment = mutation({
       });
     }
 
-    // Task 7.3: Log claim creation audit entry
-    // Note: Audit logging failures are non-blocking to ensure billing operations
-    // continue even if audit system is temporarily unavailable
-    if (authResult.userId) {
-      try {
-        await ctx.runMutation(api.auditLogs.create, {
-          tenantId,
-          userId: authResult.userId,
-          action: "claim_created",
-          resource: "insuranceClaims",
-          resourceId: claimId,
-          details: {
-            claimId,
-            totalCharges,
-            appointmentId: args.appointmentId,
-            payerId: args.payerId,
-            patientId,
-            providerId,
-            invoiceId: invoiceId || undefined,
-            claimControlNumber,
-            lineItemsCount: args.lineItems.length,
-          },
-          timestamp: now,
-        });
-      } catch (error) {
-        // Don't throw - audit logging failures shouldn't break operations
-        console.error("Failed to log claim creation audit event", error);
-      }
-    }
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: "claim_created",
+      metadata: {
+        claimId,
+        totalCharges,
+        appointmentId: args.appointmentId,
+        payerId: args.payerId,
+        patientId,
+        providerId,
+        invoiceId: invoiceId || undefined,
+        claimControlNumber,
+        lineItemsCount: args.lineItems.length,
+      },
+      timestamp: new Date().toISOString()
+    });
 
-    // Task 7.3: Log invoice creation audit entry (if invoice was created)
-    // Note: Audit logging failures are non-blocking to ensure billing operations
-    // continue even if audit system is temporarily unavailable
-    if (invoiceId && !args.invoiceId && authResult.userId) {
-      try {
-        const invoice = await ctx.db.get(invoiceId);
-        await ctx.runMutation(api.auditLogs.create, {
-          tenantId,
-          userId: authResult.userId,
-          action: "invoice_created",
-          resource: "invoices",
-          resourceId: invoiceId,
-          details: {
-            invoiceId,
-            amount: invoice?.amount || totalCharges,
-            patientResponsibility: invoice?.patientResponsibility || Math.round(totalCharges * DEFAULT_PATIENT_SPLIT),
-            insuranceResponsibility: invoice?.insuranceResponsibility || Math.round(totalCharges * DEFAULT_INSURANCE_SPLIT),
-            claimId,
-            patientId,
-            invoiceNumber: invoice?.invoiceNumber,
-          },
-          timestamp: now,
-        });
-      } catch (error) {
-        // Don't throw - audit logging failures shouldn't break operations
-        console.error("Failed to log invoice creation audit event", error);
-      }
+    if (invoiceId && !args.invoiceId) {
+      await gov.emit(args.controlPlaneContext, {
+        type: "invoice_created",
+        metadata: {
+          invoiceId,
+          claimId,
+          totalCharges
+        },
+        timestamp: new Date().toISOString()
+      });
     }
 
     return {

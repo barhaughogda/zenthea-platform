@@ -3,6 +3,9 @@ import { v } from "convex/values";
 import { verifyOwnerAccess } from "./utils/authorization";
 import { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 /**
  * Generate a cryptographically secure invitation token
@@ -25,6 +28,7 @@ function generateInvitationToken(): string {
  */
 export const createInvitation = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     tenantId: v.string(),
     email: v.string(),
     clinicIds: v.array(v.string()), // Changed from departmentIds to clinicIds to match schema
@@ -33,6 +37,13 @@ export const createInvitation = mutation({
     expiresInDays: v.optional(v.number()), // Optional expiration days (default: 7)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'invitation:create', `tenant:${args.tenantId}`);
+
     // Verify owner access
     const authResult = await verifyOwnerAccess(ctx, args.invitedByEmail, args.tenantId);
     if (!authResult.authorized) {
@@ -123,6 +134,17 @@ export const createInvitation = mutation({
       updatedAt: Date.now(),
     });
 
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'invitation:create',
+      metadata: {
+        invitationId,
+        recipientEmail: args.email,
+        tenantId: args.tenantId
+      },
+      timestamp: new Date().toISOString()
+    });
+
     return {
       invitationId,
       token,
@@ -200,14 +222,22 @@ export const getInvitationsByTenant = query({
  */
 export const cancelInvitation = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     invitationId: v.id("invitations"),
     userEmail: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     const invitation = await ctx.db.get(args.invitationId);
     if (!invitation) {
       throw new Error("Invitation not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'invitation:cancel', `invitation:${args.invitationId}`);
 
     // Verify owner access
     const authResult = await verifyOwnerAccess(ctx, args.userEmail, invitation.tenantId);
@@ -226,6 +256,15 @@ export const cancelInvitation = mutation({
       updatedAt: Date.now(),
     });
 
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'invitation:cancel',
+      metadata: {
+        invitationId: args.invitationId
+      },
+      timestamp: new Date().toISOString()
+    });
+
     return { success: true };
   },
 });
@@ -236,15 +275,23 @@ export const cancelInvitation = mutation({
  */
 export const resendInvitation = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     invitationId: v.id("invitations"),
     userEmail: v.string(),
     expiresInDays: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     const invitation = await ctx.db.get(args.invitationId);
     if (!invitation) {
       throw new Error("Invitation not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'invitation:resend', `invitation:${args.invitationId}`);
 
     // Verify owner access
     const authResult = await verifyOwnerAccess(ctx, args.userEmail, invitation.tenantId);
@@ -271,6 +318,15 @@ export const resendInvitation = mutation({
       updatedAt: Date.now(),
     });
 
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'invitation:resend',
+      metadata: {
+        invitationId: args.invitationId
+      },
+      timestamp: new Date().toISOString()
+    });
+
     return {
       token: newToken,
       expiresAt,
@@ -284,11 +340,15 @@ export const resendInvitation = mutation({
  */
 export const acceptInvitation = action({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     token: v.string(),
     name: v.string(),
     password: v.string(),
   },
   handler: async (ctx, args): Promise<{ success: true; userId: Id<"users">; message: string }> => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    
     // Get invitation by token
     const invitation: any = await ctx.runQuery(api.invitations.getInvitationByToken, {
       token: args.token,

@@ -1,9 +1,13 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 // Create a new medical record
 export const createMedicalRecord = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     providerId: v.id("providers"),
     appointmentId: v.optional(v.id("appointments")),
@@ -26,12 +30,33 @@ export const createMedicalRecord = mutation({
     tenantId: v.string(), // Required for tenant isolation
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'medical_record:create', `patient:${args.patientId}`);
+
     const now = Date.now();
-    return await ctx.db.insert("medicalRecords", {
-      ...args,
+    const { controlPlaneContext, ...recordData } = args;
+    const recordId = await ctx.db.insert("medicalRecords", {
+      ...recordData,
       createdAt: now,
       updatedAt: now,
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'medical_record:create',
+      metadata: {
+        recordId,
+        patientId: args.patientId,
+        recordType: args.recordType
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return recordId;
   },
 });
 
@@ -79,6 +104,7 @@ export const getMedicalRecordsByAppointment = query({
 // Update medical record
 export const updateMedicalRecord = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("medicalRecords"),
     diagnosis: v.optional(v.string()),
     treatment: v.optional(v.string()),
@@ -86,19 +112,60 @@ export const updateMedicalRecord = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
-    return await ctx.db.patch(id, {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    const { id, controlPlaneContext, ...updates } = args;
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(controlPlaneContext, 'medical_record:update', `record:${id}`);
+
+    const result = await ctx.db.patch(id, {
       ...updates,
       updatedAt: Date.now(),
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(controlPlaneContext, {
+      type: 'medical_record:update',
+      metadata: {
+        recordId: id,
+        updatedFields: Object.keys(updates)
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 });
 
 // Delete medical record
 export const deleteMedicalRecord = mutation({
-  args: { id: v.id("medicalRecords") },
+  args: { 
+    controlPlaneContext: controlPlaneContextValidator,
+    id: v.id("medicalRecords") 
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.delete(args.id);
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'medical_record:delete', `record:${args.id}`);
+
+    const result = await ctx.db.delete(args.id);
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'medical_record:delete',
+      metadata: {
+        recordId: args.id
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 });
 

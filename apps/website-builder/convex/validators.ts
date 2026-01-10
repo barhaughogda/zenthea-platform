@@ -8,6 +8,15 @@ import { v } from "convex/values";
  */
 
 /**
+ * CP-21: Mandatory Control Plane Context Validator
+ */
+export const controlPlaneContextValidator = v.object({
+  traceId: v.string(),
+  actorId: v.string(),
+  policyVersion: v.string(),
+});
+
+/**
  * Reusable validator for PermissionTree structure
  * Used in:
  * - customRoles.permissions (convex/schema.ts)

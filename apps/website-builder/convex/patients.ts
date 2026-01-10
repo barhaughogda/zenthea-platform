@@ -2,11 +2,14 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { getTimezoneFromAddress } from "./lib/timezoneFromAddress";
-// import { encryptPHISync, decryptPHISync } from "../src/lib/security/encryption";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 // Create a new patient
 export const createPatient = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     firstName: v.string(),
     lastName: v.string(),
     dateOfBirth: v.number(),
@@ -26,6 +29,13 @@ export const createPatient = mutation({
     tenantId: v.string(), // Required for tenant isolation
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient:create', `tenant:${args.tenantId}`);
+
     // Validate required fields
     if (!args.firstName?.trim()) {
       throw new Error("First name is required");
@@ -112,21 +122,14 @@ export const createPatient = mutation({
         updatedAt: now,
       });
 
-      // HIPAA compliance: Log patient creation
-      await ctx.runMutation(api.auditLogs.create, {
-        tenantId: args.tenantId,
-        userId: undefined, // userId not available in this context
-        action: 'create',
-        resource: 'patient',
-        resourceId: patientId,
-        details: {
+      // E3: Centralized Audit Emission (CP-21)
+      await gov.emit(args.controlPlaneContext, {
+        type: 'patient:create',
+        metadata: {
           patientId,
-          timestamp: now,
           dataTypes: ['name', 'contact', 'demographics']
         },
-        ipAddress: undefined,
-        userAgent: 'convex-mutation',
-        timestamp: now
+        timestamp: new Date().toISOString()
       });
 
       return patientId;
@@ -371,6 +374,7 @@ export const getPatientStats = query({
 // Update patient
 export const updatePatient = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("patients"),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -395,13 +399,20 @@ export const updatePatient = mutation({
     timezone: v.optional(v.union(v.string(), v.null())), // Patient's timezone (IANA format). Null to clear/inherit.
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    const { id, controlPlaneContext, ...updates } = args;
     
     // Check if patient exists
     const existingPatient = await ctx.db.get(id);
     if (!existingPatient) {
       throw new Error("Patient not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(controlPlaneContext, 'patient:update', `patient:${id}`);
 
     // Validate updated fields
     if (updates.firstName !== undefined && !updates.firstName?.trim()) {
@@ -457,7 +468,19 @@ export const updatePatient = mutation({
         updateData.lastName = updates.lastName.trim();
       }
 
-      return await ctx.db.patch(id, updateData);
+      const result = await ctx.db.patch(id, updateData);
+
+      // E3: Centralized Audit Emission (CP-21)
+      await gov.emit(controlPlaneContext, {
+        type: 'patient:update',
+        metadata: {
+          patientId: id,
+          updatedFields: Object.keys(updates)
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      return result;
     } catch (error) {
       throw new Error(`Failed to update patient: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -467,16 +490,24 @@ export const updatePatient = mutation({
 // Update patient timezone (for display preferences)
 export const updatePatientTimezone = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     timezone: v.union(v.string(), v.null()), // IANA timezone (e.g., "America/New_York") or null to re-detect from address
   },
   handler: async (ctx, args) => {
-    const { patientId, timezone } = args;
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    const { patientId, timezone, controlPlaneContext } = args;
     
     const patient = await ctx.db.get(patientId);
     if (!patient) {
       throw new Error("Patient not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(controlPlaneContext, 'patient:update_timezone', `patient:${patientId}`);
 
     let finalTimezone = timezone;
     
@@ -485,22 +516,44 @@ export const updatePatientTimezone = mutation({
       finalTimezone = getTimezoneFromAddress(patient.address) || null;
     }
     
-    return await ctx.db.patch(patientId, {
+    const result = await ctx.db.patch(patientId, {
       timezone: finalTimezone ?? undefined, // Convert null to undefined for Convex
       updatedAt: Date.now(),
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(controlPlaneContext, {
+      type: 'patient:update_timezone',
+      metadata: {
+        patientId,
+        timezone: finalTimezone
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 });
 
 // Delete patient
 export const deletePatient = mutation({
-  args: { id: v.id("patients") },
+  args: { 
+    controlPlaneContext: controlPlaneContextValidator,
+    id: v.id("patients") 
+  },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Check if patient exists
     const existingPatient = await ctx.db.get(args.id);
     if (!existingPatient) {
       throw new Error("Patient not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient:delete', `patient:${args.id}`);
 
     // Check for related appointments
     const relatedAppointments = await ctx.db
@@ -523,7 +576,18 @@ export const deletePatient = mutation({
     }
 
     try {
-      return await ctx.db.delete(args.id);
+      const result = await ctx.db.delete(args.id);
+
+      // E3: Centralized Audit Emission (CP-21)
+      await gov.emit(args.controlPlaneContext, {
+        type: 'patient:delete',
+        metadata: {
+          patientId: args.id
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      return result;
     } catch (error) {
       throw new Error(`Failed to delete patient: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

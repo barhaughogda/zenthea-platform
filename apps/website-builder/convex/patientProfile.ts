@@ -2,6 +2,9 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { verifyPatientAccess } from "./utils/authorization";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 // Validators for each profile section data type
 const demographicsDataValidator = v.object({
@@ -230,6 +233,7 @@ export const getPatientProfile = query({
 // Update patient profile section
 export const updatePatientProfile = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     section: v.union(
       v.literal("demographics"),
@@ -252,11 +256,18 @@ export const updatePatientProfile = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:update', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -340,22 +351,15 @@ export const updatePatientProfile = mutation({
       sectionsCompleted: sectionsCompleted
     };
 
-    // HIPAA compliance: Log profile update (mutations can call other mutations)
-    await ctx.runMutation(api.auditLogs.create, {
-      tenantId: patient.tenantId,
-      userId: authResult.userId,
-      action: 'update',
-      resource: 'patient_profile',
-      resourceId: args.patientId,
-      details: {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:update',
+      metadata: {
         patientId: args.patientId,
         section: args.section,
-        timestamp: now,
         dataTypes: [args.section]
       },
-      ipAddress: undefined,
-      userAgent: undefined,
-      timestamp: now
+      timestamp: new Date().toISOString()
     });
 
     await ctx.db.patch(args.patientId, updateData);
@@ -365,6 +369,7 @@ export const updatePatientProfile = mutation({
 // Add allergy
 export const addAllergy = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     category: v.string(), // medications, foods, environmental, other
     allergy: v.object({
@@ -377,11 +382,18 @@ export const addAllergy = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:add_allergy', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -414,23 +426,42 @@ export const addAllergy = mutation({
       allergies: allergies,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:add_allergy',
+      metadata: {
+        patientId: args.patientId,
+        category: args.category,
+        substance: args.allergy.substance
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Remove allergy
 export const removeAllergy = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     category: v.string(),
     index: v.number(),
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:remove_allergy', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -459,12 +490,24 @@ export const removeAllergy = mutation({
       allergies: allergies,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:remove_allergy',
+      metadata: {
+        patientId: args.patientId,
+        category: args.category,
+        index: args.index
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Add medication
 export const addMedication = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     medication: v.object({
       name: v.string(),
@@ -479,11 +522,18 @@ export const addMedication = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:add_medication', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -507,12 +557,23 @@ export const addMedication = mutation({
       medications: medications,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:add_medication',
+      metadata: {
+        patientId: args.patientId,
+        medicationName: args.medication.name
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Update medication
 export const updateMedication = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     index: v.number(),
     medication: v.object({
@@ -528,11 +589,18 @@ export const updateMedication = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:update_medication', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -551,22 +619,41 @@ export const updateMedication = mutation({
       medications: medications,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:update_medication',
+      metadata: {
+        patientId: args.patientId,
+        index: args.index,
+        medicationName: args.medication.name
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Remove medication
 export const removeMedication = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     index: v.number(),
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:remove_medication', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -585,12 +672,23 @@ export const removeMedication = mutation({
       medications: medications,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:remove_medication',
+      metadata: {
+        patientId: args.patientId,
+        index: args.index
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Add emergency contact
 export const addEmergencyContact = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     contact: v.object({
       name: v.string(),
@@ -602,11 +700,18 @@ export const addEmergencyContact = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:add_emergency_contact', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -628,22 +733,40 @@ export const addEmergencyContact = mutation({
       emergencyContacts: contacts,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:add_emergency_contact',
+      metadata: {
+        patientId: args.patientId,
+        contactName: args.contact.name
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Remove emergency contact
 export const removeEmergencyContact = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     index: v.number(),
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:remove_emergency_contact', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -662,12 +785,23 @@ export const removeEmergencyContact = mutation({
       emergencyContacts: contacts,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:remove_emergency_contact',
+      metadata: {
+        patientId: args.patientId,
+        index: args.index
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Add family history entry
 export const addFamilyHistory = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     entry: v.object({
       relationship: v.string(),
@@ -680,11 +814,18 @@ export const addFamilyHistory = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:add_family_history', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -698,22 +839,41 @@ export const addFamilyHistory = mutation({
       familyHistory: familyHistory,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:add_family_history',
+      metadata: {
+        patientId: args.patientId,
+        relationship: args.entry.relationship,
+        condition: args.entry.condition
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Remove family history entry
 export const removeFamilyHistory = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     index: v.number(),
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:remove_family_history', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -732,12 +892,23 @@ export const removeFamilyHistory = mutation({
       familyHistory: familyHistory,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:remove_family_history',
+      metadata: {
+        patientId: args.patientId,
+        index: args.index
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Add immunization
 export const addImmunization = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     immunization: v.object({
       vaccine: v.string(),
@@ -750,11 +921,18 @@ export const addImmunization = mutation({
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:add_immunization', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -768,22 +946,40 @@ export const addImmunization = mutation({
       immunizations: immunizations,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:add_immunization',
+      metadata: {
+        patientId: args.patientId,
+        vaccine: args.immunization.vaccine
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Remove immunization
 export const removeImmunization = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     index: v.number(),
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:remove_immunization', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -802,22 +998,40 @@ export const removeImmunization = mutation({
       immunizations: immunizations,
       updatedAt: Date.now()
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:remove_immunization',
+      metadata: {
+        patientId: args.patientId,
+        index: args.index
+      },
+      timestamp: new Date().toISOString()
+    });
   },
 });
 
 // Update patient avatar
 export const updatePatientAvatar = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     avatarUrl: v.string(), // URL to the uploaded avatar image
     userEmail: v.optional(v.string()) // Email of authenticated user (from NextAuth session)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Authorization check: Verify user has access to this patient
     const authResult = await verifyPatientAccess(ctx, args.patientId, args.userEmail);
     if (!authResult.authorized) {
       throw new Error(authResult.error || "Unauthorized access");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'patient_profile:update_avatar', `patient:${args.patientId}`);
 
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -826,22 +1040,15 @@ export const updatePatientAvatar = mutation({
 
     const now = Date.now();
 
-    // HIPAA compliance: Log profile photo update
-    await ctx.runMutation(api.auditLogs.create, {
-      tenantId: patient.tenantId,
-      userId: authResult.userId,
-      action: 'update',
-      resource: 'patient_profile',
-      resourceId: args.patientId,
-      details: {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'patient_profile:update_avatar',
+      metadata: {
         patientId: args.patientId,
         section: 'avatar',
-        timestamp: now,
         dataTypes: ['avatar']
       },
-      ipAddress: undefined,
-      userAgent: undefined,
-      timestamp: now
+      timestamp: new Date().toISOString()
     });
 
     await ctx.db.patch(args.patientId, {

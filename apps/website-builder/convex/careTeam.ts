@@ -1,7 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { createHIPAAAuditLogger } from "./auditLogger";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 /**
  * Care Team Resolution Service
@@ -248,6 +250,7 @@ export const isUserInCareTeam = query({
  */
 export const addCareTeamMember = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     userId: v.id("users"),
     role: v.string(), // e.g., "Primary Provider", "Specialist", "Nurse", "Care Coordinator"
@@ -255,6 +258,13 @@ export const addCareTeamMember = mutation({
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'care_team:add_member', `patient:${args.patientId}`);
+
     // Validate patient exists and belongs to tenant
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -304,19 +314,17 @@ export const addCareTeamMember = mutation({
         updatedAt: now,
       });
 
-      await logger.logModification(
-        args.tenantId,
-        args.addedBy,
-        "care_team_member_updated",
-        "careTeamMembers",
-        existing._id,
-        {
+      // E3: Centralized Audit Emission (CP-21)
+      await gov.emit(args.controlPlaneContext, {
+        type: 'care_team:member_updated',
+        metadata: {
           patientId: args.patientId,
           userId: args.userId,
           newRole: args.role,
           wasReactivated: !existing.isActive,
-        }
-      );
+        },
+        timestamp: new Date().toISOString()
+      });
 
       return existing._id;
     }
@@ -333,20 +341,16 @@ export const addCareTeamMember = mutation({
       updatedAt: now,
     });
 
-    // Audit log (PHI access grant)
-    await logger.logModification(
-      args.tenantId,
-      args.addedBy,
-      "care_team_member_added",
-      "patients",
-      args.patientId,
-      {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'care_team:member_added',
+      metadata: {
+        patientId: args.patientId,
         userId: args.userId,
-        userEmail: user.email,
         role: args.role,
-        patientName: `${patient.firstName} ${patient.lastName}`,
-      }
-    );
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return membershipId;
   },
@@ -357,12 +361,20 @@ export const addCareTeamMember = mutation({
  */
 export const removeCareTeamMember = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     userId: v.id("users"),
     removedBy: v.id("users"),
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'care_team:remove_member', `patient:${args.patientId}`);
+
     // Find the membership
     const membership = await ctx.db
       .query("careTeamMembers")
@@ -398,21 +410,16 @@ export const removeCareTeamMember = mutation({
       updatedAt: now,
     });
 
-    // Audit log
-    const logger = createHIPAAAuditLogger(ctx);
-    await logger.logModification(
-      args.tenantId,
-      args.removedBy,
-      "care_team_member_removed",
-      "patients",
-      args.patientId,
-      {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'care_team:member_removed',
+      metadata: {
+        patientId: args.patientId,
         userId: args.userId,
-        userEmail: user?.email,
         role: membership.role,
-        patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Unknown",
-      }
-    );
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true };
   },
@@ -423,6 +430,7 @@ export const removeCareTeamMember = mutation({
  */
 export const updateCareTeamMemberRole = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     userId: v.id("users"),
     role: v.string(),
@@ -430,6 +438,13 @@ export const updateCareTeamMemberRole = mutation({
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'care_team:update_member_role', `patient:${args.patientId}`);
+
     // Find the membership
     const membership = await ctx.db
       .query("careTeamMembers")
@@ -463,21 +478,17 @@ export const updateCareTeamMemberRole = mutation({
       updatedAt: now,
     });
 
-    // Audit log
-    const logger = createHIPAAAuditLogger(ctx);
-    await logger.logModification(
-      args.tenantId,
-      args.updatedBy,
-      "care_team_role_updated",
-      "careTeamMembers",
-      membership._id,
-      {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'care_team:role_updated',
+      metadata: {
         patientId: args.patientId,
         userId: args.userId,
         oldRole,
         newRole: args.role,
-      }
-    );
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return membership._id;
   },
@@ -572,6 +583,7 @@ export const getPrimaryProvider = query({
  */
 export const setPrimaryProvider = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     newProviderId: v.id("users"),
     reason: v.string(), // One of PRIMARY_PROVIDER_CHANGE_REASONS
@@ -580,6 +592,13 @@ export const setPrimaryProvider = mutation({
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'care_team:set_primary_provider', `patient:${args.patientId}`);
+
     // Validate patient
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -699,23 +718,17 @@ export const setPrimaryProvider = mutation({
       }
     }
 
-    // Audit log
-    const logger = createHIPAAAuditLogger(ctx);
-    await logger.logModification(
-      args.tenantId,
-      args.changedBy,
-      "primary_provider_changed",
-      "patients",
-      args.patientId,
-      {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'care_team:primary_provider_changed',
+      metadata: {
+        patientId: args.patientId,
         previousProviderId,
         newProviderId: args.newProviderId,
-        newProviderEmail: newProvider.email,
         reason: args.reason,
-        notes: args.notes,
-        patientName: `${patient.firstName} ${patient.lastName}`,
-      }
-    );
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return {
       success: true,
@@ -732,6 +745,7 @@ export const setPrimaryProvider = mutation({
  */
 export const removePrimaryProvider = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     reason: v.string(),
     notes: v.optional(v.string()),
@@ -739,6 +753,13 @@ export const removePrimaryProvider = mutation({
     tenantId: v.string(),
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'care_team:remove_primary_provider', `patient:${args.patientId}`);
+
     // Validate patient
     const patient = await ctx.db.get(args.patientId);
     if (!patient) {
@@ -801,21 +822,16 @@ export const removePrimaryProvider = mutation({
       });
     }
 
-    // Audit log
-    const logger = createHIPAAAuditLogger(ctx);
-    await logger.logModification(
-      args.tenantId,
-      args.changedBy,
-      "primary_provider_removed",
-      "patients",
-      args.patientId,
-      {
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'care_team:primary_provider_removed',
+      metadata: {
+        patientId: args.patientId,
         previousProviderId,
         reason: args.reason,
-        notes: args.notes,
-        patientName: `${patient.firstName} ${patient.lastName}`,
-      }
-    );
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return {
       success: true,

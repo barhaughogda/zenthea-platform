@@ -2,6 +2,9 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
+import { controlPlaneContextValidator } from "./validators";
+import { getGovernance } from "./lib/controlAdapter";
+import { GovernanceGuard } from "@starter/service-control-adapter";
 
 /**
  * Check if a user has clinic user role (clinic_user, admin, or provider).
@@ -331,6 +334,7 @@ async function checkProviderAvailability(
 // Create a new appointment
 export const createAppointment = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     patientId: v.id("patients"),
     userId: v.id("users"), // User who owns the appointment (required)
     providerId: v.optional(v.id("providers")), // Optional - kept for backward compatibility and provider profiles
@@ -349,6 +353,13 @@ export const createAppointment = mutation({
     tenantId: v.string(), // Required for tenant isolation
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'appointment:create', `tenant:${args.tenantId}`);
+
     // Validate required fields
     if (!args.tenantId?.trim()) {
       throw new Error("Tenant ID is required");
@@ -777,30 +788,21 @@ export const createAppointment = mutation({
         : [];
       const hasBidirectionalSync = calendarSyncs.length > 0;
 
-      // Log audit event for appointment creation
-      try {
-        await ctx.runMutation(api.auditLogs.create, {
-          tenantId: args.tenantId,
-          userId: args.createdBy,
-          action: isClinicUserCreated ? "appointment_admin_created" : "appointment_created",
-          resource: "appointments",
-          resourceId: appointmentId,
-          details: {
-            providerId: args.providerId,
-            patientId: args.patientId,
-            scheduledAt: args.scheduledAt,
-            duration: args.duration,
-            type: args.type,
-            locationId: args.locationId,
-            isAdminCreated: isClinicUserCreated,
-            hasBidirectionalSync,
-          },
-          timestamp: now,
-        });
-      } catch (error) {
-        console.error("Failed to log appointment creation audit event:", error);
-        // Don't fail the mutation if audit logging fails
-      }
+      // E3: Centralized Audit Emission (CP-21)
+      await gov.emit(args.controlPlaneContext, {
+        type: isClinicUserCreated ? "appointment_admin_created" : "appointment_created",
+        metadata: {
+          appointmentId,
+          providerId: args.providerId,
+          patientId: args.patientId,
+          scheduledAt: args.scheduledAt,
+          duration: args.duration,
+          type: args.type,
+          isAdminCreated: isClinicUserCreated,
+          hasBidirectionalSync,
+        },
+        timestamp: new Date().toISOString()
+      });
 
       return appointmentId;
     } catch (error) {
@@ -887,6 +889,7 @@ export const getAppointmentsByDateRangeProvider = query({
 // Update appointment status
 export const updateAppointmentStatus = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("appointments"),
     status: v.union(
       v.literal("scheduled"),
@@ -897,16 +900,36 @@ export const updateAppointmentStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.patch(args.id, {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'appointment:update_status', `appointment:${args.id}`);
+
+    const result = await ctx.db.patch(args.id, {
       status: args.status,
       updatedAt: Date.now(),
     });
+
+    // E3: Centralized Audit Emission (CP-21)
+    await gov.emit(args.controlPlaneContext, {
+      type: 'appointment:update_status',
+      metadata: {
+        appointmentId: args.id,
+        status: args.status
+      },
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   },
 });
 
 // Update appointment
 export const updateAppointment = mutation({
   args: {
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("appointments"),
     scheduledAt: v.optional(v.number()),
     duration: v.optional(v.number()),
@@ -929,13 +952,20 @@ export const updateAppointment = mutation({
     googleCalendarEventId: v.optional(v.string()), // Google Calendar event ID for sync tracking
   },
   handler: async (ctx, args) => {
-    const { id, lastModifiedBy, ...updates } = args;
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
+    const { id, lastModifiedBy, controlPlaneContext, ...updates } = args;
     
     // Get existing appointment to validate tenant
     const existingAppointment = await ctx.db.get(id);
     if (!existingAppointment) {
       throw new Error("Appointment not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(controlPlaneContext, 'appointment:update', `appointment:${id}`);
 
     // Validate location if provided
     if (updates.locationId) {
@@ -1238,31 +1268,21 @@ export const updateAppointment = mutation({
       updatedAt,
     });
 
-    // Log audit event for appointment updates (especially clinic user edits)
-    try {
-      const modifierUser = lastModifiedBy ? await ctx.db.get(lastModifiedBy) : null;
-      const isClinicUserEdit = modifierUser && isClinicUser(modifierUser.role) && lastModifiedBy !== existingAppointment.createdBy;
+    // E3: Centralized Audit Emission (CP-21)
+    const modifierUser = lastModifiedBy ? await ctx.db.get(lastModifiedBy) : null;
+    const isClinicUserEdit = modifierUser && isClinicUser(modifierUser.role) && lastModifiedBy !== existingAppointment.createdBy;
 
-      await ctx.runMutation(api.auditLogs.create, {
-        tenantId: existingAppointment.tenantId,
-        userId: lastModifiedBy || existingAppointment.lastModifiedBy,
-        action: isClinicUserEdit ? "appointment_admin_edited" : "appointment_updated",
-        resource: "appointments",
-        resourceId: id,
-        details: {
-          providerId: existingAppointment.providerId,
-          patientId: existingAppointment.patientId,
-          changes: updates,
-          isAdminEdit: isClinicUserEdit,
-          originalScheduledAt: existingAppointment.scheduledAt,
-          newScheduledAt: updates.scheduledAt ?? existingAppointment.scheduledAt,
-        },
-        timestamp: updatedAt,
-      });
-    } catch (error) {
-      console.error("Failed to log appointment update audit event:", error);
-      // Don't fail the mutation if audit logging fails
-    }
+    await gov.emit(controlPlaneContext, {
+      type: isClinicUserEdit ? "appointment_admin_edited" : "appointment_updated",
+      metadata: {
+        appointmentId: id,
+        providerId: existingAppointment.providerId,
+        patientId: existingAppointment.patientId,
+        changes: updates,
+        isAdminEdit: isClinicUserEdit,
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true };
   },
@@ -1271,15 +1291,23 @@ export const updateAppointment = mutation({
 // Delete appointment
 export const deleteAppointment = mutation({
   args: { 
+    controlPlaneContext: controlPlaneContextValidator,
     id: v.id("appointments"),
     userId: v.optional(v.id("users")), // User who deleted the appointment (for audit logging)
   },
   handler: async (ctx, args) => {
+    // CP-21: Mandatory Gate Enforcement - Fail Closed
+    GovernanceGuard.enforce(args.controlPlaneContext);
+    const gov = getGovernance(ctx);
+
     // Get appointment before deletion for audit logging
     const appointment = await ctx.db.get(args.id);
     if (!appointment) {
       throw new Error("Appointment not found");
     }
+
+    // E2: Policy Evaluation
+    await gov.evaluatePolicy(args.controlPlaneContext, 'appointment:delete', `appointment:${args.id}`);
 
     // Store appointment details for audit logging
     const appointmentDetails = {
@@ -1298,25 +1326,19 @@ export const deleteAppointment = mutation({
     // Delete the appointment
     await ctx.db.delete(args.id);
 
-    // Log audit event for appointment deletion
-    try {
-      await ctx.runMutation(api.auditLogs.create, {
-        tenantId: appointment.tenantId,
-        userId: args.userId || appointment.createdBy,
-        action: isClinicUserDeleted ? "appointment_admin_deleted" : "appointment_deleted",
-        resource: "appointments",
-        resourceId: args.id,
-        details: {
-          ...appointmentDetails,
-          isAdminDeleted: isClinicUserDeleted,
-          originalCreatedBy: appointment.createdBy,
-        },
-        timestamp: Date.now(),
-      });
-    } catch (error) {
-      console.error("Failed to log appointment deletion audit event:", error);
-      // Don't fail the mutation if audit logging fails
-    }
+    // E3: Centralized Audit Emission (CP-21)
+    const deleterUser = args.userId ? await ctx.db.get(args.userId) : null;
+    const isClinicUserDeleted = deleterUser && isClinicUser(deleterUser.role);
+
+    await gov.emit(args.controlPlaneContext, {
+      type: isClinicUserDeleted ? "appointment_admin_deleted" : "appointment_deleted",
+      metadata: {
+        appointmentId: args.id,
+        ...appointmentDetails,
+        isAdminDeleted: isClinicUserDeleted,
+      },
+      timestamp: new Date().toISOString()
+    });
 
     return { success: true };
   },

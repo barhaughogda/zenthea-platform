@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useZentheaSession } from '@/hooks/useZentheaSession';
+import { useControlPlaneContext } from '@/hooks/useControlPlaneContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,7 @@ function PatientIntakePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useZentheaSession();
+  const controlPlaneContext = useControlPlaneContext();
   const { patientId, patientProfile, isLoading: profileLoading } = usePatientProfileData();
   const updateProfile = useMutation((api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).patientProfile?.updatePatientProfile);
   const updatePatient = useMutation((api as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */).patients?.updatePatient);
@@ -329,6 +331,7 @@ function PatientIntakePageContent() {
           // Save primary provider using setPrimaryProvider mutation
           if (formData.primaryProviderId && patientId && session?.user?.id) {
             await setPrimaryProvider({
+              controlPlaneContext,
               patientId: patientId as Id<'patients'>,
               newProviderId: formData.primaryProviderId as Id<'users'>,
               reason: 'patient_self_selected',
@@ -396,6 +399,7 @@ function PatientIntakePageContent() {
       }
 
       await updateProfile({
+        controlPlaneContext,
         patientId,
         section: sectionName as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */,
         data: sectionData,
@@ -412,6 +416,7 @@ function PatientIntakePageContent() {
           
           if (Object.keys(patientUpdates).length > 0) {
             await updatePatient({
+              controlPlaneContext,
               id: patientId,
               ...patientUpdates,
             });

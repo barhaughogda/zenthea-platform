@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useZentheaSession } from '@/hooks/useZentheaSession';
+import { useControlPlaneContext } from '@/hooks/useControlPlaneContext';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -28,6 +29,7 @@ export const dynamic = 'force-dynamic';
 
 function PatientSettingsContent() {
   const { data: session, status } = useZentheaSession();
+  const controlPlaneContext = useControlPlaneContext();
   const { theme, setTheme: setThemeFromHook } = useTheme();
   const { patientId, patientProfile } = usePatientProfileData();
   const changePasswordAction = (useAction as any /* eslint-disable-line @typescript-eslint/no-explicit-any -- TODO: fix legacy types */)(api.users.changePassword);
@@ -254,6 +256,7 @@ function PatientSettingsContent() {
       // Also persist timezone to database if patient exists
       if (patientId) {
         await updatePatientTimezone({
+          controlPlaneContext,
           patientId: patientId as Id<'patients'>,
           timezone: timezone || null,
         });
@@ -376,6 +379,7 @@ function PatientSettingsContent() {
     setIsSavingBookingPrefs(true);
     try {
       await updatePatient({
+        controlPlaneContext,
         id: patientId,
         preferredClinicId: preferredClinicId ? (preferredClinicId as Id<"clinics">) : undefined,
       });
@@ -418,6 +422,7 @@ function PatientSettingsContent() {
     setIsChangingPassword(true);
     try {
       await changePasswordAction({
+        controlPlaneContext,
         userId: session.user.id as Id<'users'>,
         currentPassword,
         newPassword,
