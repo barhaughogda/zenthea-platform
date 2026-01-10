@@ -2,13 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "../../",
-    "baseUrl": ".",
-    "types": ["node"],
-    "paths": {
-      "@starter/observability": ["../observability/src"],
-      "@starter/policy": ["../policy/src"]
-    }
+    "rootDir": "./src"
   },
-  "include": ["src", "../observability/src", "../policy/src"]
+  "include": ["src"]
 }

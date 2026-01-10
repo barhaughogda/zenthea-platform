@@ -33,8 +33,6 @@ export class ControlPlanePolicyEvaluator implements IPolicyEvaluator {
       
       // Mandatory failure audit emission for fail-closed events
       if (this.auditEmitter) {
-        // We use a fire-and-forget approach for the audit emission here to avoid 
-        // blocking the response, but we ensure it's tracked.
         this.auditEmitter.emit({
           context: request.context,
           eventType: 'POLICY_EVALUATION_FAILURE',
