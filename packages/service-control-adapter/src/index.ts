@@ -1,13 +1,10 @@
+import { ControlPlaneContext } from '@starter/control-plane';
+import { PolicyDecision } from '@starter/policy';
+
 /**
  * Service -> Control Plane Adapter Boundary
  * Phase A: Interfaces only. No implementation.
  */
-
-export interface ControlPlaneContext {
-  readonly traceId: string;
-  readonly actorId: string;
-  readonly policyVersion: string;
-}
 
 /**
  * CP-21: Mandatory Gate Enforcement Utility
@@ -26,13 +23,6 @@ export const GovernanceGuard = {
     }
   }
 };
-
-export interface PolicyDecision {
-  readonly allowed: boolean;
-  readonly reason?: string;
-  readonly constraints?: unknown;
-  readonly auditId: string;
-}
 
 export interface AuditEvent {
   readonly type: string;

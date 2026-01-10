@@ -14,20 +14,7 @@ export class ControlPlanePolicyEvaluator implements IPolicyEvaluator {
 
   async evaluate(request: PolicyRequest): Promise<PolicyDecision> {
     try {
-      const backendDecision = await this.backend.evaluate(request);
-
-      if (backendDecision.effect === 'PERMIT') {
-        return {
-          allowed: true,
-          reason: backendDecision.reasonCode,
-        };
-      }
-
-      // Fail-closed for DENY or INDETERMINATE
-      return {
-        allowed: false,
-        reason: backendDecision.reasonCode || 'Access denied by policy',
-      };
+      return await this.backend.evaluate(request);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Internal evaluation error';
       
@@ -52,8 +39,10 @@ export class ControlPlanePolicyEvaluator implements IPolicyEvaluator {
       }
 
       return {
-        allowed: false,
-        reason: `Fail-closed: ${reason}`,
+        effect: 'DENY',
+        reasonCode: 'EVALUATION_ERROR',
+        timestamp: new Date().toISOString(),
+        metadata: { error: reason },
       };
     }
   }

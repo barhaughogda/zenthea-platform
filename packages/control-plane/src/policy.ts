@@ -1,3 +1,5 @@
+import { type PolicyDecision } from '@starter/policy';
+export type { PolicyDecision };
 import { RequestContext } from './types';
 
 export interface PolicyRequest {
@@ -6,12 +8,6 @@ export interface PolicyRequest {
   readonly action: string;
   readonly resource: string;
   readonly attributes?: Record<string, unknown>;
-}
-
-export interface PolicyDecision {
-  readonly allowed: boolean;
-  readonly reason?: string;
-  readonly obligations?: string[];
 }
 
 /**
