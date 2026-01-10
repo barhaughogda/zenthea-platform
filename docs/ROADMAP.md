@@ -11,10 +11,10 @@ This is the **authoritative source of truth** for platform progress. It integrat
 
 | Phase | Description | Status | Target |
 | :--- | :--- | :--- | :--- |
-| **Phase A** | Complete the Agent Surface (Scaffold Only) | **In Progress** | 100% Scaffolding Coverage |
-| **Phase B** | Legacy Repository Analysis | **Planned** | Inventory & Mapping Docs |
-| **Phase C** | Migration by Extraction | **Planned** | Domain Parity |
-| **Phase D** | Integration & Hardening | **Planned** | Production Readiness |
+| **Phase A** | Complete the Agent Surface (Scaffold Only) | **Completed** | 100% Scaffolding Coverage |
+| **Phase B** | Legacy Repository Analysis | **Completed** | Inventory & Mapping Docs |
+| **Phase C** | Migration by Extraction | **Completed** | Domain Parity |
+| **Phase D** | Integration & Hardening | **Completed (CP-21 Sealed)** | Production Readiness |
 
 ---
 
@@ -53,6 +53,8 @@ This table tracks both **Control Plane (CP)** and **Migration (MIG)** slices in 
 
 ## 3. Active Workstream
 
-Currently executing Phase A (Scaffolding).
-MIG-04A (Clinical Documentation – Draft Only, HITL) is complete.
-MIG-04B remains blocked by explicit stop condition.
+Phase C (Migration by Extraction) is complete.
+Phase D (Integration & Hardening) is complete and sealed.
+CP-21 Application Surface Governance is mechanically enforced across all remediated surfaces.
+MIG-04B remains explicitly blocked by design.
+The platform is preparing to enter the next phase of work (Phase E).
