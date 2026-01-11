@@ -28,7 +28,7 @@ export function evaluatePatientScopeGate(request: GateRequest): GateDecision {
 
     // 2. Identity Validity (Requirement 2.1)
     if (!actor.id || !actor.type) {
-      return deny(DenyReason.IDENTITY_INVALID, 'Invalid actor identity', { timestamp });
+      return deny(DenyReason.MISSING_IDENTITY, 'Invalid actor identity', { timestamp });
     }
 
     // 3. Tenant Isolation (Requirement 2.2)

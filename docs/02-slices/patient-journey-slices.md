@@ -33,6 +33,8 @@ Slices are the **unit of delivery** for the Zenthea platform. Unlike journey ste
 - **Risk level**: Medium (Access control boundary)
 - **Demo suitability**: Yes (Show fail-closed behavior on missing consent)
 
+> **Governance Note**: During SL-02 implementation, a missing deny reason (`IDENTITY_INVALID`) was identified in SL-01. No changes were made to SL-01 during SL-02 implementation to preserve slice isolation. Remediation will occur via a dedicated future slice.
+
 ### SL-02: Patient Record Inquiry (Read-Only Summary)
 - **Slice ID**: SL-02
 - **Slice name**: Patient Record Inquiry (Read-Only Summary)
