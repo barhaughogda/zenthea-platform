@@ -703,6 +703,28 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.28)(jsdom@27.4.0)
 
+  packages/patient-scope-gate:
+    dependencies:
+      '@starter/consent-agent-sdk':
+        specifier: workspace:*
+        version: link:../consent-agent-sdk
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@starter/policy':
+        specifier: workspace:*
+        version: link:../policy
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.28)(jsdom@27.4.0)
+
   packages/policy:
     dependencies:
       zod:
