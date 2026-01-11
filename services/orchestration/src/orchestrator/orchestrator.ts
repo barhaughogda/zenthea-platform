@@ -7,9 +7,20 @@ import { OrchestrationState } from '../state/types';
 import { isValidTransition } from '../state/transitions';
 import { OrchestrationAttemptId, OrchestratorExecutors, OrchestrationLifecycleHooks } from './types';
 import { PolicyEvaluator } from '../policy/policyEvaluator';
+import { AuditEmitter, AuditSignal } from '../audit/auditTypes';
 
 /**
- * PR-04: Orchestrator Shell (Non-Executing).
+ * Audit failure exception used to trigger immediate abort.
+ */
+class AuditFailure extends Error {
+  constructor(public readonly code: 'AUD-001' | 'AUD-002', message: string) {
+    super(message);
+    this.name = 'AuditFailure';
+  }
+}
+
+/**
+ * PR-06: Audit Hook Wiring (Non-Emitting).
  * 
  * An inert, synchronous orchestration engine that coordinates the mandatory 
  * six-step control flow defined in MIG-06 §3.
@@ -27,6 +38,7 @@ export class Orchestrator {
   constructor(
     private readonly executors: OrchestratorExecutors,
     private readonly policyEvaluator: PolicyEvaluator,
+    private readonly auditEmitter: AuditEmitter,
     private readonly hooks?: OrchestrationLifecycleHooks
   ) {
     this.attemptId = randomUUID();
@@ -63,11 +75,39 @@ export class Orchestrator {
         governance_mode: 'PHASE_E_RESTRICTED'
       };
 
+      // PR-06: Audit BEFORE policy evaluation
+      this.emitAudit({
+        version: '1.0.0',
+        event_type: 'POLICY_EVALUATION',
+        orchestration_attempt_id: this.attemptId,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          policy_id: context.policy_id,
+          policy_version: context.policy_version,
+          phase: 'PRE_EVALUATION'
+        }
+      });
+
       const decision = this.policyEvaluator.evaluate({
         context,
         trigger: {
           classification: trigger.classification,
           version: trigger.version
+        }
+      });
+
+      // PR-06: Audit AFTER policy evaluation
+      this.emitAudit({
+        version: '1.0.0',
+        event_type: 'POLICY_EVALUATION',
+        orchestration_attempt_id: this.attemptId,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          policy_id: context.policy_id,
+          policy_version: context.policy_version,
+          outcome: decision.outcome,
+          decision_id: decision.decision_id,
+          phase: 'POST_EVALUATION'
         }
       });
 
@@ -104,6 +144,18 @@ export class Orchestrator {
 
       // Step 6: Completion
       this.transitionTo(OrchestrationState.SUCCEEDED);
+
+      // PR-06: Audit ATTEMPT_COMPLETED
+      this.emitAudit({
+        version: '1.0.0',
+        event_type: 'ORCHESTRATION_COMPLETE',
+        orchestration_attempt_id: this.attemptId,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          outcome: 'SUCCEEDED'
+        }
+      });
+
       const result: OrchestrationResult = {
         version: '1.0.0',
         attempt_id: this.attemptId,
@@ -116,6 +168,17 @@ export class Orchestrator {
       return result;
 
     } catch (error) {
+      // PR-06: Handle Audit Failure (AUD-001/AUD-002)
+      if (error instanceof AuditFailure) {
+        return this.abort({
+          version: '1.0.0',
+          attempt_id: this.attemptId,
+          reason_code: error.code,
+          metadata: { message: error.message },
+          stop_authority: 'ORCHESTRATOR'
+        });
+      }
+
       // Invariant Violation (EXE-001)
       const abort: OrchestrationAbort = {
         version: '1.0.0',
@@ -139,10 +202,54 @@ export class Orchestrator {
     }
 
     const previous = this.state;
+
+    // PR-06: Audit BEFORE state transition
+    this.emitAudit({
+      version: '1.0.0',
+      event_type: 'STATE_TRANSITION',
+      orchestration_attempt_id: this.attemptId,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        previous_state: previous,
+        target_state: target,
+        phase: 'PRE_TRANSITION'
+      }
+    });
+
     this.state = target;
 
     if (this.hooks?.onStateTransition) {
       this.hooks.onStateTransition(this.attemptId, previous, target);
+    }
+
+    // PR-06: Audit AFTER state transition
+    this.emitAudit({
+      version: '1.0.0',
+      event_type: 'STATE_TRANSITION',
+      orchestration_attempt_id: this.attemptId,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        previous_state: previous,
+        target_state: target,
+        phase: 'POST_TRANSITION'
+      }
+    });
+  }
+
+  /**
+   * Synchronous audit emission boundary.
+   * Enforces synchronous ACK and fail-closed on NACK/Exception.
+   */
+  private emitAudit(signal: AuditSignal): void {
+    try {
+      const result = this.auditEmitter.emit(signal);
+      if (result.status === 'NACK') {
+        throw new AuditFailure(result.error_code, result.reason);
+      }
+    } catch (error) {
+      if (error instanceof AuditFailure) throw error;
+      // Map unknown exceptions to SINK_UNREACHABLE (AUD-001)
+      throw new AuditFailure('AUD-001', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -150,6 +257,19 @@ export class Orchestrator {
    * Terminal failure handler. Short-circuits the flow and transitions to the correct state.
    */
   private abort(abort: OrchestrationAbort): OrchestrationAbort {
+    // PR-06: Audit the Abort event BEFORE transition
+    this.emitAudit({
+      version: '1.0.0',
+      event_type: 'ORCHESTRATION_ABORT',
+      orchestration_attempt_id: this.attemptId,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        reason_code: abort.reason_code,
+        stop_authority: abort.stop_authority,
+        last_known_state: this.state
+      }
+    });
+
     // Map failure taxonomy to terminal states per MIG-06 §2.4
     const terminalState = this.mapFailureToState(abort.reason_code);
     
