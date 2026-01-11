@@ -47,7 +47,7 @@ This table tracks both **Control Plane (CP)** and **Migration (MIG)** slices in 
 | **CP-18** | Control | Policy & View Versioning | **Completed** | `docs/12-migration/slice-18/` |
 | **CP-19** | Control | Performance & Caching Boundaries | **Completed** | `docs/12-migration/slice-19/` |
 | **CP-20** | Control | External Integrations & Interop | **Completed** | `docs/12-migration/slice-20/` |
-| **MIG-06** | Migration | Automation & Agent Orchestration | **Planned** | — |
+| **MIG-06** | Migration | Automation & Agent Orchestration | **Completed (v1 Sealed – Draft-Only Orchestration Rails)** | `docs/12-migration/mig-06/`<br>`docs/16-phase-e/phase-e-final-seal.md`<br>`docs/16-phase-e/e-13-mig-06-unblock-record.md` |
 
 ---
 
