@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ControlPlaneContext } from '@starter/control-plane';
 import { OrchestrationTrigger } from '../contracts/trigger';
 import { OrchestrationResult } from '../contracts/result';
 import { OrchestrationAbort } from '../contracts/abort';
@@ -49,7 +50,7 @@ export class Orchestrator {
    * The authoritative entrypoint for a single orchestration attempt.
    * Executes the six-step sequence synchronously.
    */
-  public orchestrate(trigger: OrchestrationTrigger): OrchestrationResult | OrchestrationAbort {
+  public orchestrate(trigger: OrchestrationTrigger, cpContext?: ControlPlaneContext): OrchestrationResult | OrchestrationAbort {
     try {
       // Step 1: Trigger Reception & Validation
       this.transitionTo(OrchestrationState.VALIDATING);
@@ -70,8 +71,8 @@ export class Orchestrator {
       const context: OrchestrationContext = {
         attempt_id: this.attemptId,
         policy_id: 'MIG06_V1_POLICY',
-        policy_version: '1.0.0',
-        trace_id: `trace-${this.attemptId}`, // Deterministic derivation
+        policy_version: cpContext?.policyVersion || '1.0.0',
+        trace_id: cpContext?.traceId || `trace-${this.attemptId}`, // Use CP trace_id if available
         audit_id: randomUUID(),
         governance_mode: 'PHASE_E_RESTRICTED'
       };

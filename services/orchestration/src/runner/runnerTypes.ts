@@ -2,6 +2,8 @@ import { OrchestrationTrigger } from '../contracts/trigger';
 import { OrchestrationResult } from '../contracts/result';
 import { OrchestrationAbort } from '../contracts/abort';
 
+import { ControlPlaneContext } from '@starter/control-plane';
+
 /**
  * PR-08: Runner Input (Metadata-only).
  * 
@@ -9,6 +11,7 @@ import { OrchestrationAbort } from '../contracts/abort';
  */
 export interface RunnerInput {
   trigger: OrchestrationTrigger;
+  context: ControlPlaneContext;
 }
 
 /**

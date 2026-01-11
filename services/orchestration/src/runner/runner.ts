@@ -50,6 +50,6 @@ export class OrchestrationRunner {
 
     // 3. Synchronous execution entry
     // Bubble any thrown errors (Fail-Closed)
-    return orchestrator.orchestrate(input.trigger);
+    return orchestrator.orchestrate(input.trigger, input.context);
   }
 }
