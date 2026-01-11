@@ -202,6 +202,9 @@ importers:
       '@starter/medical-advisor-agent-sdk':
         specifier: workspace:*
         version: link:../../packages/medical-advisor-agent-sdk
+      '@starter/patient-scope-gate':
+        specifier: workspace:*
+        version: link:../../packages/patient-scope-gate
       '@starter/service-control-adapter':
         specifier: workspace:*
         version: link:../../packages/service-control-adapter
@@ -1028,6 +1031,9 @@ importers:
       '@starter/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@starter/patient-scope-gate':
+        specifier: workspace:*
+        version: link:../../packages/patient-scope-gate
       '@starter/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

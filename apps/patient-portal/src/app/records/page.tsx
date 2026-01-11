@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PatientHistoryTimeline } from '@/components/patient/PatientHistoryTimeline';
 import { PatientEventHistory } from '@/components/patient/PatientEventHistory';
 import { InteractiveBodyMap } from '@/components/patient/InteractiveBodyMap';
+import { PatientRecordSummary } from '@/components/patient/PatientRecordSummary';
 import { CardSystemProvider } from '@/components/cards/CardSystemProvider';
 import { useZentheaSession } from '@/hooks/useZentheaSession';
 
@@ -21,6 +22,7 @@ function PatientRecordsContent() {
     { id: 'timeline', label: 'Timeline' },
     { id: 'event-history', label: 'Event History' },
     { id: 'bodymap-timeline', label: 'Bodymap Timeline' },
+    { id: 'summary', label: 'Record Summary' },
   ];
 
   // Refs for tab buttons to manage focus
@@ -146,6 +148,20 @@ function PatientRecordsContent() {
           >
             Bodymap Timeline
           </Button>
+          <Button
+            ref={(el) => { tabRefs.current['summary'] = el; }}
+            variant={activeMedicalTab === 'summary' ? 'default' : 'ghost'}
+            onClick={() => setActiveMedicalTab('summary')}
+            onKeyDown={(e) => handleTabKeyDown(e, 'summary')}
+            className="rounded-b-none"
+            role="tab"
+            aria-selected={activeMedicalTab === 'summary'}
+            aria-controls="summary-panel"
+            data-tab-id="summary"
+            tabIndex={activeMedicalTab === 'summary' ? 0 : -1}
+          >
+            Record Summary
+          </Button>
         </div>
       </div>
 
@@ -173,6 +189,13 @@ function PatientRecordsContent() {
                 patientId={patientId}
                 selectedDiagnoses={[]}
               />
+            </div>
+          )}
+
+          {/* Record Summary View */}
+          {activeMedicalTab === 'summary' && (
+            <div id="summary-panel" role="tabpanel" data-testid="record-summary-view" className="space-y-6">
+              <PatientRecordSummary />
             </div>
           )}
         </CardContent>

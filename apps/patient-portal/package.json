@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@starter/ui": "workspace:*",
+    "@starter/patient-scope-gate": "workspace:*",
     "@starter/service-control-adapter": "workspace:*",
     "@starter/tool-gateway": "workspace:*",
     "@starter/consent-agent-sdk": "workspace:*",
