@@ -4,7 +4,7 @@ import { OrchestrationState } from './types';
  * Explicit allowed transitions per E-01 §4.3.
  * Any transition not in this map is FORBIDDEN per E-01 §4.4.
  */
-export const ALLOWED_TRANSITIONS: ReadonlyMap<OrchestrationState, ReadonlySet<OrchestrationState>> = new Map([
+export const ALLOWED_TRANSITIONS: ReadonlyMap<OrchestrationState, ReadonlySet<OrchestrationState>> = new Map<OrchestrationState, Set<OrchestrationState>>([
   [OrchestrationState.NEW, new Set([OrchestrationState.VALIDATING])],
   
   [OrchestrationState.VALIDATING, new Set([

@@ -279,17 +279,22 @@ export class Orchestrator {
    */
   private abort(abort: OrchestrationAbort): OrchestrationAbort {
     // PR-06: Audit the Abort event BEFORE transition
-    this.emitAudit({
-      version: '1.0.0',
-      event_type: 'ORCHESTRATION_ABORT',
-      orchestration_attempt_id: this.attemptId,
-      timestamp: new Date().toISOString(),
-      metadata: {
-        reason_code: abort.reason_code,
-        stop_authority: abort.stop_authority,
-        last_known_state: this.state
-      }
-    });
+    try {
+      this.emitAudit({
+        version: '1.0.0',
+        event_type: 'ORCHESTRATION_ABORT',
+        orchestration_attempt_id: this.attemptId,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          reason_code: abort.reason_code,
+          stop_authority: abort.stop_authority,
+          last_known_state: this.state
+        }
+      });
+    } catch {
+      // Fail-closed: if audit sink is dead during abort, we still 
+      // proceed to terminal state transition to ensure state consistency.
+    }
 
     // Map failure taxonomy to terminal states per MIG-06 §2.4
     const terminalState = this.mapFailureToState(abort.reason_code);
@@ -298,9 +303,10 @@ export class Orchestrator {
     if (this.state !== terminalState) {
       try {
         this.transitionTo(terminalState);
-      } catch {
-        // Fallback to ERROR if transition is forbidden
-        this.state = OrchestrationState.ERROR;
+      } catch (error) {
+        // Fail-closed: if transition fails during abort (e.g. audit failure),
+        // we still force the terminal state to ensure determinism.
+        this.state = terminalState;
       }
     }
 
@@ -315,6 +321,7 @@ export class Orchestrator {
     if (code.startsWith('POL-')) return OrchestrationState.REJECTED;
     if (code.startsWith('CON-')) return OrchestrationState.BLOCKED;
     if (code.startsWith('INF-')) return OrchestrationState.BLOCKED;
+    if (code.startsWith('AUD-001')) return OrchestrationState.BLOCKED;
     if (code.startsWith('OPR-002')) return OrchestrationState.BLOCKED;
     if (code.startsWith('OPR-001')) return OrchestrationState.CANCELLED;
     return OrchestrationState.ERROR;
