@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { OrchestrationTrigger } from '../contracts/trigger';
 import { OrchestrationResult } from '../contracts/result';
 import { OrchestrationAbort } from '../contracts/abort';
+import { OrchestrationContext } from '../contracts/context';
 import { OrchestrationState } from '../state/types';
 import { isValidTransition } from '../state/transitions';
 import { OrchestrationAttemptId, OrchestratorExecutors, OrchestrationLifecycleHooks } from './types';
+import { PolicyEvaluator } from '../policy/policyEvaluator';
 
 /**
  * PR-04: Orchestrator Shell (Non-Executing).
@@ -24,6 +26,7 @@ export class Orchestrator {
 
   constructor(
     private readonly executors: OrchestratorExecutors,
+    private readonly policyEvaluator: PolicyEvaluator,
     private readonly hooks?: OrchestrationLifecycleHooks
   ) {
     this.attemptId = randomUUID();
@@ -50,11 +53,35 @@ export class Orchestrator {
 
       // Step 3: Policy Evaluation
       this.transitionTo(OrchestrationState.GATED);
-      const policyResult = this.executors.evaluatePolicy(this.attemptId, trigger);
-      if (!policyResult.success) {
-        return this.abort(policyResult.abort);
+      
+      const context: OrchestrationContext = {
+        attempt_id: this.attemptId,
+        policy_id: 'MIG06_V1_POLICY',
+        policy_version: '1.0.0',
+        trace_id: `trace-${this.attemptId}`, // Deterministic derivation
+        audit_id: randomUUID(),
+        governance_mode: 'PHASE_E_RESTRICTED'
+      };
+
+      const decision = this.policyEvaluator.evaluate({
+        context,
+        trigger: {
+          classification: trigger.classification,
+          version: trigger.version
+        }
+      });
+
+      if (decision.outcome === 'DENY') {
+        return this.abort({
+          version: '1.0.0',
+          attempt_id: this.attemptId,
+          reason_code: 'POL-001',
+          metadata: { decision_id: decision.decision_id },
+          stop_authority: 'CONTROL_PLANE'
+        });
       }
-      const decisionId = policyResult.data;
+
+      const decisionId = decision.decision_id;
 
       // Transition to AUTHORIZED (Step 3 complete)
       this.transitionTo(OrchestrationState.AUTHORIZED);
