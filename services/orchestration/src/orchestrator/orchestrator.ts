@@ -150,7 +150,7 @@ export class Orchestrator {
           attempt_id: this.attemptId,
           reason_code: execResult.error_code,
           metadata: execResult.metadata,
-          stop_authority: 'AGENT'
+          stop_authority: 'ORCHESTRATOR'
         });
       }
       const evidence = execResult.evidence;
