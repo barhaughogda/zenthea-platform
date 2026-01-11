@@ -3,6 +3,7 @@ import { OrchestrationTrigger } from '../contracts/trigger';
 import { OrchestrationResult } from '../contracts/result';
 import { OrchestrationAbort } from '../contracts/abort';
 import { OrchestrationContext } from '../contracts/context';
+import { OrchestrationCommand } from '../contracts/command';
 import { OrchestrationState } from '../state/types';
 import { isValidTransition } from '../state/transitions';
 import { OrchestrationAttemptId, OrchestratorExecutors, OrchestrationLifecycleHooks } from './types';
@@ -126,13 +127,33 @@ export class Orchestrator {
       // Transition to AUTHORIZED (Step 3 complete)
       this.transitionTo(OrchestrationState.AUTHORIZED);
 
-      // Step 4: Command Dispatch
+      // Step 4: Execution Boundary (Single-Step, Non-Autonomous)
       this.transitionTo(OrchestrationState.RUNNING);
-      const execResult = this.executors.executeCommand(this.attemptId, trigger);
-      if (!execResult.success) {
-        return this.abort(execResult.abort);
+      
+      const command: OrchestrationCommand = {
+        version: '1.0.0',
+        command_id: randomUUID(),
+        attempt_id: this.attemptId,
+        type: 'CLINICAL_DRAFT_GENERATION',
+        parameters: {
+          trigger_id: trigger.trigger_id,
+          classification: trigger.classification
+        },
+        idempotency_key: `exec-${this.attemptId}`
+      };
+
+      const execResult = this.executors.executionExecutor.execute(this.attemptId, command);
+      
+      if (execResult.status === 'FAILURE') {
+        return this.abort({
+          version: '1.0.0',
+          attempt_id: this.attemptId,
+          reason_code: execResult.error_code,
+          metadata: execResult.metadata,
+          stop_authority: 'AGENT'
+        });
       }
-      const evidence = execResult.data;
+      const evidence = execResult.evidence;
 
       // Step 5: Audit Emission
       this.transitionTo(OrchestrationState.AUDITING);

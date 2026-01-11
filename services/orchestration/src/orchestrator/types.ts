@@ -2,6 +2,7 @@ import { OrchestrationTrigger } from '../contracts/trigger';
 import { OrchestrationResult } from '../contracts/result';
 import { OrchestrationAbort } from '../contracts/abort';
 import { OrchestrationState } from '../state/types';
+import { ExecutionExecutor } from '../execution/executionExecutor';
 
 /**
  * Unique identifier for an orchestration attempt (UUID).
@@ -29,8 +30,8 @@ export interface OrchestratorExecutors {
   /** Step 3: Evaluate policy and authorize execution */
   evaluatePolicy: (attemptId: OrchestrationAttemptId, trigger: OrchestrationTrigger) => StepResult<string>; // returns policy_decision_id
   
-  /** Step 4: Dispatch the command to the agent */
-  executeCommand: (attemptId: OrchestrationAttemptId, trigger: OrchestrationTrigger) => StepResult<Record<string, any>>; // returns evidence
+  /** Step 4: Execution boundary for the RUNNING phase */
+  executionExecutor: ExecutionExecutor;
   
   /** Step 5: Emit audit markers and await ACK */
   emitAudit: (attemptId: OrchestrationAttemptId, trigger: OrchestrationTrigger, decisionId: string, evidence: Record<string, any>) => StepResult<string>; // returns audit_correlation_id
