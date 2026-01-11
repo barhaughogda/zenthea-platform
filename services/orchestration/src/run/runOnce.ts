@@ -3,7 +3,7 @@ import { RunnerOutput } from '../runner/runnerTypes';
 import { ControlPlaneContext } from '@starter/control-plane';
 import { PolicyEvaluator } from '../policy/policyEvaluator';
 import { AuditEmitter } from '../audit/auditTypes';
-import { ExecutionExecutor } from '../execution/executionExecutor';
+import { RealDraftExecutionExecutor } from '../execution/realDraftExecutionExecutor';
 import { GovernanceGuard } from '@starter/service-control-adapter';
 import { OrchestrationRunner } from '../runner/runner';
 
@@ -24,7 +24,7 @@ export function runOnce(input: {
   deps: {
     policy: PolicyEvaluator;
     audit: AuditEmitter;
-    execution: ExecutionExecutor;
+    execution: RealDraftExecutionExecutor;
   };
 }): RunnerOutput {
   // 1. Enforce GovernanceGuard (Fail-Closed)

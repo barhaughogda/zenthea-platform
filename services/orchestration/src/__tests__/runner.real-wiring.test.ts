@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { runOnce } from '../run/runOnce';
 import { ControlPlanePolicyAdapter } from '../adapters/controlPlanePolicyAdapter';
 import { ControlPlaneAuditAdapter } from '../adapters/controlPlaneAuditAdapter';
-import { FakeExecutionExecutor } from './fakes/fakeExecutionExecutor';
+import { RealDraftExecutionExecutor } from '../execution/realDraftExecutionExecutor';
 import { OrchestrationTrigger } from '../contracts/trigger';
 import { ControlPlaneContext, IPolicyEvaluator, IAuditEmitter } from '@starter/control-plane';
 import { OrchestrationState } from '../state/types';
@@ -39,7 +39,7 @@ describe('Runner Real Wiring (PR-10)', () => {
 
     const policyAdapter = new ControlPlanePolicyAdapter(mockCPPolicyEvaluator, 'MIG06_V1');
     const auditAdapter = new ControlPlaneAuditAdapter(mockCPAuditEmitter);
-    const executionExecutor = new FakeExecutionExecutor();
+    const executionExecutor = new RealDraftExecutionExecutor();
 
     // 2. Run via runOnce entrypoint
     const result = runOnce({
@@ -75,7 +75,7 @@ describe('Runner Real Wiring (PR-10)', () => {
 
     const policyAdapter = new ControlPlanePolicyAdapter(mockCPPolicyEvaluator, 'MIG06_V1');
     const auditAdapter = new ControlPlaneAuditAdapter(mockCPAuditEmitter);
-    const executionExecutor = new FakeExecutionExecutor();
+    const executionExecutor = new RealDraftExecutionExecutor();
 
     const result = runOnce({
       trigger: validTrigger,
@@ -105,7 +105,7 @@ describe('Runner Real Wiring (PR-10)', () => {
 
     const policyAdapter = new ControlPlanePolicyAdapter(mockCPPolicyEvaluator, 'MIG06_V1');
     const auditAdapter = new ControlPlaneAuditAdapter(mockCPAuditEmitter);
-    const executionExecutor = new FakeExecutionExecutor();
+    const executionExecutor = new RealDraftExecutionExecutor();
 
     const result = runOnce({
       trigger: validTrigger,
@@ -127,7 +127,7 @@ describe('Runner Real Wiring (PR-10)', () => {
     const mockCPAuditEmitter = {} as IAuditEmitter;
     const policyAdapter = new ControlPlanePolicyAdapter(mockCPPolicyEvaluator, 'MIG06_V1');
     const auditAdapter = new ControlPlaneAuditAdapter(mockCPAuditEmitter);
-    const executionExecutor = new FakeExecutionExecutor();
+    const executionExecutor = new RealDraftExecutionExecutor();
 
     expect(() => {
       runOnce({
