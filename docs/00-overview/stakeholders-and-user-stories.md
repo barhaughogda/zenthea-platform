@@ -2,7 +2,6 @@
 
 > This document **replaces and subsumes**:
 > - `docs/00-overview/stakeholders-and-user-stories.md` (repo-grounded governance stakeholder map)
-> - `docs/00-overview/stakeholders-research-and-user-flows.md` (externally grounded EHR ecosystem stakeholders + flows)
 >
 > Goal: **one governing document**, with **no loss** and **no duplication**.
 
