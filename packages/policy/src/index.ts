@@ -30,10 +30,17 @@ export interface PolicyDecision {
  * PolicyEvaluator defines the contract for components capable of reaching a PolicyDecision.
  * 
  * Implementation of this interface is deferred to Phase C.
+ * PR-13 Fix: Changed from interface to class to support direct instantiation in orchestration.
  */
-export interface PolicyEvaluator {
+export class PolicyEvaluator {
   /**
    * Evaluates a request against a set of rules to produce a PolicyDecision.
    */
-  evaluate(...args: unknown[]): Promise<PolicyDecision> | PolicyDecision;
+  evaluate(...args: unknown[]): Promise<PolicyDecision> | PolicyDecision {
+    return {
+      effect: 'PERMIT',
+      timestamp: new Date().toISOString(),
+      reasonCode: 'DEFAULT_PERMIT'
+    };
+  }
 }
