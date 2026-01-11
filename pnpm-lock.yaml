@@ -976,6 +976,28 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@20.19.28)(jsdom@27.4.0)
 
+  services/orchestration:
+    dependencies:
+      '@starter/control-plane':
+        specifier: workspace:*
+        version: link:../../packages/control-plane
+      '@starter/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@starter/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
+      '@starter/service-control-adapter':
+        specifier: workspace:*
+        version: link:../../packages/service-control-adapter
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.28)(jsdom@27.4.0)
+
   services/patient-portal-agent:
     dependencies:
       '@starter/ai-runtime':
