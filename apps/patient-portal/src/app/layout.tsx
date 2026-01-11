@@ -69,10 +69,10 @@ function shouldBypassIntakeCheck(pathname: string): boolean {
   return BYPASS_INTAKE_CHECK_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'));
 }
 
-export default function PatientPortalLayout({
+export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   const { data: session } = useZentheaSession();
   const router = useRouter();
@@ -106,16 +106,20 @@ export default function PatientPortalLayout({
   }, [session, patientProfile, profileLoading, pathname, router]);
 
   return (
-    <ConvexProvider client={convex}>
-      <ZentheaThemeProvider>
-        <CardSystemProvider>
-          <PatientNavigationLayout>
-            <div className="flex flex-1 flex-col px-4 lg:px-6 xl:px-8">
-              {children}
-            </div>
-          </PatientNavigationLayout>
-        </CardSystemProvider>
-      </ZentheaThemeProvider>
-    </ConvexProvider>
-  )
+    <html lang="en">
+      <body>
+        <ConvexProvider client={convex}>
+          <ZentheaThemeProvider>
+            <CardSystemProvider>
+              <PatientNavigationLayout>
+                <div className="flex flex-1 flex-col px-4 lg:px-6 xl:px-8">
+                  {children}
+                </div>
+              </PatientNavigationLayout>
+            </CardSystemProvider>
+          </ZentheaThemeProvider>
+        </ConvexProvider>
+      </body>
+    </html>
+  );
 }
