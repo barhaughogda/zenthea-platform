@@ -2,7 +2,9 @@ import {
   evaluatePatientScopeGate, 
   GateRequest, 
   GateDecision,
-  AccessPurpose
+  AccessPurpose,
+  PatientSessionContext,
+  createGateRequestFromSession
 } from '@starter/patient-scope-gate';
 import { createLogger } from '@starter/observability';
 
@@ -31,16 +33,22 @@ export const RECORD_SUMMARY_DISCLAIMER = "This record summary is provided for in
  * Strictly gated by SL-01 (Patient Scope Gate).
  * Emits metadata-only audit signals in all cases.
  */
-export async function executeRecordSummaryInquiry(request: GateRequest): Promise<RecordSummaryResponse> {
-  // 1. Hard gate: SL-01 must pass
-  // Requirement: If DENY, return explanation, no technical errors.
-  const decision: GateDecision = evaluatePatientScopeGate(request);
+export async function executeRecordSummaryInquiry(
+  request: GateRequest | PatientSessionContext
+): Promise<RecordSummaryResponse> {
+  // 1. Convert session context to gate request if necessary (SL-03 Wiring)
+  const gateRequest = 'sessionId' in request 
+    ? createGateRequestFromSession(request, AccessPurpose.PATIENT_REQUEST)
+    : request;
 
-  // Emit audit signal via logger (already handled by SL-01 gate, but we can add SL-02 specific context)
+  // 2. Hard gate: SL-01 must pass
+  const decision: GateDecision = evaluatePatientScopeGate(gateRequest);
+
+  // Emit audit signal via logger
   logger.info('AUDIT_SIGNAL:SL-02_INQUIRY_ATTEMPT', 'Patient record inquiry initiated', {
     status: decision.effect,
-    tenantId: request.tenantId,
-    purpose: request.purpose,
+    tenantId: gateRequest.tenantId,
+    purpose: gateRequest.purpose,
     decisionId: decision.metadata.decisionId
   });
 
@@ -57,8 +65,7 @@ export async function executeRecordSummaryInquiry(request: GateRequest): Promise
     };
   }
 
-  // 2. If ALLOW: Return plain-language summary
-  // Requirement: Mock or static read-only data.
+  // 3. If ALLOW: Return plain-language summary
   const mockSummary = `Patient Record Summary:
 - Last Visit: 2025-12-10 (Follow-up)
 - Active Conditions: Hypertension, Type 2 Diabetes

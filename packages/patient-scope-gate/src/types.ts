@@ -82,3 +82,41 @@ export type GateDecision =
       reasonCode: DenyReason;
       metadata: Record<string, unknown>;
     };
+
+/**
+ * PatientSessionContext represents the authoritative contract for 
+ * patient-scoped session data (SL-03).
+ */
+export interface PatientSessionContext {
+  sessionId: string;
+  actor: {
+    id: string;
+    type: 'PATIENT';
+    tenantId: string;
+  };
+  sessionMetadata: {
+    issuedAt: string; // ISO-8601
+    expiresAt: string; // ISO-8601
+    lastVerifiedAt: string; // ISO-8601
+  };
+  consentProof?: {
+    signature: string;
+    validUntil: string;
+    scope: string[];
+  };
+}
+
+/**
+ * Input for establishing a patient session (SL-03).
+ */
+export interface SessionEstablishmentInput {
+  authToken: string;
+  tenantId: string;
+  patientId: string;
+  // Optional pre-verified consent status/proof
+  consentProof?: {
+    signature: string;
+    validUntil: string;
+    scope: string[];
+  };
+}
