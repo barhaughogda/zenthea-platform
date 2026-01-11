@@ -33,7 +33,11 @@ describe('Operator Invocation: Success Path', () => {
   it('valid input => successfully delegates and returns result verbatim', () => {
     const result = invokeFromOperator(validCtx, validInput);
 
-    expect(result.outcome).toBe('SUCCEEDED');
+    if ('outcome' in result) {
+      expect(result.outcome).toBe('SUCCEEDED');
+    } else {
+      throw new Error('Expected OrchestrationResult but got OrchestrationAbort');
+    }
     expect(result.attempt_id).toBe('mock-attempt-id');
   });
 

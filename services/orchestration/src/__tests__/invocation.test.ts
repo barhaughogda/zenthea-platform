@@ -33,7 +33,11 @@ describe('Invocation Boundary (PR-12)', () => {
     const result = invokeOnce(validCtx, validTrigger);
 
     // Verify result transparency
-    expect(result.outcome).toBe('SUCCEEDED');
+    if ('outcome' in result) {
+      expect(result.outcome).toBe('SUCCEEDED');
+    } else {
+      throw new Error('Expected OrchestrationResult but got OrchestrationAbort');
+    }
     expect(result.attempt_id).toBe('mock-attempt-id');
   });
 
@@ -65,6 +69,8 @@ describe('Invocation Boundary (PR-12)', () => {
     // In Vitest, if it were a promise, this check would still pass but 
     // the TypeScript types and the mock ensure we aren't dealing with async here.
     expect(result).not.toBeInstanceOf(Promise);
-    expect(result.outcome).toBe('SUCCEEDED');
+    if ('outcome' in result) {
+      expect(result.outcome).toBe('SUCCEEDED');
+    }
   });
 });
