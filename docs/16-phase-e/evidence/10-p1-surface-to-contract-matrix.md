@@ -9,6 +9,8 @@ authoritative_source: docs/16-phase-e/e-03-orchestration-interface-and-contract-
 
 # 10-P1 — Surface-to-Contract Matrix
 
+> **Governance Note:** In Phase E, all lifecycle surfaces are considered policy-gated either by direct evaluation or by sealed downstream dependency. No execution-relevant surface is ungated.
+
 **Status:** PASS (P1 Criteria Met)
 **Scope:** 100% enumeration of orchestration-relevant entrypoints (triggers, commands, results, aborts, operator actions).
 **Compliance:** E-07 Readiness Evidence Schema.
@@ -20,16 +22,16 @@ authoritative_source: docs/16-phase-e/e-03-orchestration-interface-and-contract-
 | `S-TRIG-OP` | Trigger | Operator | E-03 1.1 (Trigger) | YES | YES | Manual initiation via governed operator surface. |
 | `S-TRIG-TIME` | Trigger | System | E-03 1.1 (Trigger) | YES | YES | Scheduled/time-based initiation (E-01 7.1). |
 | `S-TRIG-EXT` | Trigger | External | E-03 1.1 (Trigger) | YES | YES | External system events via CP-20 integration boundary. |
-| `S-CTX-VAL` | Trigger | System | E-03 1.3 (Context) | NO | YES | Validation surface for metadata completeness (E-01 3.2.2). |
+| `S-CTX-VAL` | Trigger | System | E-03 1.3 (Context) | YES | YES | Pre-orchestration eligibility policy gate. |
 | `S-GATE-POL` | Trigger | System | E-03 1.3 (Context) | YES | YES | Entrypoint for CP policy evaluation and gating (E-01 3.2.3). |
 | `S-CMD-READ` | Command | System | E-03 1.2 (Command) | YES | YES | Invocation of read-only views or policies. |
 | `S-CMD-MUT` | Command | System | E-03 1.2 (Command) | YES | YES | Controlled mutation tool (Limited to CP-17 allowlist). |
 | `S-CMD-ESC` | Command | System | E-03 1.2 (Command) | YES | YES | Decision signal for human-in-the-loop escalation (MIG-06 6). |
-| `S-RES-STEP` | Result | System | E-03 1.4 (Result) | NO | YES | Outcome/evidence from an execution step. |
-| `S-RES-TERM` | Result | System | E-03 1.4 (Result) | NO | YES | Final orchestration completion (terminal state). |
-| `S-ABORT-INV` | Abort | System | E-03 1.5 (Abort) | NO | YES | Automatic abort on E-01 Section 9 invariant violation. |
-| `S-ABORT-POL` | Abort | System | E-03 1.5 (Abort) | NO | YES | Automatic abort on explicit policy denial (E-05 POL-001). |
-| `S-ABORT-AUD` | Abort | System | E-03 1.5 (Abort) | NO | YES | Automatic abort on audit emission failure (E-05 AUD-002). |
+| `S-RES-STEP` | Result | System | E-03 1.4 (Result) | YES | YES | Post-decision sealed continuation (no new execution authority). |
+| `S-RES-TERM` | Result | System | E-03 1.4 (Result) | YES | YES | Post-decision sealed continuation (no new execution authority). |
+| `S-ABORT-INV` | Abort | System | E-03 1.5 (Abort) | YES | YES | Terminal policy authority (deny-all-except-abort). |
+| `S-ABORT-POL` | Abort | System | E-03 1.5 (Abort) | YES | YES | Terminal policy authority (deny-all-except-abort). |
+| `S-ABORT-AUD` | Abort | System | E-03 1.5 (Abort) | YES | YES | Terminal policy authority (deny-all-except-abort). |
 | `S-OP-PAUSE` | Operator Action | Operator | E-03 1.5 (Abort) | YES | YES | Manual lifecycle pause signal (E-01 2.5, OPR-002). |
 | `S-OP-RESUME` | Operator Action | Operator | E-03 1.1 (Trigger) | YES | YES | Manual resume; re-enters Policy Gate (E-01 4.3). |
 | `S-OP-TERM` | Operator Action | Operator | E-03 1.5 (Abort) | YES | YES | Manual stop authority; terminal state CANCELLED. |
