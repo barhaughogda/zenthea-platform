@@ -4,15 +4,16 @@ import { ProviderIdentity } from "@starter/patient-portal-agent/orchestration/pr
 
 export const MOCK_PATIENT_SESSION: PatientSessionContext = {
   sessionId: "demo-session-123",
-  patientId: "patient-456",
   actor: {
     id: "patient-456",
     type: ActorType.PATIENT,
     tenantId: "tenant-789",
   },
-  issuedAt: new Date().toISOString(),
-  expiresAt: new Date(Date.now() + 3600000).toISOString(),
-  scope: ["read", "write"],
+  sessionMetadata: {
+    issuedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    lastVerifiedAt: new Date().toISOString(),
+  },
 };
 
 export const MOCK_CLINICIAN: ClinicianIdentity = {
