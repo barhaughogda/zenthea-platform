@@ -14,7 +14,7 @@ export const ToolProposalSchema = z.object({
   proposal_id: z.string().uuid(),
   proposed_by: z.string(),
   timestamp: z.string().datetime(),
-  domain: z.enum(['chat', 'sales', 'accounting', 'marketing', 'project-management']),
+  domain: z.enum(['chat', 'sales', 'accounting', 'marketing', 'project-management', 'scheduling']),
   tool: z.object({
     name: z.string(),
     version: z.string(),

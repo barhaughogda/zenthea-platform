@@ -60,3 +60,6 @@ export class PatientPortalWorkflow {
  * - No direct tool execution.
  * - Bypassing this layer is a platform violation.
  */
+
+export * from './record-inquiry-workflow';
+export * from './scheduling-proposal-workflow';
