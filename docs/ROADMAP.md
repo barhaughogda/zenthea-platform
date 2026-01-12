@@ -98,11 +98,16 @@ These slices are suitable for demos because they are **bounded and non-executing
 - **Demo suitability rationale**: Demonstrates patient trust boundaries and non-hallucination expectations without introducing execution semantics.
 - **Reference**: `docs/02-slices/patient-journey-slices.md` (SL-02)
 
-#### SL-03 — Scheduling Proposal (Patient-Initiated)
+#### SL-03 — Patient Session Establishment
+- **Short description**: Establishment of a governed patient session, including identity verification, tenant scoping, and initial consent state loading.
+- **Governance role**: Foundation for all patient-scoped interactions; ensures deterministic session boundaries.
+- **Reference**: `docs/02-slices/patient-journey-slices.md` (SL-03)
+
+#### SL-07 — Scheduling Proposal (Patient-Initiated)
 - **What it demonstrates**: Patient-initiated scheduling requests yielding structured **proposals** and clearly communicated “pending” status.
 - **Explicit constraints**: Proposal-only; **no scheduling execution** (no booking/modification/cancellation commit); consent-gated; fail-closed; avoids promises of confirmation.
 - **Demo suitability rationale**: Shows governed “request → proposal” behavior and safe communication of uncertainty without operational side effects.
-- **Reference**: `docs/02-slices/patient-journey-slices.md` (SL-03)
+- **Reference**: `docs/02-slices/patient-journey-slices.md` (SL-07)
 
 #### SL-04 — Clinical Drafting (Clinician-Initiated)
 - **What it demonstrates**: Clinician-initiated documentation support producing clearly labeled drafts/advisory output.
@@ -143,5 +148,5 @@ These areas are explicitly deferred because they require additional governed pre
 - Phase E **builds on** the completed CP/MIG foundations (consent gating doctrine, deny-by-default tool governance, metadata-only audit posture, decision hooks/escalation semantics, controlled mutations boundaries, caching boundaries, and integration envelopes) and does not reopen sealed work.
 - Completed and sealed milestones remain authoritative as recorded in the Integrated Status Board and the seal index (`docs/ARCHITECTURE-SLICE-SEAL-INDEX.md`).
 - **MIG-05 (Scheduling & Billing)** is now conceptually split for clarity (without reopening or unsealing MIG work):
-  - **Proposal/explanation behavior** is addressed in Phase E via SL-03 (scheduling proposal) and SL-06 (billing explanation).
+  - **Proposal/explanation behavior** is addressed in Phase E via SL-07 (scheduling proposal) and SL-06 (billing explanation).
   - **Execution behavior** (committing schedule changes and any financial transactions) remains deferred under explicit governed prerequisites and is **Not scheduled** in Phase E.

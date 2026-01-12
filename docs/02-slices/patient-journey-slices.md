@@ -47,13 +47,25 @@ Slices are the **unit of delivery** for the Zenthea platform. Unlike journey ste
 - **Risk level**: High (Potential for clinical misinformation/hallucination)
 - **Demo suitability**: Yes
 
-### SL-03: Scheduling Proposal (Patient-Initiated)
+### SL-03: Patient Session Establishment
 - **Slice ID**: SL-03
+- **Slice name**: Patient Session Establishment
+- **Journey step reference**: 3.2 Patient identity and scope
+- **Stakeholders involved**: Patient, Consent Agent, Platform Security
+- **User stories included**: PAT-02, PAT-04
+- **Entry condition**: SL-01 passed for identity/tenant verification.
+- **Exit condition**: Governed session context established; patient-scoped boundaries locked; initial consent state loaded.
+- **Writes allowed?**: No
+- **Risk level**: Medium
+- **Demo suitability**: Yes
+
+### SL-07: Scheduling Proposal (Patient-Initiated)
+- **Slice ID**: SL-07
 - **Slice name**: Scheduling Proposal (Patient-Initiated)
 - **Journey step reference**: 3.3 Appointment request and booking
 - **Stakeholders involved**: Patient, Appointment Booking Agent, Consent Agent
 - **User stories included**: OPS-01, OPS-02, OPS-03
-- **Entry condition**: SL-01 passed for scheduling domain.
+- **Entry condition**: SL-03 passed for scheduling domain.
 - **Exit condition**: Structured proposal emitted to pending state; user informed of "Pending" status; no execution occurs.
 - **Writes allowed?**: No (Proposal/Draft only)
 - **Risk level**: Medium (Operational impact of "pending" status)
@@ -114,7 +126,8 @@ Behaviors intentionally excluded or deferred to preserve governance.
 ### Slices suitable for early demo
 - **SL-01**: Verification/Fail-closed proof.
 - **SL-02**: Patient portal informational Q&A.
-- **SL-03**: Scheduling proposal flow (patient request).
+- **SL-03**: Patient session establishment.
+- **SL-07**: Scheduling proposal flow (patient request).
 - **SL-04/05**: Clinical drafting + feedback loop (provider view).
 - **SL-06**: Billing explanation.
 
@@ -132,5 +145,5 @@ Behaviors intentionally excluded or deferred to preserve governance.
   - `docs/00-overview/stakeholders-and-user-stories.md`
   - `docs/00-overview/stakeholder-planning-artifacts.md`
 - **File written**: `docs/02-slices/patient-journey-slices.md`
-- **Number of slices extracted**: 6
-- **Number marked demo-suitable**: 6
+- **Number of slices extracted**: 7
+- **Number marked demo-suitable**: 7
