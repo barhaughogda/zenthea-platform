@@ -15,6 +15,8 @@ This is the **authoritative source of truth** for platform progress. It integrat
 | **Phase B** | Legacy Repository Analysis | **Completed** | Inventory & Mapping Docs |
 | **Phase C** | Migration by Extraction | **Completed** | Domain Parity |
 | **Phase D** | Integration & Hardening | **Completed (CP-21 Sealed)** | Production Readiness |
+| **Phase E** | Patient Journey Execution (Slice-Based) | **Completed (Sealed)** | 100% Slice Coverage |
+| **Phase F** | Execution Design & Governance Unlocks | **Planned** | Not Scheduled |
 
 ---
 
