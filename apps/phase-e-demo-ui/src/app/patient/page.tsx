@@ -2,23 +2,46 @@
 
 import React, { useState } from "react";
 import { Banners } from "@/components/Banners";
+import { FailurePanel } from "@/components/FailurePanel";
 import { generateSchedulingProposal } from "./actions";
 import { SchedulingProposalResponse } from "@starter/patient-portal-agent/orchestration/scheduling-proposal-workflow";
 
 export default function PatientPage() {
   const [result, setResult] = useState<SchedulingProposalResponse | null>(null);
+  const [failure, setFailure] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [useInvalidContext, setUseInvalidContext] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setFailure(null);
+    setResult(null);
+
     const formData = new FormData(e.currentTarget);
     try {
-      const res = await generateSchedulingProposal(formData);
-      setResult(res);
-    } catch (err) {
+      const res = await generateSchedulingProposal(formData, useInvalidContext);
+      
+      if (res.status === "DENY" || res.status === "ERROR") {
+        setFailure({
+          sliceId: "SL-07",
+          outcomeType: res.status,
+          gate: res.metadata?.denialReason?.gate || "Unknown",
+          message: res.message,
+          raw: res
+        });
+      } else {
+        setResult(res);
+      }
+    } catch (err: any) {
       console.error(err);
-      alert("Error generating proposal");
+      setFailure({
+        sliceId: "SL-07",
+        outcomeType: "ERROR",
+        gate: "Unknown",
+        message: err.message || "An unexpected error occurred",
+        raw: err
+      });
     } finally {
       setLoading(false);
     }
@@ -29,7 +52,24 @@ export default function PatientPage() {
       <Banners slice="SL-07" />
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900">Patient Demo View (SL-07)</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Patient Demo View (SL-07)</h2>
+          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+            <span className="text-xs font-bold text-gray-500 uppercase">Context:</span>
+            <button 
+              onClick={() => setUseInvalidContext(false)}
+              className={`text-xs px-2 py-0.5 rounded ${!useInvalidContext ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              Valid
+            </button>
+            <button 
+              onClick={() => setUseInvalidContext(true)}
+              className={`text-xs px-2 py-0.5 rounded ${useInvalidContext ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              Invalid
+            </button>
+          </div>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           <div>
@@ -74,6 +114,12 @@ export default function PatientPage() {
             {loading ? "Generating..." : "Generate scheduling proposal"}
           </button>
         </form>
+
+        {failure && (
+          <div className="mb-8">
+            <FailurePanel {...failure} />
+          </div>
+        )}
 
         {result && (
           <div className="space-y-6 pt-6 border-t border-gray-100">
