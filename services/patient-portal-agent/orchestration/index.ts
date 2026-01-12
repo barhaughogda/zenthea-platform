@@ -63,3 +63,4 @@ export class PatientPortalWorkflow {
 
 export * from './record-inquiry-workflow';
 export * from './scheduling-proposal-workflow';
+export * from './provider-review-workflow';
