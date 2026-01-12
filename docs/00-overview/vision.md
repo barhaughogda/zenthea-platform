@@ -74,6 +74,24 @@ It treats software as **infrastructure for AI-driven work**.
 
 ---
 
+## Conversational & Multimodal AI Agent Vision
+
+Zenthea is designed to operate as a **conversational AI agent**, not merely a form-based UI. The interface should feel like a real clinical helper because the system’s primary capability is governed, policy-bound reasoning delivered through natural interaction.
+
+In this vision:
+
+- **Conversation is the default interaction model**: natural language is a first-class way to express intent, ask questions, review records, and coordinate workflows.
+- **Voice and transcription are first-class modalities**: voice-first interaction, speech-to-text and text-to-speech, and transcription-enabled workflows are treated as core capabilities, not optional add-ons.
+- **UI, chat, and voice are interchangeable interfaces**: they are different presentations over the same governed service layer, producing consistent behavior, consistent constraints, and consistent audit outcomes.
+- **Governance is a trust enabler**: consent, auditability, policy enforcement, and fail-closed behavior exist to make safe, regulated conversational interaction possible—especially when ambiguity, incomplete information, or high-risk contexts are present.
+
+This platform’s development deliberately prioritizes safety foundations before richer interaction:
+
+- **Phase E** established non-executing orchestration patterns and safety foundations—ensuring that intent can be understood, routed, constrained, and audited without introducing unsafe execution paths.
+- **Later phases** intentionally layer richer interaction (including voice-first and ambient assistance) while preserving the same governed constraints, verifiable audit trails, and fail-closed safety posture.
+
+---
+
 ## Designed for Human and AI Collaboration
 
 This platform assumes that:
