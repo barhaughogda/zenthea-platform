@@ -2,23 +2,46 @@
 
 import React, { useState } from "react";
 import { Banners } from "@/components/Banners";
+import { FailurePanel } from "@/components/FailurePanel";
 import { generateClinicalDraft } from "./actions";
 import { ClinicalDraftingResponse } from "@starter/patient-portal-agent/orchestration/clinical-drafting-workflow";
 
 export default function ClinicianPage() {
   const [result, setResult] = useState<ClinicalDraftingResponse | null>(null);
+  const [failure, setFailure] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [useInvalidContext, setUseInvalidContext] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setFailure(null);
+    setResult(null);
+
     const formData = new FormData(e.currentTarget);
     try {
-      const res = await generateClinicalDraft(formData);
-      setResult(res);
-    } catch (err) {
+      const res = await generateClinicalDraft(formData, useInvalidContext);
+      
+      if (res.status === "DENY" || res.status === "ERROR") {
+        setFailure({
+          sliceId: "SL-04",
+          outcomeType: res.status,
+          gate: res.metadata?.denialReason?.gate || "Unknown",
+          message: res.message,
+          raw: res
+        });
+      } else {
+        setResult(res);
+      }
+    } catch (err: any) {
       console.error(err);
-      alert("Error generating clinical draft");
+      setFailure({
+        sliceId: "SL-04",
+        outcomeType: "ERROR",
+        gate: "Unknown",
+        message: err.message || "Error generating clinical draft",
+        raw: err
+      });
     } finally {
       setLoading(false);
     }
@@ -29,7 +52,24 @@ export default function ClinicianPage() {
       <Banners slice="SL-04" />
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900">Clinician Drafting Demo View (SL-04)</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Clinician Drafting Demo View (SL-04)</h2>
+          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+            <span className="text-xs font-bold text-gray-500 uppercase">Context:</span>
+            <button 
+              onClick={() => setUseInvalidContext(false)}
+              className={`text-xs px-2 py-0.5 rounded ${!useInvalidContext ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              Valid
+            </button>
+            <button 
+              onClick={() => setUseInvalidContext(true)}
+              className={`text-xs px-2 py-0.5 rounded ${useInvalidContext ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              Invalid
+            </button>
+          </div>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
           <div>
@@ -68,6 +108,12 @@ export default function ClinicianPage() {
             {loading ? "Drafting..." : "Generate clinical draft"}
           </button>
         </form>
+
+        {failure && (
+          <div className="mb-8">
+            <FailurePanel {...failure} />
+          </div>
+        )}
 
         {result && result.draft && (
           <div className="space-y-6 pt-6 border-t border-gray-100">

@@ -16,6 +16,20 @@ export const MOCK_PATIENT_SESSION: PatientSessionContext = {
   },
 };
 
+export const MOCK_INVALID_PATIENT_SESSION: PatientSessionContext = {
+  sessionId: "invalid-session-999",
+  actor: {
+    id: "unauthorized-user",
+    type: ActorType.PATIENT,
+    tenantId: "WRONG_TENANT",
+  },
+  sessionMetadata: {
+    issuedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    lastVerifiedAt: new Date().toISOString(),
+  },
+};
+
 export const MOCK_CLINICIAN: ClinicianIdentity = {
   id: "clinician-101",
   type: ActorType.CLINICIAN,

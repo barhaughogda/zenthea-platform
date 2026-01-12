@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Banners } from "@/components/Banners";
+import { FailurePanel } from "@/components/FailurePanel";
 import { submitProviderDecision } from "./actions";
 import { ProviderReviewOutcome, ProviderReviewResponse } from "@starter/patient-portal-agent/orchestration/provider-review-workflow";
 
@@ -25,36 +26,70 @@ export default function ProviderPage() {
   const [activeProposal, setActiveProposal] = useState(STATIC_PROPOSAL_FIXTURE);
   const [pasteValue, setPasteValue] = useState("");
   const [result, setResult] = useState<ProviderReviewResponse | null>(null);
+  const [failure, setFailure] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [reasonCode, setReasonCode] = useState("");
   const [showRejectReason, setShowRejectReason] = useState(false);
+  const [useInvalidContext, setUseInvalidContext] = useState(false);
 
   async function handleDecision(outcome: ProviderReviewOutcome) {
     if (outcome === ProviderReviewOutcome.REJECTED && !reasonCode) {
-      alert("Reason code is required for REJECT");
+      setFailure({
+        sliceId: "SL-08",
+        outcomeType: "ERROR",
+        gate: "Unknown",
+        message: "Reason code is required for REJECT",
+        raw: { error: "Missing reason code" }
+      });
       return;
     }
 
     setLoading(true);
+    setFailure(null);
+    setResult(null);
+
     try {
-      const res = await submitProviderDecision(activeProposal.proposal_id, outcome, reasonCode || undefined);
-      setResult(res);
-    } catch (err) {
+      const res = await submitProviderDecision(activeProposal.proposal_id, outcome, reasonCode || undefined, useInvalidContext);
+      
+      if (res.status === "DENY" || res.status === "ERROR") {
+        setFailure({
+          sliceId: "SL-08",
+          outcomeType: res.status,
+          gate: res.metadata?.denialReason?.gate || "Unknown",
+          message: res.message,
+          raw: res
+        });
+      } else {
+        setResult(res);
+      }
+    } catch (err: any) {
       console.error(err);
-      alert("Error submitting decision");
+      setFailure({
+        sliceId: "SL-08",
+        outcomeType: "ERROR",
+        gate: "Unknown",
+        message: err.message || "Error submitting decision",
+        raw: err
+      });
     } finally {
       setLoading(false);
     }
   }
 
   function handlePaste() {
+    setFailure(null);
     try {
       const parsed = JSON.parse(pasteValue);
       if (!parsed.proposal_id) throw new Error("Missing proposal_id");
       setActiveProposal(parsed);
-      alert("Proposal updated from paste");
-    } catch (err) {
-      alert("Invalid JSON or missing proposal_id");
+    } catch (err: any) {
+      setFailure({
+        sliceId: "UI-INTERNAL",
+        outcomeType: "ERROR",
+        gate: "Unknown",
+        message: err.message || "Invalid JSON or missing proposal_id",
+        raw: { input: pasteValue, error: err.message }
+      });
     }
   }
 
@@ -63,7 +98,24 @@ export default function ProviderPage() {
       <Banners slice="SL-08" />
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900">Provider Review Demo View (SL-08)</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Provider Review Demo View (SL-08)</h2>
+          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+            <span className="text-xs font-bold text-gray-500 uppercase">Context:</span>
+            <button 
+              onClick={() => setUseInvalidContext(false)}
+              className={`text-xs px-2 py-0.5 rounded ${!useInvalidContext ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              Valid
+            </button>
+            <button 
+              onClick={() => setUseInvalidContext(true)}
+              className={`text-xs px-2 py-0.5 rounded ${useInvalidContext ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              Invalid
+            </button>
+          </div>
+        </div>
         
         <div className="mb-8 bg-blue-50 border border-blue-100 p-4 rounded-md">
           <h3 className="font-bold text-blue-900 mb-2">Active Proposal</h3>
@@ -145,6 +197,12 @@ export default function ProviderPage() {
             </div>
           )}
         </div>
+
+        {failure && (
+          <div className="mt-8">
+            <FailurePanel {...failure} />
+          </div>
+        )}
 
         {result && (
           <div className="space-y-6 pt-6 border-t border-gray-100 mt-8">
