@@ -37,7 +37,7 @@ function normalizeText(text: string): string {
 /**
  * Extracts keywords from a user message for content matching.
  */
-function extractContentKeywords(message: string): string[] {
+export function extractContentKeywords(message: string): string[] {
   // Extract meaningful words (3+ characters, not common stop words)
   const stopWords = new Set([
     "the", "and", "for", "are", "but", "not", "you", "all",
@@ -50,6 +50,7 @@ function extractContentKeywords(message: string): string[] {
   ]);
 
   const words = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
     .split(/\s+/)
     .filter((word) => word.length >= 3 && !stopWords.has(word));
 

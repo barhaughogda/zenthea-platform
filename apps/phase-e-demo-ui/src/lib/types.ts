@@ -62,4 +62,18 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   relevance?: RelevanceResult;
+  comparativeInsights?: ComparativeInsights;
 }
+
+/**
+ * Result of the comparative and temporal reasoning engine.
+ * Observational only — no medical advice or recommendations.
+ */
+export type ComparativeInsights = {
+  lastEncounter?: string;
+  timeSinceLastEncounterDays?: number;
+  differencesVsLastEncounter: string[];
+  trends: string[];
+  gaps: string[];
+  evidenceAttribution: string[];
+};

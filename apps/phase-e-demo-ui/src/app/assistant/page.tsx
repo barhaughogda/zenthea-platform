@@ -14,11 +14,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { Banners } from "@/components/Banners";
 import { RelevancePanel } from "@/components/RelevancePanel";
 import { InsightPanel } from "@/components/InsightPanel";
+import { ComparativePanel } from "@/components/ComparativePanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
 import { DEMO_PATIENT_TIMELINE } from "@/lib/demoPatientTimeline";
 import { selectRelevantItems } from "@/lib/relevanceSelector";
+import { buildComparativeInsights } from "@/lib/comparativeEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
 import type { ChatMessage, RelevanceResult } from "@/lib/types";
 
@@ -122,6 +124,14 @@ export default function AssistantPage() {
       // Compute relevance
       const relevance = selectRelevantItems(trimmed, DEMO_PATIENT_TIMELINE);
 
+      // Compute comparative insights
+      const comparativeInsights = buildComparativeInsights({
+        intent: relevance.intent,
+        message: trimmed,
+        relevantItems: relevance.selectedItems,
+        timeline: DEMO_PATIENT_TIMELINE.events,
+      });
+
       // Generate assistant response
       const responseContent = generateAssistantResponse(trimmed, relevance);
 
@@ -131,6 +141,7 @@ export default function AssistantPage() {
         content: responseContent,
         timestamp: new Date(),
         relevance,
+        comparativeInsights,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -248,6 +259,9 @@ export default function AssistantPage() {
                   <>
                     <RelevancePanel relevance={msg.relevance} />
                     <InsightPanel relevance={msg.relevance} />
+                    {msg.comparativeInsights && (
+                      <ComparativePanel insights={msg.comparativeInsights} />
+                    )}
                   </>
                 )}
               </div>
