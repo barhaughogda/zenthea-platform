@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Banners } from "@/components/Banners";
 import { FailurePanel } from "@/components/FailurePanel";
+import { ContextPanel } from "@/components/ContextPanel";
+import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
 import { submitProviderDecision } from "./actions";
 import { ProviderReviewOutcome, ProviderReviewResponse } from "@starter/patient-portal-agent/orchestration/provider-review-workflow";
 
@@ -96,6 +98,8 @@ export default function ProviderPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <Banners slice="SL-08" />
+
+      <ContextPanel context={DEMO_PATIENT_CONTEXT} />
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex justify-between items-center mb-4">
