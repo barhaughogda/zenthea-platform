@@ -65,6 +65,7 @@ export interface ChatMessage {
   comparativeInsights?: ComparativeInsights;
   confidenceAnnotations?: ConfidenceAnnotation[];
   actionReadiness?: ActionReadinessResult;
+  humanConfirmation?: HumanConfirmationResult;
 }
 
 /**
@@ -110,4 +111,30 @@ export interface ConfidenceAnnotation {
   category: EpistemicCategory;
   confidence: ConfidenceLevel;
   reason: string;
+}
+
+/**
+ * Actors who would normally be required to confirm an action.
+ */
+export type RequiredActor = "PATIENT" | "CLINICIAN" | "OPERATOR" | "NONE";
+
+/**
+ * Types of decisions that would normally be required.
+ */
+export type DecisionType =
+  | "CONFIRM"
+  | "REVIEW"
+  | "PROVIDE_DATA"
+  | "NOT_APPLICABLE";
+
+/**
+ * Result of the human confirmation preview evaluation.
+ * All fields describe what WOULD normally happen — nothing is executed.
+ */
+export interface HumanConfirmationResult {
+  requiredActor: RequiredActor;
+  decisionType: DecisionType;
+  previewOptions: string[];
+  explanation: string;
+  rationale: string;
 }

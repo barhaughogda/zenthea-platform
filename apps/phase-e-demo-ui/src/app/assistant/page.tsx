@@ -17,6 +17,7 @@ import { InsightPanel } from "@/components/InsightPanel";
 import { ComparativePanel } from "@/components/ComparativePanel";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { ActionReadinessPanel } from "@/components/ActionReadinessPanel";
+import { HumanConfirmationPanel } from "@/components/HumanConfirmationPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
@@ -25,6 +26,7 @@ import { selectRelevantItems } from "@/lib/relevanceSelector";
 import { buildComparativeInsights } from "@/lib/comparativeEngine";
 import { buildConfidenceAnnotations } from "@/lib/confidenceEngine";
 import { evaluateActionReadiness } from "@/lib/actionReadinessEngine";
+import { evaluateHumanConfirmation } from "@/lib/confirmationPreviewEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
 import type { ChatMessage, RelevanceResult } from "@/lib/types";
 
@@ -149,6 +151,21 @@ export default function AssistantPage() {
         confidenceAnnotations
       );
 
+      // Compute human confirmation preview (only for non-informational intents)
+      const overallConfidence = confidenceAnnotations.length > 0
+        ? confidenceAnnotations.some(a => a.confidence === "Low")
+          ? "Low"
+          : confidenceAnnotations.some(a => a.confidence === "Medium")
+            ? "Medium"
+            : "High"
+        : "Medium";
+      
+      const humanConfirmation = evaluateHumanConfirmation(
+        relevance.intent,
+        actionReadiness,
+        overallConfidence
+      );
+
       // Generate assistant response
       const responseContent = generateAssistantResponse(trimmed, relevance);
 
@@ -161,6 +178,7 @@ export default function AssistantPage() {
         comparativeInsights,
         confidenceAnnotations,
         actionReadiness,
+        humanConfirmation,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -286,6 +304,9 @@ export default function AssistantPage() {
                     )}
                     {msg.actionReadiness && (
                       <ActionReadinessPanel readiness={msg.actionReadiness} />
+                    )}
+                    {msg.humanConfirmation && msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
+                      <HumanConfirmationPanel confirmation={msg.humanConfirmation} />
                     )}
                   </>
                 )}
