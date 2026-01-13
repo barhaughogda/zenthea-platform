@@ -11,7 +11,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { HumanConfirmationResult } from "@/lib/types";
 import {
   getActorLabel,
@@ -20,6 +20,7 @@ import {
 
 interface HumanConfirmationPanelProps {
   confirmation: HumanConfirmationResult | undefined;
+  initialExpanded?: boolean;
 }
 
 /**
@@ -113,7 +114,9 @@ function getActorConfig(actor: HumanConfirmationResult["requiredActor"]) {
 
 export function HumanConfirmationPanel({
   confirmation,
+  initialExpanded = false,
 }: HumanConfirmationPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
   // Don't render if no confirmation data or if no actor required
   if (!confirmation || confirmation.requiredActor === "NONE") {
     return null;
@@ -152,129 +155,150 @@ export function HumanConfirmationPanel({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* WHO Section */}
-        <div className={`rounded-lg border-2 p-4 ${actorConfig.color}`}>
-          <div className="flex items-start gap-3">
-            <div className={`p-2 rounded-lg ${actorConfig.iconBg}`}>
-              {actorConfig.icon}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-[10px] font-bold text-slate-500 uppercase hover:text-slate-800 transition-colors flex items-center gap-1"
+          >
+            {isExpanded ? "Collapse" : "Expand"}
+            <svg
+              className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {isExpanded && (
+          <>
+            {/* WHO Section */}
+            <div className={`rounded-lg border-2 p-4 ${actorConfig.color}`}>
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-lg ${actorConfig.iconBg}`}>
+                  {actorConfig.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-70">
+                      Who Would Normally Confirm
+                    </span>
+                  </div>
+                  <p className="text-base font-bold">{getActorLabel(requiredActor)}</p>
+                  <p className="text-sm mt-1 opacity-90">{explanation}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider opacity-70">
-                  Who Would Normally Confirm
+
+            {/* WHAT Section */}
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  className="w-4 h-4 text-slate-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  What Decision Would Be Required
                 </span>
               </div>
-              <p className="text-base font-bold">{getActorLabel(requiredActor)}</p>
-              <p className="text-sm mt-1 opacity-90">{explanation}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* WHAT Section */}
-        <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg
-              className="w-4 h-4 text-slate-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-              What Decision Would Be Required
-            </span>
-          </div>
-          <p className="text-sm font-bold text-slate-800">
-            {getDecisionTypeLabel(decisionType)}
-          </p>
-
-          {/* Preview Options — DISABLED, READ-ONLY */}
-          {previewOptions.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-slate-200">
-              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">
-                Typical Decision Options (Preview Only)
+              <p className="text-sm font-bold text-slate-800">
+                {getDecisionTypeLabel(decisionType)}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {previewOptions.map((option, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed select-none opacity-70"
-                    aria-disabled="true"
-                    role="presentation"
-                  >
-                    <svg
-                      className="w-3 h-3 mr-1.5 opacity-50"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                    {option}
+
+              {/* Preview Options — DISABLED, READ-ONLY */}
+              {previewOptions.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-200">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">
+                    Typical Decision Options (Preview Only)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {previewOptions.map((option, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed select-none opacity-70"
+                        aria-disabled="true"
+                        role="presentation"
+                      >
+                        <svg
+                          className="w-3 h-3 mr-1.5 opacity-50"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                        {option}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* WHY Section */}
+            <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  className="w-4 h-4 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">
+                  Why Confirmation Would Be Required
+                </span>
+              </div>
+              <p className="text-sm text-blue-800 leading-relaxed">{rationale}</p>
+            </div>
+
+            {/* Footer — Governance reinforcement */}
+            <div className="pt-3 border-t border-slate-200 space-y-2">
+              <div className="flex items-center justify-center gap-4 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                  <span>Preview Only</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                  <span>No Actions Executed</span>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-md p-2.5">
+                <p className="text-[10px] text-purple-700 text-center leading-relaxed font-medium">
+                  This is a read-only preview. No action has been taken.
+                  <br />
+                  <span className="opacity-75">
+                    Decision options shown above are disabled and for illustration only.
                   </span>
-                ))}
+                </p>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* WHY Section */}
-        <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg
-              className="w-4 h-4 text-blue-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">
-              Why Confirmation Would Be Required
-            </span>
-          </div>
-          <p className="text-sm text-blue-800 leading-relaxed">{rationale}</p>
-        </div>
-
-        {/* Footer — Governance reinforcement */}
-        <div className="pt-3 border-t border-slate-200 space-y-2">
-          <div className="flex items-center justify-center gap-4 text-[9px] font-black uppercase tracking-widest text-slate-400">
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-              <span>Preview Only</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-              <span>No Actions Executed</span>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 border border-purple-200 rounded-md p-2.5">
-            <p className="text-[10px] text-purple-700 text-center leading-relaxed font-medium">
-              This is a read-only preview. No action has been taken.
-              <br />
-              <span className="opacity-75">
-                Decision options shown above are disabled and for illustration only.
-              </span>
-            </p>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

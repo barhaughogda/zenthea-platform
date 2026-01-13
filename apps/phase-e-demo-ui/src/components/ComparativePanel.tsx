@@ -13,10 +13,11 @@ import type { ComparativeInsights } from "@/lib/types";
 
 interface ComparativePanelProps {
   insights: ComparativeInsights;
+  initialExpanded?: boolean;
 }
 
-export function ComparativePanel({ insights }: ComparativePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export function ComparativePanel({ insights, initialExpanded = true }: ComparativePanelProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden mt-4">

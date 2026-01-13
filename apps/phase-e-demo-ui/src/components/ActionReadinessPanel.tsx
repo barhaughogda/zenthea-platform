@@ -8,14 +8,17 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { ActionReadinessResult } from "@/lib/types";
 
 interface ActionReadinessPanelProps {
   readiness: ActionReadinessResult | undefined;
+  initialExpanded?: boolean;
 }
 
-export function ActionReadinessPanel({ readiness }: ActionReadinessPanelProps) {
+export function ActionReadinessPanel({ readiness, initialExpanded = false }: ActionReadinessPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+
   if (!readiness) {
     return null;
   }
@@ -84,44 +87,64 @@ export function ActionReadinessPanel({ readiness }: ActionReadinessPanelProps) {
       </div>
 
       <div className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`p-1.5 rounded-md border ${categoryConfig.color}`}>
-            {categoryConfig.icon}
-          </div>
-          <h3 className="text-sm font-bold text-slate-900">
-            Workflow Readiness Framing
-          </h3>
-        </div>
-
-        <div className={`rounded-lg border p-4 ${categoryConfig.color} bg-opacity-30`}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-white border border-current">
-              {categoryConfig.label}
-            </span>
-          </div>
-
-          <p className="text-sm font-medium leading-relaxed">
-            {explanation}
-          </p>
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
-          <div className="grid grid-cols-2 gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1 h-1 rounded-full bg-slate-300" />
-              NON-EXECUTING ASSISTANT
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className={`p-1.5 rounded-md border ${categoryConfig.color}`}>
+              {categoryConfig.icon}
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-1 h-1 rounded-full bg-slate-300" />
-              READ-ONLY DEMO
-            </div>
+            <h3 className="text-sm font-bold text-slate-900">
+              Workflow Readiness Framing
+            </h3>
           </div>
-          
-          <p className="text-[10px] text-slate-500 leading-relaxed italic bg-slate-50 p-2 rounded border border-slate-100">
-            This framing is provided to illustrate typical workflow requirements. 
-            This system does not perform the mentioned actions and no outcomes have been promised.
-          </p>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-[10px] font-bold text-slate-500 uppercase hover:text-slate-800 transition-colors flex items-center gap-1"
+          >
+            {isExpanded ? "Collapse" : "Expand"}
+            <svg
+              className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
+
+        {isExpanded && (
+          <>
+            <div className={`rounded-lg border p-4 ${categoryConfig.color} bg-opacity-30`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-white border border-current">
+                  {categoryConfig.label}
+                </span>
+              </div>
+
+              <p className="text-sm font-medium leading-relaxed">
+                {explanation}
+              </p>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-slate-300" />
+                  NON-EXECUTING ASSISTANT
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-slate-300" />
+                  READ-ONLY DEMO
+                </div>
+              </div>
+              
+              <p className="text-[10px] text-slate-500 leading-relaxed italic bg-slate-50 p-2 rounded border border-slate-100">
+                This framing is provided to illustrate typical workflow requirements. 
+                This system does not perform the mentioned actions and no outcomes have been promised.
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

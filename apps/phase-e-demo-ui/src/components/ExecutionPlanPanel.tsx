@@ -13,10 +13,11 @@ import type { ExecutionPlanResult } from "@/lib/types";
 
 interface ExecutionPlanPanelProps {
   plan: ExecutionPlanResult | undefined;
+  initialExpanded?: boolean;
 }
 
-export function ExecutionPlanPanel({ plan }: ExecutionPlanPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ExecutionPlanPanel({ plan, initialExpanded = false }: ExecutionPlanPanelProps) {
+  const [isOpen, setIsOpen] = useState(initialExpanded);
 
   if (!plan) {
     return null;

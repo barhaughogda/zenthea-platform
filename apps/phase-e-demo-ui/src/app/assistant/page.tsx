@@ -238,13 +238,18 @@ export default function AssistantPage() {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              <h2 className="text-sm font-bold">
-                Phase M Non-Executing Assistant
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-bold">
+                  Phase M Non-Executing Assistant
+                </h2>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-600/50 border border-slate-500/50">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-200">
+                    DEMO MODE · READ-ONLY · NO ACTIONS EXECUTED
+                  </span>
+                </div>
+              </div>
             </div>
-            <span className="text-[10px] font-bold uppercase bg-red-500 px-2 py-0.5 rounded">
-              READ-ONLY DEMO
-            </span>
           </div>
           <p className="text-xs text-slate-300 mt-1">
             Intent-aware reasoning over static demo data. No actions executed.
@@ -292,6 +297,11 @@ export default function AssistantPage() {
                       : "bg-white border border-gray-200 text-gray-800"
                   }`}
                 >
+                  {msg.role === "assistant" && (
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                      “Here’s a careful summary based on the information available.”
+                    </p>
+                  )}
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   <p
                     className={`text-[10px] mt-1 ${
@@ -302,27 +312,59 @@ export default function AssistantPage() {
                   </p>
                 </div>
 
-                {/* Relevance panel for assistant messages */}
+                {/* Narrative Panels (UI-only ordering) */}
                 {msg.role === "assistant" && msg.relevance && (
-                  <>
-                    <RelevancePanel relevance={msg.relevance} />
-                    <InsightPanel relevance={msg.relevance} />
-                    {msg.comparativeInsights && (
-                      <ComparativePanel insights={msg.comparativeInsights} />
-                    )}
+                  <div className="space-y-1">
+                    {/* 2. Synthesis summary */}
+                    <InsightPanel relevance={msg.relevance} initialExpanded={true} />
+
+                    {/* 3. Confidence & Uncertainty */}
                     {msg.confidenceAnnotations && (
-                      <ConfidencePanel annotations={msg.confidenceAnnotations} />
+                      <ConfidencePanel 
+                        annotations={msg.confidenceAnnotations} 
+                        initialExpanded={false}
+                      />
                     )}
+
+                    {/* 4. Action Readiness Framing */}
                     {msg.actionReadiness && (
-                      <ActionReadinessPanel readiness={msg.actionReadiness} />
+                      <ActionReadinessPanel 
+                        readiness={msg.actionReadiness} 
+                        initialExpanded={false}
+                      />
                     )}
+
+                    {/* 5. Human Confirmation Preview */}
                     {msg.humanConfirmation && msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
-                      <HumanConfirmationPanel confirmation={msg.humanConfirmation} />
+                      <HumanConfirmationPanel 
+                        confirmation={msg.humanConfirmation} 
+                        initialExpanded={false}
+                      />
                     )}
+
+                    {/* 6. Execution Plan Preview */}
                     {msg.executionPlan && (
-                      <ExecutionPlanPanel plan={msg.executionPlan} />
+                      <ExecutionPlanPanel 
+                        plan={msg.executionPlan} 
+                        initialExpanded={false}
+                      />
                     )}
-                  </>
+
+                    {/* 7. Supporting Evidence Panels */}
+                    <RelevancePanel relevance={msg.relevance} initialExpanded={false} />
+                    {msg.comparativeInsights && (
+                      <ComparativePanel 
+                        insights={msg.comparativeInsights} 
+                        initialExpanded={false} 
+                      />
+                    )}
+                    
+                    <div className="flex justify-center pt-2">
+                      <span className="text-[10px] text-slate-400 font-medium italic">
+                        More detail available above
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

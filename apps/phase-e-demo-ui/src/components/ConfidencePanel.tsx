@@ -14,10 +14,14 @@ import { getConfidenceColor, getCategoryLabel } from "@/lib/confidenceEngine";
 
 interface ConfidencePanelProps {
   annotations: ConfidenceAnnotation[];
+  initialExpanded?: boolean;
 }
 
-export function ConfidencePanel({ annotations }: ConfidencePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export function ConfidencePanel({ 
+  annotations, 
+  initialExpanded = true 
+}: ConfidencePanelProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   if (!annotations || annotations.length === 0) {
     return null;

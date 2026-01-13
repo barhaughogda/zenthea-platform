@@ -13,10 +13,11 @@ import { analyzeTimeline } from "@/lib/synthesisEngine";
 
 interface InsightPanelProps {
   relevance: RelevanceResult;
+  initialExpanded?: boolean;
 }
 
-export function InsightPanel({ relevance }: InsightPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export function InsightPanel({ relevance, initialExpanded = true }: InsightPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   // Perform deterministic analysis
   const analysis = useMemo(() => {

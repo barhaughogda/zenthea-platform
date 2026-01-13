@@ -15,6 +15,7 @@ import { formatDate } from "@/lib/relevanceSelector";
 
 interface RelevancePanelProps {
   relevance: RelevanceResult;
+  initialExpanded?: boolean;
 }
 
 /**
@@ -90,8 +91,8 @@ function TimelineItemCard({ item }: { item: ScoredTimelineItem }) {
   );
 }
 
-export function RelevancePanel({ relevance }: RelevancePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export function RelevancePanel({ relevance, initialExpanded = true }: RelevancePanelProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   // Phase M: Check if clarifying question was asked
   const isClarifying = relevance.intent === "unknown" || relevance.maxScore < 3;
