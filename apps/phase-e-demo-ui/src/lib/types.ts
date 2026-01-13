@@ -63,6 +63,7 @@ export interface ChatMessage {
   timestamp: Date;
   relevance?: RelevanceResult;
   comparativeInsights?: ComparativeInsights;
+  confidenceAnnotations?: ConfidenceAnnotation[];
 }
 
 /**
@@ -77,3 +78,27 @@ export type ComparativeInsights = {
   gaps: string[];
   evidenceAttribution: string[];
 };
+
+/**
+ * Epistemic categories for confidence annotation.
+ */
+export type EpistemicCategory =
+  | "OBSERVED" // Directly stated in patient context or timeline
+  | "PATTERN" // Derived from repetition, comparison, or time gaps
+  | "COMPARATIVE" // Change over time, trend, before vs after
+  | "UNCERTAIN"; // Insufficient data, ambiguity, or missing follow-up
+
+/**
+ * Confidence levels for annotations.
+ */
+export type ConfidenceLevel = "High" | "Medium" | "Low";
+
+/**
+ * A single annotated statement with confidence details.
+ */
+export interface ConfidenceAnnotation {
+  statement: string;
+  category: EpistemicCategory;
+  confidence: ConfidenceLevel;
+  reason: string;
+}

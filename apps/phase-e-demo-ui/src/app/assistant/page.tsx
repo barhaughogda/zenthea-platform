@@ -15,12 +15,14 @@ import { Banners } from "@/components/Banners";
 import { RelevancePanel } from "@/components/RelevancePanel";
 import { InsightPanel } from "@/components/InsightPanel";
 import { ComparativePanel } from "@/components/ComparativePanel";
+import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
 import { DEMO_PATIENT_TIMELINE } from "@/lib/demoPatientTimeline";
 import { selectRelevantItems } from "@/lib/relevanceSelector";
 import { buildComparativeInsights } from "@/lib/comparativeEngine";
+import { buildConfidenceAnnotations } from "@/lib/confidenceEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
 import type { ChatMessage, RelevanceResult } from "@/lib/types";
 
@@ -132,6 +134,12 @@ export default function AssistantPage() {
         timeline: DEMO_PATIENT_TIMELINE.events,
       });
 
+      // Compute confidence annotations
+      const confidenceAnnotations = buildConfidenceAnnotations(
+        relevance,
+        comparativeInsights
+      );
+
       // Generate assistant response
       const responseContent = generateAssistantResponse(trimmed, relevance);
 
@@ -142,6 +150,7 @@ export default function AssistantPage() {
         timestamp: new Date(),
         relevance,
         comparativeInsights,
+        confidenceAnnotations,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -261,6 +270,9 @@ export default function AssistantPage() {
                     <InsightPanel relevance={msg.relevance} />
                     {msg.comparativeInsights && (
                       <ComparativePanel insights={msg.comparativeInsights} />
+                    )}
+                    {msg.confidenceAnnotations && (
+                      <ConfidencePanel annotations={msg.confidenceAnnotations} />
                     )}
                   </>
                 )}
