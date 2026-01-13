@@ -23,6 +23,7 @@ import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { ActionReadinessPanel } from "@/components/ActionReadinessPanel";
 import { HumanConfirmationPanel } from "@/components/HumanConfirmationPanel";
 import { ExecutionPlanPanel } from "@/components/ExecutionPlanPanel";
+import { PreviewAuditPanel } from "@/components/PreviewAuditPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import {
@@ -39,6 +40,10 @@ import { buildConfidenceAnnotations } from "@/lib/confidenceEngine";
 import { evaluateActionReadiness } from "@/lib/actionReadinessEngine";
 import { evaluateHumanConfirmation } from "@/lib/confirmationPreviewEngine";
 import { generateExecutionPlan } from "@/lib/executionPlanEngine";
+import {
+  buildPreviewAuditTrail,
+  createHumanConfirmationAuditEvent,
+} from "@/lib/previewAuditEngine";
 import {
   createPreviewConfirmationRecord,
   transitionPreviewState,
@@ -178,6 +183,26 @@ export default function AssistantPage() {
 
     // Only open modal if the record is in PROPOSAL_CREATED state
     if (record.state === "PROPOSAL_CREATED") {
+      // Add audit event for opening preview
+      const openEvent = createHumanConfirmationAuditEvent(
+        messageId,
+        (message.previewAudit?.length || 0),
+        "HUMAN_CONFIRMATION_PREVIEW_OPENED",
+        "clinician",
+        message.relevance?.intent || "unknown"
+      );
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                previewAudit: [...(msg.previewAudit || []), openEvent],
+              }
+            : msg
+        )
+      );
+
       setActivePreviewModal({ messageId, record });
     }
   }
@@ -196,6 +221,29 @@ export default function AssistantPage() {
       setPreviewConfirmations((prev) =>
         new Map(prev).set(messageId, updatedRecord)
       );
+
+      // Add audit event
+      const msg = messages.find((m) => m.id === messageId);
+      if (msg) {
+        const ackEvent = createHumanConfirmationAuditEvent(
+          messageId,
+          (msg.previewAudit?.length || 0),
+          "HUMAN_CONFIRMATION_PREVIEW_ACKNOWLEDGED",
+          "clinician",
+          msg.relevance?.intent || "unknown"
+        );
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  previewAudit: [...(m.previewAudit || []), ackEvent],
+                }
+              : m
+          )
+        );
+      }
     }
 
     setActivePreviewModal(null);
@@ -215,6 +263,29 @@ export default function AssistantPage() {
       setPreviewConfirmations((prev) =>
         new Map(prev).set(messageId, updatedRecord)
       );
+
+      // Add audit event
+      const msg = messages.find((m) => m.id === messageId);
+      if (msg) {
+        const denyEvent = createHumanConfirmationAuditEvent(
+          messageId,
+          (msg.previewAudit?.length || 0),
+          "HUMAN_CONFIRMATION_PREVIEW_DENIED",
+          "clinician",
+          msg.relevance?.intent || "unknown"
+        );
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  previewAudit: [...(m.previewAudit || []), denyEvent],
+                }
+              : m
+          )
+        );
+      }
     }
 
     setActivePreviewModal(null);
@@ -290,8 +361,26 @@ export default function AssistantPage() {
       // Generate assistant response
       const responseContent = generateAssistantResponse(trimmed, relevance);
 
+      const assistantId = generateId();
+
+      // Compute preview audit trail
+      const previewAudit = buildPreviewAuditTrail({
+        messageId: assistantId,
+        actorContext: { role: "clinician" }, // Demo default
+        intent: {
+          intent: relevance.intent,
+          matchedKeywords: relevance.evidenceAttribution,
+          confidence: overallConfidence === "High" ? "high" : "low",
+        },
+        relevance,
+        confidence: confidenceAnnotations,
+        readiness: actionReadiness,
+        humanConfirmation,
+        executionPlan,
+      });
+
       const assistantMessage: ChatMessage = {
-        id: generateId(),
+        id: assistantId,
         role: "assistant",
         content: responseContent,
         timestamp: new Date(),
@@ -301,6 +390,7 @@ export default function AssistantPage() {
         actionReadiness,
         humanConfirmation,
         executionPlan,
+        previewAudit,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -512,6 +602,14 @@ export default function AssistantPage() {
                     {msg.executionPlan && (
                       <ExecutionPlanPanel 
                         plan={msg.executionPlan} 
+                        initialExpanded={false}
+                      />
+                    )}
+
+                    {/* Phase O-03: Preview Audit Trail */}
+                    {msg.previewAudit && (
+                      <PreviewAuditPanel 
+                        auditTrail={msg.previewAudit} 
                         initialExpanded={false}
                       />
                     )}

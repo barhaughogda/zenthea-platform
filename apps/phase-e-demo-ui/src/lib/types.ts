@@ -67,6 +67,56 @@ export interface ChatMessage {
   actionReadiness?: ActionReadinessResult;
   humanConfirmation?: HumanConfirmationResult;
   executionPlan?: ExecutionPlanResult;
+  previewAudit?: PreviewAuditEvent[];
+}
+
+/**
+ * =============================================================================
+ * PHASE O-03: Preview Audit Trail & Accountability Surface
+ * =============================================================================
+ */
+
+/**
+ * Event types for the preview audit trail.
+ * All types refer to actions that WOULD happen in a production system.
+ */
+export type PreviewAuditEventType =
+  | "INTENT_CLASSIFIED"
+  | "EVIDENCE_SELECTED"
+  | "SYNTHESIS_GENERATED"
+  | "CONFIDENCE_ANNOTATED"
+  | "READINESS_EVALUATED"
+  | "HUMAN_CONFIRMATION_PREVIEW_OPENED"
+  | "HUMAN_CONFIRMATION_PREVIEW_ACKNOWLEDGED"
+  | "HUMAN_CONFIRMATION_PREVIEW_DENIED"
+  | "EXECUTION_PLAN_PREVIEWED";
+
+/**
+ * Actors who would be accountable for or involved in an event.
+ */
+export type PreviewAuditActor = "PATIENT" | "CLINICIAN" | "OPERATOR" | "SYSTEM";
+
+/**
+ * A single event in the preview audit trail.
+ * PREVIEW ONLY — NOT RECORDED — NO ACTION TAKEN.
+ */
+export interface PreviewAuditEvent {
+  /** Deterministic-ish ID: `${messageId}-${index}` */
+  id: string;
+  /** ISO string timestamp */
+  ts: string;
+  /** Who would be accountable */
+  actor: PreviewAuditActor;
+  /** What type of event occurred */
+  type: PreviewAuditEventType;
+  /** Reference to system architecture or phase, e.g., "SL-07", "PHASE-O" */
+  sliceOrPhase: string;
+  /** Governance policies governing this event, e.g., ["SL-01 Consent Gate"] */
+  policyBasis: string[];
+  /** Short summary of what would happen (conditional phrasing) */
+  summary: string;
+  /** Safe, metadata-only payload preview (NO PHI) */
+  payloadPreview: Record<string, any>;
 }
 
 /**
