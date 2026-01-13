@@ -31,6 +31,19 @@ function generateAssistantResponse(
 ): string {
   const intentLabel = getIntentLabel(relevance.intent);
 
+  // Phase M: Clarifying Question Rule
+  const threshold = 3;
+  if (relevance.intent === "unknown" || relevance.maxScore < threshold) {
+    // Generate exactly ONE clarifying question
+    if (message.toLowerCase().includes("appointment") || message.toLowerCase().includes("visit")) {
+      return "Are you asking about an upcoming appointment or a past visit?";
+    }
+    if (message.toLowerCase().includes("note") || message.toLowerCase().includes("summary")) {
+      return "Do you want a summary of your last visit or help drafting a note?";
+    }
+    return "Could you please clarify if you are looking for information about your medical history, current medications, or scheduling?";
+  }
+
   if (!relevance.hasEvidence) {
     return `I understand you're asking about "${message.slice(0, 50)}${message.length > 50 ? "..." : ""}". However, I couldn't find any relevant information in the patient's demo timeline for this query. This is a demo with limited static data. Please try asking about visits, appointments, or clinical notes.`;
   }
@@ -39,22 +52,31 @@ function generateAssistantResponse(
   const itemCount = relevance.selectedItems.length;
 
   // Generate intent-specific responses (all read-only, no actions)
+  let response = "";
   switch (relevance.intent) {
     case "scheduling":
-      return `Based on the patient timeline, I found ${itemCount} relevant record${itemCount > 1 ? "s" : ""}. The most recent is from ${topItem.date}: "${topItem.title}". This is read-only demo data — no scheduling actions can be performed.`;
+      response = `Based on the patient timeline, I found ${itemCount} relevant record${itemCount > 1 ? "s" : ""}. The most recent is from ${topItem.date}: "${topItem.title}". This is read-only demo data — no scheduling actions can be performed.`;
+      break;
 
     case "clinical_drafting":
-      return `I found ${itemCount} clinical record${itemCount > 1 ? "s" : ""} that may be relevant. The most relevant is from ${topItem.date}: "${topItem.title}". Summary: "${topItem.summary.slice(0, 100)}${topItem.summary.length > 100 ? "..." : ""}". Note: This is demo data only — no clinical notes can be drafted or saved.`;
+      response = `I found ${itemCount} clinical record${itemCount > 1 ? "s" : ""} that may be relevant. The most relevant is from ${topItem.date}: "${topItem.title}". Summary: "${topItem.summary.slice(0, 100)}${topItem.summary.length > 100 ? "..." : ""}". Note: This is demo data only — no clinical notes can be drafted or saved.`;
+      break;
 
     case "record_summary":
-      return `Here's what I found in the patient's demo timeline: ${itemCount} relevant item${itemCount > 1 ? "s" : ""}. Most relevant: ${topItem.date} — "${topItem.title}". ${topItem.summary}. This is static demo data for demonstration purposes only.`;
+      response = `Here's what I found in the patient's demo timeline: ${itemCount} relevant item${itemCount > 1 ? "s" : ""}. Most relevant: ${topItem.date} — "${topItem.title}". ${topItem.summary}. This is static demo data for demonstration purposes only.`;
+      break;
 
     case "billing_explanation":
-      return `I searched for billing-related information. Found ${itemCount} item${itemCount > 1 ? "s" : ""}: ${topItem.date} — "${topItem.title}". Note: The demo timeline has limited billing data. No billing actions can be performed.`;
+      response = `I searched for billing-related information. Found ${itemCount} item${itemCount > 1 ? "s" : ""}: ${topItem.date} — "${topItem.title}". Note: The demo timeline has limited billing data. No billing actions can be performed.`;
+      break;
 
     default:
-      return `I found ${itemCount} potentially relevant item${itemCount > 1 ? "s" : ""} in the demo timeline. Most relevant: ${topItem.date} — "${topItem.title}". This is read-only demo data for demonstration purposes.`;
+      response = `I found ${itemCount} potentially relevant item${itemCount > 1 ? "s" : ""} in the demo timeline. Most relevant: ${topItem.date} — "${topItem.title}". This is read-only demo data for demonstration purposes.`;
   }
+
+  // Phase M: Evidence Attribution Footer
+  const footer = `\n\nBased on:\n${relevance.evidenceAttribution.map(a => `• ${a}`).join("\n")}`;
+  return response + footer;
 }
 
 /**

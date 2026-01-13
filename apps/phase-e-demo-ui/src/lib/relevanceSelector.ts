@@ -9,6 +9,7 @@
 import type { TimelineEvent, PatientTimeline } from "./demoPatientTimeline";
 import type { IntentBucket, ScoredTimelineItem, RelevanceResult } from "./types";
 import { classifyIntent, getIntentLabel } from "./intentClassifier";
+import { DEMO_PATIENT_CONTEXT } from "./demoPatientContext";
 
 /**
  * Type match rules for scoring.
@@ -162,6 +163,37 @@ export function selectRelevantItems(
     )
     .slice(0, 3);
 
+  const maxScore = selected.length > 0 ? selected[0].score : 0;
+
+  // Generate evidence attribution (deterministic based on what exists)
+  const evidenceAttribution: string[] = [];
+  
+  if (classification.intent !== "unknown" && maxScore >= 3) {
+    // 1. Last visit
+    if (DEMO_PATIENT_CONTEXT.lastVisitDate) {
+      evidenceAttribution.push(`Last visit on ${formatDate(DEMO_PATIENT_CONTEXT.lastVisitDate)}`);
+    }
+
+    // 2. Medication list (if relevant to query or intent)
+    const isMedicationQuery = message.toLowerCase().includes("medication") || 
+                             message.toLowerCase().includes("drug") ||
+                             classification.intent === "record_summary";
+    
+    if (isMedicationQuery && DEMO_PATIENT_CONTEXT.currentMedications.length > 0) {
+      evidenceAttribution.push("Medication list from demo timeline");
+    }
+
+    // 3. Scheduling history
+    const isSchedulingQuery = classification.intent === "scheduling";
+    if (isSchedulingQuery) {
+      evidenceAttribution.push("Scheduling history from demo context");
+    }
+  }
+
+  if (evidenceAttribution.length === 0) {
+    evidenceAttribution.push("No relevant patient data available");
+  }
+
   // Generate explanation
   const explanation = generateExplanation(
     classification.intent,
@@ -175,6 +207,8 @@ export function selectRelevantItems(
     selectedItems: selected,
     explanation,
     hasEvidence: selected.length > 0,
+    maxScore,
+    evidenceAttribution,
   };
 }
 

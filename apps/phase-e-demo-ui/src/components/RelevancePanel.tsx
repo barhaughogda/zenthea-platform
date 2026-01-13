@@ -93,10 +93,70 @@ function TimelineItemCard({ item }: { item: ScoredTimelineItem }) {
 export function RelevancePanel({ relevance }: RelevancePanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
+  // Phase M: Check if clarifying question was asked
+  const isClarifying = relevance.intent === "unknown" || relevance.maxScore < 3;
+
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden mt-3">
-      {/* Demo banner - always visible */}
-      <div className="bg-red-600 text-white px-3 py-1.5 flex items-center gap-2">
+    <div className="space-y-3">
+      {/* Evidence Used Panel (Always visible when answering) */}
+      {!isClarifying && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 mt-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <svg
+              className="w-3.5 h-3.5 text-slate-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Evidence Used
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {relevance.evidenceAttribution.map((attr, i) => (
+              <span
+                key={i}
+                className="text-[10px] px-2 py-0.5 bg-white border border-slate-200 text-slate-600 rounded"
+              >
+                {attr}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Needs clarification badge */}
+      {isClarifying && (
+        <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-2 py-1 rounded mt-2">
+          <svg
+            className="w-3.5 h-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span className="text-[10px] font-bold uppercase tracking-wider">
+            Needs clarification
+          </span>
+        </div>
+      )}
+
+      <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+        {/* Demo banner - always visible */}
+        <div className="bg-red-600 text-white px-3 py-1.5 flex items-center gap-2">
         <svg
           className="w-4 h-4 flex-shrink-0"
           fill="currentColor"
@@ -213,6 +273,7 @@ export function RelevancePanel({ relevance }: RelevancePanelProps) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

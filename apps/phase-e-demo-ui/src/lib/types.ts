@@ -49,6 +49,8 @@ export interface RelevanceResult {
   selectedItems: ScoredTimelineItem[];
   explanation: string[];
   hasEvidence: boolean;
+  maxScore: number;
+  evidenceAttribution: string[];
 }
 
 /**
