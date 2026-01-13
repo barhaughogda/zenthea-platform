@@ -13,6 +13,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Banners } from "@/components/Banners";
 import { RelevancePanel } from "@/components/RelevancePanel";
+import { InsightPanel } from "@/components/InsightPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
@@ -244,7 +245,10 @@ export default function AssistantPage() {
 
                 {/* Relevance panel for assistant messages */}
                 {msg.role === "assistant" && msg.relevance && (
-                  <RelevancePanel relevance={msg.relevance} />
+                  <>
+                    <RelevancePanel relevance={msg.relevance} />
+                    <InsightPanel relevance={msg.relevance} />
+                  </>
                 )}
               </div>
             </div>
