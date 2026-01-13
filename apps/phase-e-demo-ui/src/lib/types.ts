@@ -64,6 +64,15 @@ export interface ChatMessage {
   relevance?: RelevanceResult;
   comparativeInsights?: ComparativeInsights;
   confidenceAnnotations?: ConfidenceAnnotation[];
+  actionReadiness?: ActionReadinessResult;
+}
+
+/**
+ * Result of the action readiness evaluation.
+ */
+export interface ActionReadinessResult {
+  category: "INFORMATIONAL_ONLY" | "REQUIRES_CLINICIAN_REVIEW" | "REQUIRES_PATIENT_CONFIRMATION" | "REQUIRES_ADDITIONAL_DATA" | "NOT_ACTIONABLE_IN_SYSTEM";
+  explanation: string;
 }
 
 /**
