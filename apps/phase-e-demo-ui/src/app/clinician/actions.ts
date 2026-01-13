@@ -3,6 +3,7 @@
 import { executeClinicalDrafting } from "@starter/patient-portal-agent/orchestration";
 import { MOCK_PATIENT_SESSION, MOCK_INVALID_PATIENT_SESSION, MOCK_CLINICIAN } from "@/lib/mocks";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
+import { DEMO_PATIENT_TIMELINE } from "@/lib/demoPatientTimeline";
 
 export async function generateClinicalDraft(formData: FormData, useInvalidSession: boolean = false) {
   const intentInput = formData.get("intent") as string;
@@ -13,13 +14,21 @@ export async function generateClinicalDraft(formData: FormData, useInvalidSessio
     throw new Error("Intent is required");
   }
 
-  // Inject read-only context into the prompt construction
+  // Inject read-only context and timeline into the prompt construction
   const intent = `
 AVAILABLE READ-ONLY PATIENT CONTEXT:
 ${JSON.stringify(DEMO_PATIENT_CONTEXT, null, 2)}
 
-Do not infer, expand, or assume beyond this data.
-If information is missing, state uncertainty.
+AVAILABLE READ-ONLY PATIENT TIMELINE:
+${JSON.stringify(DEMO_PATIENT_TIMELINE, null, 2)}
+
+STRICT INSTRUCTIONS FOR ASSISTANT:
+1. Use provided context and timeline ONLY.
+2. Do not infer missing data or expand beyond provided history.
+3. Do not invent events or visits not listed in the timeline.
+4. Maintain a strictly advisory-only posture.
+5. Do not escalate authority or imply execution capability.
+6. If information is missing, state uncertainty clearly.
 
 USER INTENT:
 ${intentInput}
