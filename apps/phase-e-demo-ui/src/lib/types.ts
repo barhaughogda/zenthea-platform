@@ -159,3 +159,48 @@ export interface HumanConfirmationResult {
   explanation: string;
   rationale: string;
 }
+
+// =============================================================================
+// PHASE O-02: Interactive Human Confirmation Preview (Session-Only)
+// =============================================================================
+
+/**
+ * Preview confirmation states for the interactive confirmation flow.
+ * These states exist ONLY in session memory — never persisted.
+ */
+export type PreviewConfirmationState =
+  | "PROPOSAL_CREATED"
+  | "PREVIEW_ACKNOWLEDGED"
+  | "PREVIEW_DENIED";
+
+/**
+ * Record of a preview confirmation interaction.
+ * SESSION-ONLY — resets on session end, never crosses sessions.
+ */
+export interface PreviewConfirmationRecord {
+  /** Unique ID for this preview record (session-scoped) */
+  previewId: string;
+  /** Current state of the preview confirmation */
+  state: PreviewConfirmationState;
+  /** Who would normally confirm this action */
+  actor: RequiredActor;
+  /** Summary of what is being acknowledged */
+  intentSummary: string;
+  /** What would normally happen next (conditional language) */
+  wouldNormallyHappen: string[];
+  /** Why confirmation is required (policy/governance explanation) */
+  confirmationRationale: string;
+  /** Timestamp of the last state change */
+  timestamp: Date;
+  /** Role context from the session (e.g., "Patient", "Demo User") */
+  sessionRole: string;
+}
+
+/**
+ * Props for building a preview confirmation from existing data.
+ */
+export interface PreviewConfirmationInput {
+  humanConfirmation: HumanConfirmationResult;
+  executionPlan?: ExecutionPlanResult;
+  sessionRole?: string;
+}

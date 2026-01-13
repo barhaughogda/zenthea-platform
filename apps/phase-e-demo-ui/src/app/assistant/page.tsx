@@ -3,9 +3,13 @@
 /**
  * DEMO ONLY — READ-ONLY — NON-AUTHORITATIVE
  *
- * Phase M Assistant Demo with intent-aware reasoning.
+ * Phase M/O Assistant Demo with intent-aware reasoning and interactive
+ * human confirmation preview (Phase O-02).
+ *
  * This is a non-executing assistant that displays contextual relevance
- * information alongside assistant responses.
+ * information alongside assistant responses. The human confirmation preview
+ * flow allows users to experience a realistic confirmation UX while
+ * understanding that NOTHING actually happens.
  *
  * NO actions are executed. All data is from static demo fixtures.
  */
@@ -21,6 +25,10 @@ import { HumanConfirmationPanel } from "@/components/HumanConfirmationPanel";
 import { ExecutionPlanPanel } from "@/components/ExecutionPlanPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
+import {
+  ConfirmationPreviewModal,
+  PreviewAcknowledgmentBadge,
+} from "@/components/ConfirmationPreviewModal";
 import { SHADOW_MODE } from "@/lib/shadowMode";
 import { getPatientContext, getPatientTimeline } from "@/lib/dataSourceSelector";
 import { PatientContext } from "@/lib/demoPatientContext";
@@ -31,8 +39,16 @@ import { buildConfidenceAnnotations } from "@/lib/confidenceEngine";
 import { evaluateActionReadiness } from "@/lib/actionReadinessEngine";
 import { evaluateHumanConfirmation } from "@/lib/confirmationPreviewEngine";
 import { generateExecutionPlan } from "@/lib/executionPlanEngine";
+import {
+  createPreviewConfirmationRecord,
+  transitionPreviewState,
+} from "@/lib/interactivePreviewEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
-import type { ChatMessage, RelevanceResult } from "@/lib/types";
+import type {
+  ChatMessage,
+  RelevanceResult,
+  PreviewConfirmationRecord,
+} from "@/lib/types";
 
 /**
  * Generates a deterministic "assistant response" based on the intent.
@@ -113,6 +129,15 @@ export default function AssistantPage() {
   const [patientTimeline, setPatientTimeline] = useState<PatientTimeline | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Phase O-02: Interactive human confirmation preview state (session-only)
+  const [previewConfirmations, setPreviewConfirmations] = useState<
+    Map<string, PreviewConfirmationRecord>
+  >(new Map());
+  const [activePreviewModal, setActivePreviewModal] = useState<{
+    messageId: string;
+    record: PreviewConfirmationRecord;
+  } | null>(null);
+
   // Load data via selector on mount
   useEffect(() => {
     async function loadData() {
@@ -128,6 +153,72 @@ export default function AssistantPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /**
+   * Opens the preview confirmation modal for a message.
+   * Creates a new PreviewConfirmationRecord if one doesn't exist.
+   */
+  function openPreviewConfirmation(messageId: string, message: ChatMessage) {
+    if (!message.humanConfirmation || !message.executionPlan) return;
+
+    // Check if we already have a record for this message
+    let record = previewConfirmations.get(messageId);
+
+    if (!record) {
+      // Create a new preview confirmation record
+      record = createPreviewConfirmationRecord({
+        humanConfirmation: message.humanConfirmation,
+        executionPlan: message.executionPlan,
+        sessionRole: "Demo User",
+      });
+
+      // Store in session-only state
+      setPreviewConfirmations((prev) => new Map(prev).set(messageId, record!));
+    }
+
+    // Only open modal if the record is in PROPOSAL_CREATED state
+    if (record.state === "PROPOSAL_CREATED") {
+      setActivePreviewModal({ messageId, record });
+    }
+  }
+
+  /**
+   * Handles the "Acknowledge Preview" action.
+   * Updates session-only state — NO persistence, NO execution.
+   */
+  function handleAcknowledgePreview() {
+    if (!activePreviewModal) return;
+
+    const { messageId, record } = activePreviewModal;
+    const updatedRecord = transitionPreviewState(record, "PREVIEW_ACKNOWLEDGED");
+
+    if (updatedRecord) {
+      setPreviewConfirmations((prev) =>
+        new Map(prev).set(messageId, updatedRecord)
+      );
+    }
+
+    setActivePreviewModal(null);
+  }
+
+  /**
+   * Handles the "Cancel" action (denial).
+   * Updates session-only state — NO persistence, NO execution.
+   */
+  function handleDenyPreview() {
+    if (!activePreviewModal) return;
+
+    const { messageId, record } = activePreviewModal;
+    const updatedRecord = transitionPreviewState(record, "PREVIEW_DENIED");
+
+    if (updatedRecord) {
+      setPreviewConfirmations((prev) =>
+        new Map(prev).set(messageId, updatedRecord)
+      );
+    }
+
+    setActivePreviewModal(null);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -362,6 +453,61 @@ export default function AssistantPage() {
                       />
                     )}
 
+                    {/* Phase O-02: Interactive Confirmation Preview Button & Badge */}
+                    {msg.humanConfirmation && 
+                     msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" &&
+                     msg.humanConfirmation.requiredActor !== "NONE" && (
+                      <div className="mt-3">
+                        {/* Show badge if already acknowledged/denied */}
+                        {previewConfirmations.get(msg.id)?.state !== "PROPOSAL_CREATED" &&
+                         previewConfirmations.get(msg.id) && (
+                          <PreviewAcknowledgmentBadge
+                            record={previewConfirmations.get(msg.id)!}
+                          />
+                        )}
+
+                        {/* Show button if not yet interacted or in proposal state */}
+                        {(!previewConfirmations.get(msg.id) ||
+                          previewConfirmations.get(msg.id)?.state === "PROPOSAL_CREATED") && (
+                          <button
+                            onClick={() => openPreviewConfirmation(msg.id, msg)}
+                            className="w-full mt-2 px-4 py-3 rounded-lg border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-colors group"
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg
+                                className="w-5 h-5 text-purple-600"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                              <span className="text-sm font-bold text-purple-700">
+                                Preview Confirmation
+                              </span>
+                              <span className="text-[10px] font-black text-purple-500 uppercase tracking-wider px-2 py-0.5 bg-purple-200 rounded">
+                                PREVIEW ONLY
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-purple-600 mt-1 group-hover:text-purple-700">
+                              Experience the human confirmation flow — no action will be taken
+                            </p>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {/* 6. Execution Plan Preview */}
                     {msg.executionPlan && (
                       <ExecutionPlanPanel 
@@ -473,6 +619,16 @@ export default function AssistantPage() {
           ))}
         </div>
       </div>
+
+      {/* Phase O-02: Interactive Confirmation Preview Modal */}
+      {activePreviewModal && (
+        <ConfirmationPreviewModal
+          record={activePreviewModal.record}
+          isOpen={true}
+          onAcknowledge={handleAcknowledgePreview}
+          onCancel={handleDenyPreview}
+        />
+      )}
     </div>
   );
 }
