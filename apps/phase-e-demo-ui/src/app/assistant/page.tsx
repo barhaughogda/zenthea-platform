@@ -21,8 +21,10 @@ import { HumanConfirmationPanel } from "@/components/HumanConfirmationPanel";
 import { ExecutionPlanPanel } from "@/components/ExecutionPlanPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
-import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
-import { DEMO_PATIENT_TIMELINE } from "@/lib/demoPatientTimeline";
+import { SHADOW_MODE } from "@/lib/shadowMode";
+import { getPatientContext, getPatientTimeline } from "@/lib/dataSourceSelector";
+import { PatientContext } from "@/lib/demoPatientContext";
+import { PatientTimeline } from "@/lib/demoPatientTimeline";
 import { selectRelevantItems } from "@/lib/relevanceSelector";
 import { buildComparativeInsights } from "@/lib/comparativeEngine";
 import { buildConfidenceAnnotations } from "@/lib/confidenceEngine";
@@ -42,21 +44,26 @@ function generateAssistantResponse(
 ): string {
   const intentLabel = getIntentLabel(relevance.intent);
 
+  // Shadow Mode Prompt Grounding (Strict)
+  const shadowModeGrounding = SHADOW_MODE 
+    ? "\n\n[SYSTEM INSTRUCTION: You may only reason over the provided data. Do not infer missing information. Do not suggest actions. Do not assume correctness. Some information may be incomplete or unavailable.]"
+    : "";
+
   // Phase M: Clarifying Question Rule
   const threshold = 3;
   if (relevance.intent === "unknown" || relevance.maxScore < threshold) {
     // Generate exactly ONE clarifying question
     if (message.toLowerCase().includes("appointment") || message.toLowerCase().includes("visit")) {
-      return "Are you asking about an upcoming appointment or a past visit?";
+      return "Are you asking about an upcoming appointment or a past visit?" + shadowModeGrounding;
     }
     if (message.toLowerCase().includes("note") || message.toLowerCase().includes("summary")) {
-      return "Do you want a summary of your last visit or help drafting a note?";
+      return "Do you want a summary of your last visit or help drafting a note?" + shadowModeGrounding;
     }
-    return "Could you please clarify if you are looking for information about your medical history, current medications, or scheduling?";
+    return "Could you please clarify if you are looking for information about your medical history, current medications, or scheduling?" + shadowModeGrounding;
   }
 
   if (!relevance.hasEvidence) {
-    return `I understand you're asking about "${message.slice(0, 50)}${message.length > 50 ? "..." : ""}". However, I couldn't find any relevant information in the patient's demo timeline for this query. This is a demo with limited static data. Please try asking about visits, appointments, or clinical notes.`;
+    return `I understand you're asking about "${message.slice(0, 50)}${message.length > 50 ? "..." : ""}". However, I couldn't find any relevant information in the patient's ${SHADOW_MODE ? "live" : "demo"} timeline for this query. ${SHADOW_MODE ? "This is a read-only shadow mode preview." : "This is a demo with limited static data."} Please try asking about visits, appointments, or clinical notes. ${shadowModeGrounding}`;
   }
 
   const topItem = relevance.selectedItems[0];
@@ -66,28 +73,28 @@ function generateAssistantResponse(
   let response = "";
   switch (relevance.intent) {
     case "scheduling":
-      response = `Based on the patient timeline, I found ${itemCount} relevant record${itemCount > 1 ? "s" : ""}. The most recent is from ${topItem.date}: "${topItem.title}". This is read-only demo data — no scheduling actions can be performed.`;
+      response = `Based on the patient timeline, I found ${itemCount} relevant record${itemCount > 1 ? "s" : ""}. The most recent is from ${topItem.date}: "${topItem.title}". This is read-only ${SHADOW_MODE ? "shadow mode preview" : "demo data"} — no scheduling actions can be performed.`;
       break;
 
     case "clinical_drafting":
-      response = `I found ${itemCount} clinical record${itemCount > 1 ? "s" : ""} that may be relevant. The most relevant is from ${topItem.date}: "${topItem.title}". Summary: "${topItem.summary.slice(0, 100)}${topItem.summary.length > 100 ? "..." : ""}". Note: This is demo data only — no clinical notes can be drafted or saved.`;
+      response = `I found ${itemCount} clinical record${itemCount > 1 ? "s" : ""} that may be relevant. The most relevant is from ${topItem.date}: "${topItem.title}". Summary: "${topItem.summary.slice(0, 100)}${topItem.summary.length > 100 ? "..." : ""}". Note: This is ${SHADOW_MODE ? "read-only shadow mode preview" : "demo data only"} — no clinical notes can be drafted or saved.`;
       break;
 
     case "record_summary":
-      response = `Here's what I found in the patient's demo timeline: ${itemCount} relevant item${itemCount > 1 ? "s" : ""}. Most relevant: ${topItem.date} — "${topItem.title}". ${topItem.summary}. This is static demo data for demonstration purposes only.`;
+      response = `Here's what I found in the patient's ${SHADOW_MODE ? "live" : "demo"} timeline: ${itemCount} relevant item${itemCount > 1 ? "s" : ""}. Most relevant: ${topItem.date} — "${topItem.title}". ${topItem.summary}. This is ${SHADOW_MODE ? "read-only shadow mode preview" : "static demo data for demonstration purposes only"}.`;
       break;
 
     case "billing_explanation":
-      response = `I searched for billing-related information. Found ${itemCount} item${itemCount > 1 ? "s" : ""}: ${topItem.date} — "${topItem.title}". Note: The demo timeline has limited billing data. No billing actions can be performed.`;
+      response = `I searched for billing-related information. Found ${itemCount} item${itemCount > 1 ? "s" : ""}: ${topItem.date} — "${topItem.title}". Note: The ${SHADOW_MODE ? "live" : "demo"} timeline has limited billing data. No billing actions can be performed.`;
       break;
 
     default:
-      response = `I found ${itemCount} potentially relevant item${itemCount > 1 ? "s" : ""} in the demo timeline. Most relevant: ${topItem.date} — "${topItem.title}". This is read-only demo data for demonstration purposes.`;
+      response = `I found ${itemCount} potentially relevant item${itemCount > 1 ? "s" : ""} in the ${SHADOW_MODE ? "live" : "demo"} timeline. Most relevant: ${topItem.date} — "${topItem.title}". This is read-only ${SHADOW_MODE ? "shadow mode preview" : "demo data for demonstration purposes"}.`;
   }
 
   // Phase M: Evidence Attribution Footer
   const footer = `\n\nBased on:\n${relevance.evidenceAttribution.map(a => `• ${a}`).join("\n")}`;
-  return response + footer;
+  return response + footer + shadowModeGrounding;
 }
 
 /**
@@ -102,7 +109,20 @@ export default function AssistantPage() {
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showContext, setShowContext] = useState(true);
+  const [patientContext, setPatientContext] = useState<PatientContext | null>(null);
+  const [patientTimeline, setPatientTimeline] = useState<PatientTimeline | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load data via selector on mount
+  useEffect(() => {
+    async function loadData() {
+      const context = await getPatientContext("PAT-12345");
+      const timeline = await getPatientTimeline("PAT-12345");
+      setPatientContext(context);
+      setPatientTimeline(timeline);
+    }
+    loadData();
+  }, []);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -112,7 +132,7 @@ export default function AssistantPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = inputValue.trim();
-    if (!trimmed || isProcessing) return;
+    if (!trimmed || isProcessing || !patientTimeline) return;
 
     setIsProcessing(true);
 
@@ -130,14 +150,14 @@ export default function AssistantPage() {
     // Simulate processing delay (100-300ms for realism)
     setTimeout(() => {
       // Compute relevance
-      const relevance = selectRelevantItems(trimmed, DEMO_PATIENT_TIMELINE);
+      const relevance = selectRelevantItems(trimmed, patientTimeline);
 
       // Compute comparative insights
       const comparativeInsights = buildComparativeInsights({
         intent: relevance.intent,
         message: trimmed,
         relevantItems: relevance.selectedItems,
-        timeline: DEMO_PATIENT_TIMELINE.events,
+        timeline: patientTimeline.events,
       });
 
       // Compute confidence annotations
@@ -212,10 +232,10 @@ export default function AssistantPage() {
       </div>
 
       {/* Patient context panels (collapsible) */}
-      {showContext && (
+      {showContext && patientContext && patientTimeline && (
         <div className="space-y-4 mb-6">
-          <ContextPanel context={DEMO_PATIENT_CONTEXT} />
-          <PatientTimelinePanel timeline={DEMO_PATIENT_TIMELINE} />
+          <ContextPanel context={patientContext} />
+          <PatientTimelinePanel timeline={patientTimeline} />
         </div>
       )}
 
