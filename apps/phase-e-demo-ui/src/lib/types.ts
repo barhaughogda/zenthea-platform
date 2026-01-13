@@ -66,6 +66,27 @@ export interface ChatMessage {
   confidenceAnnotations?: ConfidenceAnnotation[];
   actionReadiness?: ActionReadinessResult;
   humanConfirmation?: HumanConfirmationResult;
+  executionPlan?: ExecutionPlanResult;
+}
+
+/**
+ * Result of the execution plan preview engine.
+ * PREVIEW ONLY — NO ACTIONS EXECUTED.
+ */
+export interface ExecutionPlanResult {
+  planId: string;
+  intentBucket: IntentBucket;
+  summary: string;
+  proposedActions: string[];
+  requiredHumanConfirmations: {
+    actor: RequiredActor;
+    confirmationType: string;
+  }[];
+  requiredData: string[];
+  blockedBy: string[];
+  evidence: string[];
+  risks: string[];
+  disclaimers: string[];
 }
 
 /**

@@ -18,6 +18,7 @@ import { ComparativePanel } from "@/components/ComparativePanel";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { ActionReadinessPanel } from "@/components/ActionReadinessPanel";
 import { HumanConfirmationPanel } from "@/components/HumanConfirmationPanel";
+import { ExecutionPlanPanel } from "@/components/ExecutionPlanPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
@@ -27,6 +28,7 @@ import { buildComparativeInsights } from "@/lib/comparativeEngine";
 import { buildConfidenceAnnotations } from "@/lib/confidenceEngine";
 import { evaluateActionReadiness } from "@/lib/actionReadinessEngine";
 import { evaluateHumanConfirmation } from "@/lib/confirmationPreviewEngine";
+import { generateExecutionPlan } from "@/lib/executionPlanEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
 import type { ChatMessage, RelevanceResult } from "@/lib/types";
 
@@ -166,6 +168,14 @@ export default function AssistantPage() {
         overallConfidence
       );
 
+      // Compute execution plan preview
+      const executionPlan = generateExecutionPlan(
+        relevance.intent,
+        relevance,
+        actionReadiness,
+        overallConfidence
+      );
+
       // Generate assistant response
       const responseContent = generateAssistantResponse(trimmed, relevance);
 
@@ -179,6 +189,7 @@ export default function AssistantPage() {
         confidenceAnnotations,
         actionReadiness,
         humanConfirmation,
+        executionPlan,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -307,6 +318,9 @@ export default function AssistantPage() {
                     )}
                     {msg.humanConfirmation && msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
                       <HumanConfirmationPanel confirmation={msg.humanConfirmation} />
+                    )}
+                    {msg.executionPlan && (
+                      <ExecutionPlanPanel plan={msg.executionPlan} />
                     )}
                   </>
                 )}
