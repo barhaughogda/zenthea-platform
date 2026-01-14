@@ -10,14 +10,14 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link 
-          href="/assistant" 
+          href="/demo" 
           className="p-6 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg shadow-sm border border-slate-600 hover:border-blue-400 transition-colors text-white"
         >
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-bold uppercase bg-red-500 px-2 py-0.5 rounded">NEW</span>
-            <h3 className="text-lg font-bold">Phase M Assistant</h3>
+            <h3 className="text-lg font-bold">Phase M Assistant Demo</h3>
           </div>
-          <p className="text-sm text-slate-300">Intent-aware reasoning over patient timeline (read-only)</p>
+          <p className="text-sm text-slate-300">Enter intentional demo gateway (read-only)</p>
         </Link>
 
         <Link 

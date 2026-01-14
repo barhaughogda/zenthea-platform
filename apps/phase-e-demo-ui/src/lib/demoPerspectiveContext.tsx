@@ -23,6 +23,7 @@ import React, {
   useMemo,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "next/navigation";
 
 /**
  * Available demo perspectives.
@@ -93,10 +94,20 @@ const DemoPerspectiveContext = createContext<DemoPerspectiveContextValue | null>
 
 /**
  * Provider component for demo perspective state.
+ * Reads perspective from URL query param (?perspective=patient|clinician|operator), 
+ * defaults to "patient".
  */
 export function DemoPerspectiveProvider({ children }: { children: ReactNode }) {
-  // Default to Patient perspective per requirements
-  const [perspective, setPerspectiveState] = useState<DemoPerspective>("patient");
+  const searchParams = useSearchParams();
+  
+  // Read perspective from URL query param, default to "patient"
+  const perspectiveParam = searchParams.get("perspective");
+  const initialPerspective: DemoPerspective = 
+    (perspectiveParam === "clinician" || perspectiveParam === "operator")
+      ? perspectiveParam
+      : "patient";
+
+  const [perspective, setPerspectiveState] = useState<DemoPerspective>(initialPerspective);
 
   // Switching perspective should NOT reset session or recompute reasoning
   // It only changes UI emphasis
