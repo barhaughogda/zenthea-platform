@@ -80,6 +80,7 @@ import {
 import { DemoModeProvider, useDemoMode } from "@/lib/demoModeContext";
 import { frameResponseForPerspective } from "@/lib/perspectiveFramingEngine";
 import { mapNarrativeSubject } from "@/lib/narrativeSubjectMapper";
+import { normalizeNarrativeSubject } from "@/lib/narrativeNormalizer";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -513,11 +514,14 @@ function AssistantPageContent() {
                               : "bg-white border border-gray-200 text-gray-800"
                           }`}
                         >
-                          {/* Phase R-06 & R-08: Apply perspective-aware framing and narrative subject mapping to assistant messages */}
+                          {/* Phase R-06, R-08 & R-09: Apply perspective-aware framing and normalization to assistant messages */}
                           <p className="text-sm whitespace-pre-wrap">
                             {msg.role === "assistant"
-                              ? mapNarrativeSubject(
-                                  frameResponseForPerspective(msg.content, perspective).framedResponse,
+                              ? normalizeNarrativeSubject(
+                                  mapNarrativeSubject(
+                                    frameResponseForPerspective(msg.content, perspective).framedResponse,
+                                    perspective
+                                  ),
                                   perspective
                                 )
                               : msg.content}
