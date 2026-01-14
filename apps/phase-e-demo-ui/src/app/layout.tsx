@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { DemoFreezeMarker } from "@/components/DemoFreezeMarker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +20,10 @@ export default function RootLayout({
       <body className={inter.className}>
         <div className="min-h-screen bg-gray-50 flex flex-col">
           <header className="bg-white border-b px-6 py-4">
-            <h1 className="text-xl font-bold text-gray-900">Phase E Demo UI</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-gray-900">Phase E Demo UI</h1>
+              <DemoFreezeMarker />
+            </div>
           </header>
           <main className="flex-1 p-6">
             {children}
