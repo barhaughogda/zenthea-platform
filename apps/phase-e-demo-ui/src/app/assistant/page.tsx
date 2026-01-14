@@ -70,6 +70,10 @@ import {
   createPreviewConfirmationRecord,
   transitionPreviewState,
 } from "@/lib/interactivePreviewEngine";
+import {
+  SandboxExecutionAdapter,
+  type SandboxExecutionReceipt,
+} from "@/lib/sandboxExecutionAdapter";
 import { getIntentLabel } from "@/lib/intentClassifier";
 import { classifyQuestionType } from "@/lib/questionTypeClassifier";
 import { routeEvidence } from "@/lib/evidenceRouter";
@@ -206,8 +210,30 @@ function AssistantPageContent() {
         new Map(prev).set(messageId, updatedRecord)
       );
 
-      // Add audit event
+      // Phase U-02: SANDBOX EXECUTION SPIKE (INTERNAL ONLY)
+      // If the intent is scheduling and it's acknowledged, simulate a sandbox execution
       const msg = messages.find((m) => m.id === messageId);
+      if (msg && msg.relevance?.intent === "scheduling") {
+        console.log("[PHASE U] Triggering Sandbox Execution for scheduling intent...");
+        const receipt = SandboxExecutionAdapter.executeAppointmentConfirmation(
+          "PAT-12345",
+          "DR-67890",
+          "SLOT-ABC"
+        );
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  sandboxExecutionReceipt: receipt,
+                }
+              : m
+          )
+        );
+      }
+
+      // Add audit event
       if (msg) {
         const ackEvent = createHumanConfirmationAuditEvent(
           messageId,
@@ -535,6 +561,26 @@ function AssistantPageContent() {
                           </p>
                         </div>
                         
+                        {/* Phase U-02: SANDBOX EXECUTION RECEIPT */}
+                        {msg.sandboxExecutionReceipt && (
+                          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg text-[11px]">
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                              <span className="font-bold text-green-800 uppercase tracking-tight">Sandbox Execution Receipt</span>
+                            </div>
+                            <div className="space-y-1 text-green-700 font-mono">
+                              <p>ID: {msg.sandboxExecutionReceipt.executionId}</p>
+                              <p>STATUS: {msg.sandboxExecutionReceipt.status}</p>
+                              <p>PATIENT: {msg.sandboxExecutionReceipt.patientName}</p>
+                              <p>CLINICIAN: {msg.sandboxExecutionReceipt.clinicianName}</p>
+                              <p>GOV_HASH: {msg.sandboxExecutionReceipt.governanceHash}</p>
+                              <p className="mt-2 font-bold italic text-green-900 text-center">
+                                "{msg.sandboxExecutionReceipt.disclaimer}"
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Interactive Preview Button in Chat - ONLY the button stays in chat flow */}
                         {msg.role === "assistant" && msg.humanConfirmation && 
                          msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" &&
@@ -706,6 +752,9 @@ function AssistantPageContent() {
           isOpen={true}
           onAcknowledge={handleAcknowledgePreview}
           onCancel={handleDenyPreview}
+          canSandboxExecute={
+            messages.find(m => m.id === activePreviewModal.messageId)?.relevance?.intent === "scheduling"
+          }
         />
       )}
     </div>

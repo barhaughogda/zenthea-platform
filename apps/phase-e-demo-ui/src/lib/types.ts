@@ -68,6 +68,7 @@ export interface ChatMessage {
   humanConfirmation?: HumanConfirmationResult;
   executionPlan?: ExecutionPlanResult;
   previewAudit?: PreviewAuditEvent[];
+  sandboxExecutionReceipt?: import("./sandboxExecutionAdapter").SandboxExecutionReceipt;
 }
 
 /**

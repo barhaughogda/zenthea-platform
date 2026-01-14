@@ -31,6 +31,8 @@ interface ConfirmationPreviewModalProps {
   onCancel: () => void;
   /** Whether the modal is open */
   isOpen: boolean;
+  /** Whether sandbox execution is available for this record (PHASE U) */
+  canSandboxExecute?: boolean;
 }
 
 /**
@@ -129,6 +131,7 @@ export function ConfirmationPreviewModal({
   onAcknowledge,
   onCancel,
   isOpen,
+  canSandboxExecute = false,
 }: ConfirmationPreviewModalProps) {
   if (!isOpen) {
     return null;
@@ -148,6 +151,12 @@ export function ConfirmationPreviewModal({
 
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* PHASE U-02: SANDBOX EXECUTION BOUNDARY BANNERS */}
+        <div className="bg-amber-600 px-6 py-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sandbox Execution</span>
+          <span className="text-[10px] font-bold text-amber-100 uppercase tracking-wider">Internal Test Only</span>
+        </div>
+
         {/* MANDATORY HEADER — PREVIEW ONLY */}
         <div className="bg-gradient-to-r from-purple-700 to-purple-800 px-6 py-4">
           <div className="flex items-center justify-center gap-2 mb-1">
@@ -309,7 +318,12 @@ export function ConfirmationPreviewModal({
             </button>
             <button
               onClick={onAcknowledge}
-              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-purple-600 bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 hover:border-purple-700 transition-colors flex items-center justify-center gap-2"
+              disabled={!canSandboxExecute}
+              className={`flex-1 px-4 py-2.5 rounded-lg border-2 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                canSandboxExecute 
+                  ? "border-green-600 bg-green-600 text-white hover:bg-green-700" 
+                  : "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+              }`}
             >
               <svg
                 className="w-4 h-4"
@@ -321,16 +335,26 @@ export function ConfirmationPreviewModal({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2.5}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
-              Acknowledge Preview
+              SANDBOX EXECUTE (INTERNAL ONLY)
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <div className="w-full h-px bg-slate-200" />
+            <button
+              onClick={onAcknowledge}
+              className="w-full px-4 py-2 rounded-lg text-slate-400 text-[10px] font-bold uppercase tracking-widest hover:text-slate-600 transition-colors"
+            >
+              Legacy Preview Only (Skip Execution)
             </button>
           </div>
 
           {/* Final disclaimer */}
           <p className="text-[9px] text-slate-400 text-center mt-3 uppercase tracking-wider font-bold">
-            Session-only · No persistence · No execution · No side effects
+            NO REAL SYSTEMS TOUCHED · Session-only · No persistence
           </p>
         </div>
       </div>
