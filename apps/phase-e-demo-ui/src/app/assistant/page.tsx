@@ -10,6 +10,11 @@
  * Added perspective selector for UI visibility control (Patient, Clinician, Operator).
  * Perspective changes panel expansion defaults — NO logic changes, NO permission changes.
  *
+ * Phase R-03: Demo Narrative Mode (Guided vs Free)
+ * Added narrative mode framing for demo governance. Guided mode locks prompts
+ * to a predefined sequence. Free mode enables open exploration.
+ * Narrative mode is UI-only — NO logic changes, NO permission changes.
+ *
  * This is a non-executing assistant that displays contextual relevance
  * information alongside assistant responses. The human confirmation preview
  * flow allows users to experience a realistic confirmation UX while
@@ -18,7 +23,7 @@
  * NO actions are executed. All data is from static demo fixtures.
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { Banners } from "@/components/Banners";
 import { RelevancePanel } from "@/components/RelevancePanel";
 import { InsightPanel } from "@/components/InsightPanel";
@@ -31,6 +36,8 @@ import { PreviewAuditPanel } from "@/components/PreviewAuditPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DemoPerspectiveSelector } from "@/components/DemoPerspectiveSelector";
+import { DemoModeBanner } from "@/components/DemoModeBanner";
+import { GuidedPromptList } from "@/components/GuidedPromptList";
 import {
   ConfirmationPreviewModal,
   PreviewAcknowledgmentBadge,
@@ -58,6 +65,7 @@ import {
   DemoPerspectiveProvider,
   useDemoPerspective,
 } from "@/lib/demoPerspectiveContext";
+import { DemoModeProvider, useDemoMode } from "@/lib/demoModeContext";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -135,8 +143,8 @@ function generateId(): string {
 }
 
 /**
- * Inner component that uses the perspective context.
- * Separated to allow hook usage within the provider.
+ * Inner component that uses the perspective and mode contexts.
+ * Separated to allow hook usage within the providers.
  */
 function AssistantPageContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -149,6 +157,9 @@ function AssistantPageContent() {
 
   // Phase R-02: Demo perspective framing (UI-only, no logic changes)
   const { shouldExpandPanel, chatDeemphasized } = useDemoPerspective();
+
+  // Phase R-03: Demo narrative mode (UI-only, no logic changes)
+  const { mode, isInputEnabled } = useDemoMode();
 
   // Phase O-02: Interactive human confirmation preview state (session-only)
   const [previewConfirmations, setPreviewConfirmations] = useState<
@@ -417,6 +428,11 @@ function AssistantPageContent() {
   return (
     <div className="max-w-5xl mx-auto">
       <Banners slice="Phase-M" />
+
+      {/* Phase R-03: Demo Mode Banner (Guided vs Free) */}
+      <div className="mb-4">
+        <DemoModeBanner />
+      </div>
 
       {/* Phase R-02: Demo Perspective Selector */}
       <DemoPerspectiveSelector />
@@ -690,52 +706,42 @@ function AssistantPageContent() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask about scheduling, records, clinical notes..."
-              disabled={isProcessing}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+              placeholder={
+                isInputEnabled
+                  ? "Ask about scheduling, records, clinical notes..."
+                  : "Use the guided prompt above to continue..."
+              }
+              disabled={isProcessing || !isInputEnabled}
+              className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 ${
+                !isInputEnabled ? "border-indigo-300 bg-indigo-50" : "border-gray-300"
+              }`}
             />
             <button
               type="submit"
-              disabled={!inputValue.trim() || isProcessing}
+              disabled={!inputValue.trim() || isProcessing || !isInputEnabled}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Send
             </button>
           </div>
+          {/* Phase R-03: Mode-specific input helper text */}
+          {!isInputEnabled && mode === "guided" && (
+            <p className="text-[10px] text-indigo-600 mt-2 text-center font-medium">
+              Guided mode: Use the current guided prompt to continue the narrative sequence.
+            </p>
+          )}
           <p className="text-[10px] text-gray-400 mt-2 text-center">
-            This is a non-executing demo. All responses are based on static
-            timeline data. No actions are performed.
+            This is a non-executing demo. All responses illustrate reasoning
+            over static timeline data. No actions are performed.
           </p>
         </form>
       </div>
 
-      {/* Sample prompts */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 className="text-sm font-bold text-gray-700 mb-3">
-          Try these sample prompts:
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {[
-            "What happened at the last visit?",
-            "Can I schedule an appointment?",
-            "Show me the lab results",
-            "Draft a clinical note summary",
-            "Tell me about my medications",
-            "What was the diagnosis?",
-          ].map((prompt) => (
-            <button
-              key={prompt}
-              onClick={() => {
-                setInputValue(prompt);
-              }}
-              disabled={isProcessing}
-              className="text-left text-sm px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 text-gray-700 disabled:opacity-50 transition-colors"
-            >
-              "{prompt}"
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Phase R-03: Mode-aware prompt list (Guided vs Free) */}
+      <GuidedPromptList
+        onSelectPrompt={setInputValue}
+        isProcessing={isProcessing}
+      />
 
       {/* Phase O-02: Interactive Confirmation Preview Modal */}
       {activePreviewModal && (
@@ -751,13 +757,48 @@ function AssistantPageContent() {
 }
 
 /**
- * Main page component with perspective provider wrapper.
+ * Loading fallback for Suspense boundary.
+ * Shown while URL search params are being read.
+ */
+function AssistantLoadingFallback() {
+  return (
+    <div className="max-w-5xl mx-auto">
+      <Banners slice="Phase-M" />
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-pulse flex items-center gap-2 text-gray-500">
+            <div className="w-4 h-4 bg-gray-300 rounded-full animate-bounce" />
+            <span className="text-sm">Loading demo mode...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Inner wrapper that provides the demo mode context.
+ * Separated to handle Suspense boundary for useSearchParams.
+ */
+function AssistantPageWithProviders() {
+  return (
+    <DemoModeProvider>
+      <DemoPerspectiveProvider>
+        <AssistantPageContent />
+      </DemoPerspectiveProvider>
+    </DemoModeProvider>
+  );
+}
+
+/**
+ * Main page component with provider wrappers.
  * Phase R-02: Demo perspective framing support.
+ * Phase R-03: Demo narrative mode (guided vs free) support.
  */
 export default function AssistantPage() {
   return (
-    <DemoPerspectiveProvider>
-      <AssistantPageContent />
-    </DemoPerspectiveProvider>
+    <Suspense fallback={<AssistantLoadingFallback />}>
+      <AssistantPageWithProviders />
+    </Suspense>
   );
 }
