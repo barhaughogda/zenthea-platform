@@ -76,11 +76,13 @@ import { composePrimaryResponse } from "@/lib/responseComposer";
 import {
   DemoPerspectiveProvider,
   useDemoPerspective,
+  PanelId,
 } from "@/lib/demoPerspectiveContext";
 import { DemoModeProvider, useDemoMode } from "@/lib/demoModeContext";
 import { frameResponseForPerspective } from "@/lib/perspectiveFramingEngine";
 import { mapNarrativeSubject } from "@/lib/narrativeSubjectMapper";
 import { normalizeNarrativeSubject } from "@/lib/narrativeNormalizer";
+import { getSectionOrder } from "@/lib/perspectiveContentOrder";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -419,18 +421,13 @@ function AssistantPageContent() {
               </div>
             )}
 
-            {hasAssistantResponse && lastMessage.relevance && (
+            {hasAssistantResponse && (
               <div className="space-y-4">
-                <RelevancePanel 
-                  relevance={lastMessage.relevance} 
-                  initialExpanded={shouldExpandPanel("relevance")} 
-                />
-                {lastMessage.comparativeInsights && (
-                  <ComparativePanel 
-                    insights={lastMessage.comparativeInsights} 
-                    initialExpanded={shouldExpandPanel("comparative")} 
-                  />
-                )}
+                {/* 
+                  Phase R-10: Left column panels are also reordered if they are in the perspective order.
+                  For simplicity and to maintain DemoLayout structure, we keep the order of these 
+                  specific panels but respect their visibility rules. 
+                */}
               </div>
             )}
           </>
@@ -602,48 +599,79 @@ function AssistantPageContent() {
         }
         rightColumn={
           <div className="space-y-4">
-            {/* RIGHT COLUMN — Governance & Trust */}
+            {/* RIGHT COLUMN — Perspective-Specific Ordered Panels */}
             {hasAssistantResponse && (
               <>
-                <InsightPanel 
-                  relevance={lastMessage.relevance!} 
-                  initialExpanded={shouldExpandPanel("synthesis")} 
-                />
-
-                {lastMessage.confidenceAnnotations && (
-                  <ConfidencePanel 
-                    annotations={lastMessage.confidenceAnnotations} 
-                    initialExpanded={shouldExpandPanel("confidence")}
-                  />
-                )}
-
-                {lastMessage.actionReadiness && (
-                  <ActionReadinessPanel 
-                    readiness={lastMessage.actionReadiness} 
-                    initialExpanded={shouldExpandPanel("readiness")}
-                  />
-                )}
-
-                {lastMessage.humanConfirmation && lastMessage.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
-                  <HumanConfirmationPanel 
-                    confirmation={lastMessage.humanConfirmation} 
-                    initialExpanded={shouldExpandPanel("confirmation")}
-                  />
-                )}
-
-                {lastMessage.executionPlan && (
-                  <ExecutionPlanPanel 
-                    plan={lastMessage.executionPlan} 
-                    initialExpanded={shouldExpandPanel("execution")}
-                  />
-                )}
-
-                {lastMessage.previewAudit && (
-                  <PreviewAuditPanel 
-                    auditTrail={lastMessage.previewAudit} 
-                    initialExpanded={shouldExpandPanel("audit")}
-                  />
-                )}
+                {getSectionOrder(perspective).map((panelId) => {
+                  switch (panelId) {
+                    case "synthesis":
+                      return (
+                        <InsightPanel 
+                          key="synthesis"
+                          relevance={lastMessage.relevance!} 
+                          initialExpanded={shouldExpandPanel("synthesis")} 
+                        />
+                      );
+                    case "confidence":
+                      return lastMessage.confidenceAnnotations && (
+                        <ConfidencePanel 
+                          key="confidence"
+                          annotations={lastMessage.confidenceAnnotations} 
+                          initialExpanded={shouldExpandPanel("confidence")}
+                        />
+                      );
+                    case "readiness":
+                      return lastMessage.actionReadiness && (
+                        <ActionReadinessPanel 
+                          key="readiness"
+                          readiness={lastMessage.actionReadiness} 
+                          initialExpanded={shouldExpandPanel("readiness")}
+                        />
+                      );
+                    case "confirmation":
+                      return lastMessage.humanConfirmation && lastMessage.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
+                        <HumanConfirmationPanel 
+                          key="confirmation"
+                          confirmation={lastMessage.humanConfirmation} 
+                          initialExpanded={shouldExpandPanel("confirmation")}
+                        />
+                      );
+                    case "execution":
+                      return lastMessage.executionPlan && (
+                        <ExecutionPlanPanel 
+                          key="execution"
+                          plan={lastMessage.executionPlan} 
+                          initialExpanded={shouldExpandPanel("execution")}
+                        />
+                      );
+                    case "audit":
+                      return lastMessage.previewAudit && (
+                        <PreviewAuditPanel 
+                          key="audit"
+                          auditTrail={lastMessage.previewAudit} 
+                          initialExpanded={shouldExpandPanel("audit")}
+                        />
+                      );
+                    case "relevance":
+                      return lastMessage.relevance && (
+                        <RelevancePanel 
+                          key="relevance"
+                          relevance={lastMessage.relevance} 
+                          initialExpanded={shouldExpandPanel("relevance")} 
+                        />
+                      );
+                    case "comparative":
+                      return lastMessage.comparativeInsights && (
+                        <ComparativePanel 
+                          key="comparative"
+                          insights={lastMessage.comparativeInsights} 
+                          initialExpanded={shouldExpandPanel("comparative")} 
+                        />
+                      );
+                    default:
+                      return null;
+                  }
+                })}
               </>
             )}
 
