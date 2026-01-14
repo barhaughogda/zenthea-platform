@@ -73,12 +73,46 @@ const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 export function DemoModeProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   
-  // Read mode from URL query param, default to "guided"
-  const modeParam = searchParams.get("mode");
-  const mode: DemoMode = modeParam === "free" ? "free" : "guided";
+  // Phase V-01: Mode persistence (sessionStorage fallback)
+  const getInitialMode = (): DemoMode => {
+    // 1. Check URL query params first
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "guided" || modeParam === "free") {
+      // Store in sessionStorage if found in URL
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("zenthea_demo_mode", modeParam);
+      }
+      return modeParam;
+    }
+
+    // 2. Fallback to sessionStorage
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("zenthea_demo_mode");
+      if (stored === "guided" || stored === "free") {
+        return stored;
+      }
+    }
+
+    // 3. Default to guided
+    return "guided";
+  };
+
+  const mode = getInitialMode();
 
   // Guided step tracking (session-only, does NOT trigger re-computation)
   const [guidedStep, setGuidedStep] = useState(0);
+
+  // Phase V-01: Update URL when mode or perspective is set (perspective handled in its own context)
+  // Mode is read-only here but we ensure it's in URL if missing
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("mode")) {
+        url.searchParams.set("mode", mode);
+        window.history.replaceState(null, "", url.toString());
+      }
+    }
+  }, [mode]);
 
   const totalSteps = GUIDED_PROMPTS.length;
   const isGuidedComplete = guidedStep >= totalSteps;

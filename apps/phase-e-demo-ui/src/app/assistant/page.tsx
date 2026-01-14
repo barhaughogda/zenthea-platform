@@ -31,7 +31,8 @@
  * NO actions are executed. All data is from static demo fixtures.
  */
 
-import React, { useState, useRef, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useRef, useEffect, Suspense, useCallback } from "react";
 import { Banners } from "@/components/Banners";
 import { RelevancePanel } from "@/components/RelevancePanel";
 import { InsightPanel } from "@/components/InsightPanel";
@@ -112,6 +113,21 @@ function generateId(): string {
  * Separated to allow hook usage within the providers.
  */
 function AssistantPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Phase V-01: Force explicit selection if perspective or mode is missing
+  useEffect(() => {
+    const p = searchParams.get("perspective");
+    const m = searchParams.get("mode");
+    const storedP = sessionStorage.getItem("zenthea_demo_perspective");
+    const storedM = sessionStorage.getItem("zenthea_demo_mode");
+
+    if ((!p || !m) && (!storedP || !storedM)) {
+      router.replace("/demo");
+    }
+  }, [searchParams, router]);
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -125,7 +141,7 @@ function AssistantPageContent() {
   const { perspective, shouldExpandPanel, chatDeemphasized } = useDemoPerspective();
 
   // Phase R-03: Demo narrative mode (UI-only, no logic changes)
-  const { mode, isInputEnabled } = useDemoMode();
+  const { mode, isInputEnabled, currentGuidedPrompt, advanceGuidedStep, isGuidedComplete } = useDemoMode();
 
   // Phase U-03: Sandbox Kill-Switch (Internal Only)
   const [isSandboxHalted, setIsSandboxHalted] = useState(SANDBOX_EXECUTION_HALTED);
@@ -142,6 +158,20 @@ function AssistantPageContent() {
     resetSandboxExecution();
     setIsSandboxHalted(false);
   };
+
+  // Phase V-01: Session reset and end
+  const handleResetSession = useCallback(() => {
+    setMessages([]);
+    setPreviewConfirmations(new Map());
+    resetSandboxExecution();
+    setIsSandboxHalted(false);
+  }, []);
+
+  const handleEndSession = useCallback(() => {
+    sessionStorage.removeItem("zenthea_demo_perspective");
+    sessionStorage.removeItem("zenthea_demo_mode");
+    router.push("/demo");
+  }, [router]);
 
   // Phase O-02: Interactive human confirmation preview state (session-only)
   const [previewConfirmations, setPreviewConfirmations] = useState<
@@ -340,6 +370,11 @@ function AssistantPageContent() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
+    // Phase V-01: Advance guided step if in guided mode
+    if (mode === "guided" && currentGuidedPrompt === trimmed) {
+      advanceGuidedStep();
+    }
+
     // Simulate processing delay (100-300ms for realism)
     setTimeout(() => {
       // Compute relevance
@@ -518,6 +553,20 @@ function AssistantPageContent() {
                         </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleResetSession}
+                        className="text-[10px] font-bold uppercase px-2 py-1 rounded bg-slate-600/50 hover:bg-slate-600 text-slate-200 border border-slate-500/50 transition-colors"
+                      >
+                        Reset Session
+                      </button>
+                      <button
+                        onClick={handleEndSession}
+                        className="text-[10px] font-bold uppercase px-2 py-1 rounded bg-red-900/40 hover:bg-red-900/60 text-red-200 border border-red-800/50 transition-colors"
+                      >
+                        End Session
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -562,21 +611,43 @@ function AssistantPageContent() {
                         >
                           {/* Phase R-06, R-08 & R-09: Apply perspective-aware framing and normalization to assistant messages */}
                           {/* Phase R-11: Apply final-pass identity resolution */}
-                          <p className="text-sm whitespace-pre-wrap">
+                          {/* Phase V-01: Separation of primary response vs evidence */}
+                          <div className="text-sm whitespace-pre-wrap">
                             {msg.role === "assistant"
-                              ? resolveIdentity(
-                                  normalizeNarrativeSubject(
-                                    mapNarrativeSubject(
-                                      frameResponseForPerspective(msg.content, perspective).framedResponse,
+                              ? (() => {
+                                  const framed = resolveIdentity(
+                                    normalizeNarrativeSubject(
+                                      mapNarrativeSubject(
+                                        frameResponseForPerspective(msg.content, perspective).framedResponse,
+                                        perspective
+                                      ),
                                       perspective
                                     ),
-                                    perspective
-                                  ),
-                                  perspective,
-                                  patientContext?.fullName
-                                )
+                                    perspective,
+                                    patientContext?.fullName
+                                  );
+                                  
+                                  // Split into primary and evidence blocks
+                                  const evidenceMarker = "\n\nBased on:\n";
+                                  const parts = framed.split(evidenceMarker);
+                                  const primary = parts[0];
+                                  const evidence = parts[1];
+
+                                  return (
+                                    <>
+                                      <p>{primary}</p>
+                                      {evidence && (
+                                        <div className="mt-2 pt-2 border-t border-gray-100">
+                                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                                            Based on: {evidence.split('\n')[0].replace('• ', '')}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()
                               : msg.content}
-                          </p>
+                          </div>
                           <p className={`text-[10px] mt-1 ${msg.role === "user" ? "text-blue-200" : "text-gray-400"}`}>
                             {msg.timestamp.toLocaleTimeString()}
                           </p>
@@ -667,7 +738,33 @@ function AssistantPageContent() {
                 </form>
               </div>
 
-              <GuidedPromptList onSelectPrompt={setInputValue} isProcessing={isProcessing} />
+              <div className="flex items-center justify-between">
+                <GuidedPromptList onSelectPrompt={setInputValue} isProcessing={isProcessing} />
+                
+                {/* Phase V-01: Guided Script Runner */}
+                {mode === "guided" && !isGuidedComplete && (
+                  <button
+                    onClick={() => {
+                      if (currentGuidedPrompt) {
+                        setInputValue(currentGuidedPrompt);
+                        // Trigger submit manually or just let user click send
+                        // Constraint says: "No auto-run. No timers."
+                        // But "It should inject the next guided prompt as if the user clicked it."
+                        // Injecting is enough, but to make it feel like a "runner" 
+                        // we can either auto-submit or just pre-fill. 
+                        // Given "No auto-run", pre-filling is safer.
+                      }
+                    }}
+                    disabled={isProcessing}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 text-xs font-bold transition-all disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                    Run next demo step
+                  </button>
+                )}
+              </div>
             </div>
           </>
         }

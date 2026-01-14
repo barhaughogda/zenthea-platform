@@ -101,19 +101,43 @@ const DemoPerspectiveContext = createContext<DemoPerspectiveContextValue | null>
 export function DemoPerspectiveProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   
-  // Read perspective from URL query param, default to "patient"
-  const perspectiveParam = searchParams.get("perspective");
-  const initialPerspective: DemoPerspective = 
-    (perspectiveParam === "clinician" || perspectiveParam === "operator")
-      ? perspectiveParam
-      : "patient";
+  // Phase V-01: Perspective persistence (sessionStorage fallback)
+  const getInitialPerspective = (): DemoPerspective => {
+    // 1. Check URL query params first
+    const perspectiveParam = searchParams.get("perspective");
+    if (perspectiveParam === "patient" || perspectiveParam === "clinician" || perspectiveParam === "operator") {
+      // Store in sessionStorage if found in URL
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("zenthea_demo_perspective", perspectiveParam);
+      }
+      return perspectiveParam;
+    }
 
-  const [perspective, setPerspectiveState] = useState<DemoPerspective>(initialPerspective);
+    // 2. Fallback to sessionStorage
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("zenthea_demo_perspective");
+      if (stored === "patient" || stored === "clinician" || stored === "operator") {
+        return stored;
+      }
+    }
+
+    // 3. If still missing, default to patient (redirect logic will handle the gate)
+    return "patient";
+  };
+
+  const [perspective, setPerspectiveState] = useState<DemoPerspective>(getInitialPerspective());
 
   // Switching perspective should NOT reset session or recompute reasoning
   // It only changes UI emphasis
   const setPerspective = useCallback((p: DemoPerspective) => {
     setPerspectiveState(p);
+    // Phase V-01: Update sessionStorage and URL
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("zenthea_demo_perspective", p);
+      const url = new URL(window.location.href);
+      url.searchParams.set("perspective", p);
+      window.history.replaceState(null, "", url.toString());
+    }
   }, []);
 
   const shouldExpandPanel = useCallback(

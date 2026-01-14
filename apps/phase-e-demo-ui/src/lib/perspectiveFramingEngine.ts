@@ -86,11 +86,23 @@ const VOCABULARY_REPLACEMENTS: Record<DemoPerspective, Array<[RegExp, string]>> 
 /**
  * Tone prefixes by perspective.
  * Applied only when the response contains actionable-sounding content.
+ * 
+ * Phase V-01: Deterministic role-specific response template wrapper
  */
-const TONE_PREFIXES: Record<DemoPerspective, string> = {
-  patient: "",
-  clinician: "",
-  operator: "[OBSERVATION] ",
+const PERSPECTIVE_TEMPLATES: Record<DemoPerspective, (text: string) => string> = {
+  patient: (text: string) => {
+    // 2 short paragraphs + 1 safety line
+    const paragraphs = text.split('\n\n').filter(p => p.trim()).slice(0, 2);
+    return `${paragraphs.join('\n\n')}\n\nThis is for your information only. No changes have been made to your health records or appointments.`;
+  },
+  clinician: (text: string) => {
+    // SOAP-like headings (S/O/A/P) but advisory
+    return `### SUBJECTIVE / OBJECTIVE\n${text}\n\n### ASSESSMENT / PLAN (ADVISORY)\nReview relevant evidence panels for clinical context. No automated action has been initiated.`;
+  },
+  operator: (text: string) => {
+    // procedural headings + references to audit/policy surfaces
+    return `### PROCEDURAL CONTEXT\n${text}\n\n### POLICY & AUDIT REFERENCE\nSee Audit Trail and Execution Plan for regulatory mapping. This interaction is logged as a non-executing demo event.`;
+  },
 };
 
 /**
@@ -98,9 +110,9 @@ const TONE_PREFIXES: Record<DemoPerspective, string> = {
  * Added to responses to reinforce the read-only, non-executing nature.
  */
 const REASSURANCE_SUFFIXES: Record<DemoPerspective, string> = {
-  patient: "\n\n💡 This is preview information only. No changes have been made to your records.",
+  patient: "", // Moved to template
   clinician: "",
-  operator: "\n\n[AUDIT NOTE: Read-only observation. No action has been taken.]",
+  operator: "", // Moved to template
 };
 
 /**
@@ -350,11 +362,8 @@ export function frameResponseForPerspective(
       framedMain = mainContent;
   }
 
-  // Apply tone prefix if needed
-  const prefix = TONE_PREFIXES[perspective];
-  if (prefix && !framedMain.startsWith(prefix)) {
-    framedMain = prefix + framedMain;
-  }
+  // Phase V-01: Apply deterministic role-specific response template
+  framedMain = PERSPECTIVE_TEMPLATES[perspective](framedMain);
 
   // Reconstruct the response with preserved blocks
   let framedResponse = framedMain;
