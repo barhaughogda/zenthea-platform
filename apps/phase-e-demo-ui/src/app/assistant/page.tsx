@@ -38,6 +38,7 @@ import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
 import { DemoPerspectiveSelector } from "@/components/DemoPerspectiveSelector";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { GuidedPromptList } from "@/components/GuidedPromptList";
+import { DemoLayout } from "@/components/DemoLayout";
 import {
   ConfirmationPreviewModal,
   PreviewAcknowledgmentBadge,
@@ -425,325 +426,261 @@ function AssistantPageContent() {
     }, 150 + Math.random() * 150);
   }
 
+  const lastMessage = messages[messages.length - 1];
+  const hasAssistantResponse = lastMessage?.role === "assistant";
+
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       <Banners slice="Phase-M" />
-
-      {/* Phase R-03: Demo Mode Banner (Guided vs Free) */}
-      <div className="mb-4">
-        <DemoModeBanner />
-      </div>
-
-      {/* Phase R-02: Demo Perspective Selector */}
-      <DemoPerspectiveSelector />
-
-      {/* Patient context toggle */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setShowContext(!showContext)}
-          className="text-xs px-3 py-1.5 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-600"
-        >
-          {showContext ? "Hide" : "Show"} Patient Context
-        </button>
-      </div>
-
-      {/* Patient context panels (collapsible) */}
-      {showContext && patientContext && patientTimeline && (
-        <div className="space-y-4 mb-6">
-          <ContextPanel context={patientContext} />
-          <PatientTimelinePanel timeline={patientTimeline} />
-        </div>
-      )}
-
-      {/* Main assistant interface */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+      
+      <DemoLayout
+        leftColumn={
+          <>
+            {/* LEFT COLUMN — Context & Evidence */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setShowContext(!showContext)}
+                className="text-xs px-3 py-1.5 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 w-full"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              <div className="flex items-center gap-3">
-                <h2 className="text-sm font-bold">
-                  Phase M Non-Executing Assistant
-                </h2>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-600/50 border border-slate-500/50">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-200">
-                    DEMO MODE · READ-ONLY · NO ACTIONS EXECUTED
-                  </span>
-                </div>
+                {showContext ? "Hide" : "Show"} Patient Context
+              </button>
+            </div>
+
+            {showContext && patientContext && patientTimeline && (
+              <div className="space-y-4">
+                <ContextPanel context={patientContext} />
+                <PatientTimelinePanel timeline={patientTimeline} />
               </div>
-            </div>
-          </div>
-          <p className="text-xs text-slate-300 mt-1">
-            Intent-aware reasoning over static demo data. No actions executed.
-          </p>
-        </div>
+            )}
 
-        {/* Messages area - de-emphasized in operator perspective */}
-        <div className={`h-[500px] overflow-y-auto p-4 space-y-4 bg-slate-50 ${chatDeemphasized ? "opacity-60" : ""}`}>
-          {messages.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <svg
-                className="w-12 h-12 mx-auto mb-4 text-gray-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            {hasAssistantResponse && lastMessage.relevance && (
+              <div className="space-y-4">
+                <RelevancePanel 
+                  relevance={lastMessage.relevance} 
+                  initialExpanded={shouldExpandPanel("relevance")} 
                 />
-              </svg>
-              <p className="text-sm font-medium">Start a conversation</p>
-              <p className="text-xs mt-1">
-                Try: "What happened at the last visit?" or "Can I schedule an
-                appointment?"
-              </p>
-            </div>
-          )}
-
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] ${msg.role === "user" ? "order-2" : ""}`}
-              >
-                {/* Message bubble */}
-                <div
-                  className={`rounded-lg px-4 py-2.5 ${
-                    msg.role === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white border border-gray-200 text-gray-800"
-                  }`}
-                >
-                  {msg.role === "assistant" && (
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                      “Here’s a careful summary based on the information available.”
-                    </p>
-                  )}
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  <p
-                    className={`text-[10px] mt-1 ${
-                      msg.role === "user" ? "text-blue-200" : "text-gray-400"
-                    }`}
-                  >
-                    {msg.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
-
-                {/* Narrative Panels (UI-only ordering) - Phase R-02: perspective-driven expansion */}
-                {msg.role === "assistant" && msg.relevance && (
-                  <div className="space-y-1">
-                    {/* 2. Synthesis summary */}
-                    <InsightPanel relevance={msg.relevance} initialExpanded={shouldExpandPanel("synthesis")} />
-
-                    {/* 3. Confidence & Uncertainty */}
-                    {msg.confidenceAnnotations && (
-                      <ConfidencePanel 
-                        annotations={msg.confidenceAnnotations} 
-                        initialExpanded={shouldExpandPanel("confidence")}
-                      />
-                    )}
-
-                    {/* 4. Action Readiness Framing */}
-                    {msg.actionReadiness && (
-                      <ActionReadinessPanel 
-                        readiness={msg.actionReadiness} 
-                        initialExpanded={shouldExpandPanel("readiness")}
-                      />
-                    )}
-
-                    {/* 5. Human Confirmation Preview */}
-                    {msg.humanConfirmation && msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
-                      <HumanConfirmationPanel 
-                        confirmation={msg.humanConfirmation} 
-                        initialExpanded={shouldExpandPanel("confirmation")}
-                      />
-                    )}
-
-                    {/* Phase O-02: Interactive Confirmation Preview Button & Badge */}
-                    {msg.humanConfirmation && 
-                     msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" &&
-                     msg.humanConfirmation.requiredActor !== "NONE" && (
-                      <div className="mt-3">
-                        {/* Show badge if already acknowledged/denied */}
-                        {previewConfirmations.get(msg.id)?.state !== "PROPOSAL_CREATED" &&
-                         previewConfirmations.get(msg.id) && (
-                          <PreviewAcknowledgmentBadge
-                            record={previewConfirmations.get(msg.id)!}
-                          />
-                        )}
-
-                        {/* Show button if not yet interacted or in proposal state */}
-                        {(!previewConfirmations.get(msg.id) ||
-                          previewConfirmations.get(msg.id)?.state === "PROPOSAL_CREATED") && (
-                          <button
-                            onClick={() => openPreviewConfirmation(msg.id, msg)}
-                            className="w-full mt-2 px-4 py-3 rounded-lg border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-colors group"
-                          >
-                            <div className="flex items-center justify-center gap-2">
-                              <svg
-                                className="w-5 h-5 text-purple-600"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                              <span className="text-sm font-bold text-purple-700">
-                                Preview Confirmation
-                              </span>
-                              <span className="text-[10px] font-black text-purple-500 uppercase tracking-wider px-2 py-0.5 bg-purple-200 rounded">
-                                PREVIEW ONLY
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-purple-600 mt-1 group-hover:text-purple-700">
-                              Experience the human confirmation flow — no action will be taken
-                            </p>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* 6. Execution Plan Preview */}
-                    {msg.executionPlan && (
-                      <ExecutionPlanPanel 
-                        plan={msg.executionPlan} 
-                        initialExpanded={shouldExpandPanel("execution")}
-                      />
-                    )}
-
-                    {/* Phase O-03: Preview Audit Trail */}
-                    {msg.previewAudit && (
-                      <PreviewAuditPanel 
-                        auditTrail={msg.previewAudit} 
-                        initialExpanded={shouldExpandPanel("audit")}
-                      />
-                    )}
-
-                    {/* 7. Supporting Evidence Panels */}
-                    <RelevancePanel relevance={msg.relevance} initialExpanded={shouldExpandPanel("relevance")} />
-                    {msg.comparativeInsights && (
-                      <ComparativePanel 
-                        insights={msg.comparativeInsights} 
-                        initialExpanded={shouldExpandPanel("comparative")} 
-                      />
-                    )}
-                    
-                    <div className="flex justify-center pt-2">
-                      <span className="text-[10px] text-slate-400 font-medium italic">
-                        More detail available above
-                      </span>
-                    </div>
-                  </div>
+                {lastMessage.comparativeInsights && (
+                  <ComparativePanel 
+                    insights={lastMessage.comparativeInsights} 
+                    initialExpanded={shouldExpandPanel("comparative")} 
+                  />
                 )}
               </div>
-            </div>
-          ))}
-
-          {/* Processing indicator */}
-          {isProcessing && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                    <span
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    />
+            )}
+          </>
+        }
+        centerColumn={
+          <>
+            {/* CENTER COLUMN — Conversation */}
+            <div className="space-y-4">
+              <DemoModeBanner />
+              <DemoPerspectiveSelector />
+              
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
+                      </svg>
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-bold">
+                          Phase M Non-Executing Assistant
+                        </h2>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-600/50 border border-slate-500/50">
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-200">
+                            DEMO MODE · READ-ONLY
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    Analyzing intent...
-                  </span>
                 </div>
+
+                {/* Messages area */}
+                <div className={`h-[500px] overflow-y-auto p-4 space-y-4 bg-slate-50 ${chatDeemphasized ? "opacity-60" : ""}`}>
+                  {messages.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <svg
+                        className="w-12 h-12 mx-auto mb-4 text-gray-300"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
+                      </svg>
+                      <p className="text-sm font-medium">Start a conversation</p>
+                      <p className="text-xs mt-1">
+                        Try: "What happened at the last visit?"
+                      </p>
+                    </div>
+                  )}
+
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[90%] ${msg.role === "user" ? "order-2" : ""}`}
+                      >
+                        <div
+                          className={`rounded-lg px-4 py-2.5 ${
+                            msg.role === "user"
+                              ? "bg-blue-600 text-white"
+                              : "bg-white border border-gray-200 text-gray-800"
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                          <p className={`text-[10px] mt-1 ${msg.role === "user" ? "text-blue-200" : "text-gray-400"}`}>
+                            {msg.timestamp.toLocaleTimeString()}
+                          </p>
+                        </div>
+                        
+                        {/* Interactive Preview Button in Chat - ONLY the button stays in chat flow */}
+                        {msg.role === "assistant" && msg.humanConfirmation && 
+                         msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" &&
+                         msg.humanConfirmation.requiredActor !== "NONE" && (
+                          <div className="mt-2">
+                            {previewConfirmations.get(msg.id)?.state !== "PROPOSAL_CREATED" &&
+                             previewConfirmations.get(msg.id) && (
+                              <PreviewAcknowledgmentBadge
+                                record={previewConfirmations.get(msg.id)!}
+                              />
+                            )}
+
+                            {(!previewConfirmations.get(msg.id) ||
+                              previewConfirmations.get(msg.id)?.state === "PROPOSAL_CREATED") && (
+                              <button
+                                onClick={() => openPreviewConfirmation(msg.id, msg)}
+                                className="w-full mt-1 px-3 py-2 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <span className="text-xs font-bold text-purple-700">Preview Confirmation</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isProcessing && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input area */}
+                <form onSubmit={handleSubmit} className="border-t border-gray-200 p-4 bg-white">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder={isInputEnabled ? "Type a message..." : "Select a guided prompt..."}
+                      disabled={isProcessing || !isInputEnabled}
+                      className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 border-gray-300"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!inputValue.trim() || isProcessing || !isInputEnabled}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </form>
               </div>
+
+              <GuidedPromptList onSelectPrompt={setInputValue} isProcessing={isProcessing} />
             </div>
-          )}
+          </>
+        }
+        rightColumn={
+          <div className="space-y-4">
+            {/* RIGHT COLUMN — Governance & Trust */}
+            {hasAssistantResponse && (
+              <>
+                <InsightPanel 
+                  relevance={lastMessage.relevance!} 
+                  initialExpanded={shouldExpandPanel("synthesis")} 
+                />
 
-          <div ref={messagesEndRef} />
-        </div>
+                {lastMessage.confidenceAnnotations && (
+                  <ConfidencePanel 
+                    annotations={lastMessage.confidenceAnnotations} 
+                    initialExpanded={shouldExpandPanel("confidence")}
+                  />
+                )}
 
-        {/* Input area */}
-        <form
-          onSubmit={handleSubmit}
-          className="border-t border-gray-200 p-4 bg-white"
-        >
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={
-                isInputEnabled
-                  ? "Ask about scheduling, records, clinical notes..."
-                  : "Use the guided prompt above to continue..."
-              }
-              disabled={isProcessing || !isInputEnabled}
-              className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 ${
-                !isInputEnabled ? "border-indigo-300 bg-indigo-50" : "border-gray-300"
-              }`}
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isProcessing || !isInputEnabled}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Send
-            </button>
+                {lastMessage.actionReadiness && (
+                  <ActionReadinessPanel 
+                    readiness={lastMessage.actionReadiness} 
+                    initialExpanded={shouldExpandPanel("readiness")}
+                  />
+                )}
+
+                {lastMessage.humanConfirmation && lastMessage.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
+                  <HumanConfirmationPanel 
+                    confirmation={lastMessage.humanConfirmation} 
+                    initialExpanded={shouldExpandPanel("confirmation")}
+                  />
+                )}
+
+                {lastMessage.executionPlan && (
+                  <ExecutionPlanPanel 
+                    plan={lastMessage.executionPlan} 
+                    initialExpanded={shouldExpandPanel("execution")}
+                  />
+                )}
+
+                {lastMessage.previewAudit && (
+                  <PreviewAuditPanel 
+                    auditTrail={lastMessage.previewAudit} 
+                    initialExpanded={shouldExpandPanel("audit")}
+                  />
+                )}
+              </>
+            )}
+
+            {!hasAssistantResponse && (
+              <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                <p className="text-xs text-slate-400 font-medium">
+                  Assistant governance panels will appear here during conversation.
+                </p>
+              </div>
+            )}
           </div>
-          {/* Phase R-03: Mode-specific input helper text */}
-          {!isInputEnabled && mode === "guided" && (
-            <p className="text-[10px] text-indigo-600 mt-2 text-center font-medium">
-              Guided mode: Use the current guided prompt to continue the narrative sequence.
-            </p>
-          )}
-          <p className="text-[10px] text-gray-400 mt-2 text-center">
-            This is a non-executing demo. All responses illustrate reasoning
-            over static timeline data. No actions are performed.
-          </p>
-        </form>
-      </div>
-
-      {/* Phase R-03: Mode-aware prompt list (Guided vs Free) */}
-      <GuidedPromptList
-        onSelectPrompt={setInputValue}
-        isProcessing={isProcessing}
+        }
       />
 
-      {/* Phase O-02: Interactive Confirmation Preview Modal */}
       {activePreviewModal && (
         <ConfirmationPreviewModal
           record={activePreviewModal.record}
