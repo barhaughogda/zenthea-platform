@@ -40,6 +40,7 @@ export const PERSPECTIVE_SECTION_ORDER: Record<DemoPerspective, PanelId[]> = {
     "execution",      // ExecutionPlanPanel
     "audit",          // PreviewAuditPanel
     "comparative",    // ComparativePanel
+    "ledger",         // DemoTrustLedgerPanel
   ],
   clinician: [
     "comparative",    // ComparativePanel - Clinical facts & dates (trends/gaps)
@@ -50,8 +51,10 @@ export const PERSPECTIVE_SECTION_ORDER: Record<DemoPerspective, PanelId[]> = {
     "execution",      // ExecutionPlanPanel - Preview
     "confidence",     // ConfidencePanel
     "audit",          // PreviewAuditPanel
+    "ledger",         // DemoTrustLedgerPanel
   ],
   operator: [
+    "ledger",         // DemoTrustLedgerPanel - Trust Ledger (Primary for Operator)
     "audit",          // PreviewAuditPanel - Audit and accountability
     "readiness",      // ActionReadinessPanel - Policy/Readiness gates
     "execution",      // ExecutionPlanPanel - Execution preview

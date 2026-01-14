@@ -43,6 +43,7 @@ import { ExecutionPlanPanel } from "@/components/ExecutionPlanPanel";
 import { PreviewAuditPanel } from "@/components/PreviewAuditPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
+import { DemoTrustLedgerPanel } from "@/components/DemoTrustLedgerPanel";
 import { DemoPerspectiveSelector } from "@/components/DemoPerspectiveSelector";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
 import { GuidedPromptList } from "@/components/GuidedPromptList";
@@ -672,6 +673,13 @@ function AssistantPageContent() {
                           key="comparative"
                           insights={lastMessage.comparativeInsights} 
                           initialExpanded={shouldExpandPanel("comparative")} 
+                        />
+                      );
+                    case "ledger":
+                      return (
+                        <DemoTrustLedgerPanel
+                          key="ledger"
+                          initialExpanded={shouldExpandPanel("ledger")}
                         />
                       );
                     default:

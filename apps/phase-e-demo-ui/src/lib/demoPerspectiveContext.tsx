@@ -42,7 +42,8 @@ export type PanelId =
   | "execution"      // ExecutionPlanPanel - Execution Plan
   | "audit"          // PreviewAuditPanel - Audit Preview
   | "relevance"      // RelevancePanel - Evidence/Reasoning Context
-  | "comparative";   // ComparativePanel - Comparative Signals
+  | "comparative"   // ComparativePanel - Comparative Signals
+  | "ledger";        // DemoTrustLedgerPanel - Trust Ledger
 
 /**
  * Visibility rules per perspective.
@@ -56,18 +57,18 @@ export const PERSPECTIVE_VISIBILITY: Record<DemoPerspective, {
 }> = {
   patient: {
     expanded: ["synthesis", "confidence"],
-    collapsed: ["readiness", "confirmation", "execution", "audit", "relevance", "comparative"],
+    collapsed: ["readiness", "confirmation", "execution", "audit", "relevance", "comparative", "ledger"],
     chatDeemphasized: false,
     helperText: "This view emphasizes understanding only. No actions can be taken.",
   },
   clinician: {
     expanded: ["synthesis", "readiness", "confirmation"],
-    collapsed: ["audit", "comparative", "relevance", "confidence", "execution"],
+    collapsed: ["audit", "comparative", "relevance", "confidence", "execution", "ledger"],
     chatDeemphasized: false,
     helperText: "This view emphasizes review and approval preview. No execution occurs.",
   },
   operator: {
-    expanded: ["audit", "execution", "readiness"],
+    expanded: ["audit", "execution", "readiness", "ledger"],
     collapsed: ["synthesis", "confidence", "confirmation", "relevance", "comparative"],
     chatDeemphasized: true,
     helperText: "This view emphasizes governance and audit visibility. Execution is blocked.",
