@@ -6,6 +6,10 @@
  * Phase M/O Assistant Demo with intent-aware reasoning and interactive
  * human confirmation preview (Phase O-02).
  *
+ * Phase R-02: Demo Perspective Framing
+ * Added perspective selector for UI visibility control (Patient, Clinician, Operator).
+ * Perspective changes panel expansion defaults — NO logic changes, NO permission changes.
+ *
  * This is a non-executing assistant that displays contextual relevance
  * information alongside assistant responses. The human confirmation preview
  * flow allows users to experience a realistic confirmation UX while
@@ -26,6 +30,7 @@ import { ExecutionPlanPanel } from "@/components/ExecutionPlanPanel";
 import { PreviewAuditPanel } from "@/components/PreviewAuditPanel";
 import { ContextPanel } from "@/components/ContextPanel";
 import { PatientTimelinePanel } from "@/components/PatientTimelinePanel";
+import { DemoPerspectiveSelector } from "@/components/DemoPerspectiveSelector";
 import {
   ConfirmationPreviewModal,
   PreviewAcknowledgmentBadge,
@@ -49,6 +54,10 @@ import {
   transitionPreviewState,
 } from "@/lib/interactivePreviewEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
+import {
+  DemoPerspectiveProvider,
+  useDemoPerspective,
+} from "@/lib/demoPerspectiveContext";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -125,7 +134,11 @@ function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export default function AssistantPage() {
+/**
+ * Inner component that uses the perspective context.
+ * Separated to allow hook usage within the provider.
+ */
+function AssistantPageContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -133,6 +146,9 @@ export default function AssistantPage() {
   const [patientContext, setPatientContext] = useState<PatientContext | null>(null);
   const [patientTimeline, setPatientTimeline] = useState<PatientTimeline | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Phase R-02: Demo perspective framing (UI-only, no logic changes)
+  const { shouldExpandPanel, chatDeemphasized } = useDemoPerspective();
 
   // Phase O-02: Interactive human confirmation preview state (session-only)
   const [previewConfirmations, setPreviewConfirmations] = useState<
@@ -402,6 +418,9 @@ export default function AssistantPage() {
     <div className="max-w-5xl mx-auto">
       <Banners slice="Phase-M" />
 
+      {/* Phase R-02: Demo Perspective Selector */}
+      <DemoPerspectiveSelector />
+
       {/* Patient context toggle */}
       <div className="flex justify-end mb-4">
         <button
@@ -457,8 +476,8 @@ export default function AssistantPage() {
           </p>
         </div>
 
-        {/* Messages area */}
-        <div className="h-[500px] overflow-y-auto p-4 space-y-4 bg-slate-50">
+        {/* Messages area - de-emphasized in operator perspective */}
+        <div className={`h-[500px] overflow-y-auto p-4 space-y-4 bg-slate-50 ${chatDeemphasized ? "opacity-60" : ""}`}>
           {messages.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <svg
@@ -513,17 +532,17 @@ export default function AssistantPage() {
                   </p>
                 </div>
 
-                {/* Narrative Panels (UI-only ordering) */}
+                {/* Narrative Panels (UI-only ordering) - Phase R-02: perspective-driven expansion */}
                 {msg.role === "assistant" && msg.relevance && (
                   <div className="space-y-1">
                     {/* 2. Synthesis summary */}
-                    <InsightPanel relevance={msg.relevance} initialExpanded={true} />
+                    <InsightPanel relevance={msg.relevance} initialExpanded={shouldExpandPanel("synthesis")} />
 
                     {/* 3. Confidence & Uncertainty */}
                     {msg.confidenceAnnotations && (
                       <ConfidencePanel 
                         annotations={msg.confidenceAnnotations} 
-                        initialExpanded={false}
+                        initialExpanded={shouldExpandPanel("confidence")}
                       />
                     )}
 
@@ -531,7 +550,7 @@ export default function AssistantPage() {
                     {msg.actionReadiness && (
                       <ActionReadinessPanel 
                         readiness={msg.actionReadiness} 
-                        initialExpanded={false}
+                        initialExpanded={shouldExpandPanel("readiness")}
                       />
                     )}
 
@@ -539,7 +558,7 @@ export default function AssistantPage() {
                     {msg.humanConfirmation && msg.actionReadiness?.category !== "INFORMATIONAL_ONLY" && (
                       <HumanConfirmationPanel 
                         confirmation={msg.humanConfirmation} 
-                        initialExpanded={false}
+                        initialExpanded={shouldExpandPanel("confirmation")}
                       />
                     )}
 
@@ -602,7 +621,7 @@ export default function AssistantPage() {
                     {msg.executionPlan && (
                       <ExecutionPlanPanel 
                         plan={msg.executionPlan} 
-                        initialExpanded={false}
+                        initialExpanded={shouldExpandPanel("execution")}
                       />
                     )}
 
@@ -610,16 +629,16 @@ export default function AssistantPage() {
                     {msg.previewAudit && (
                       <PreviewAuditPanel 
                         auditTrail={msg.previewAudit} 
-                        initialExpanded={false}
+                        initialExpanded={shouldExpandPanel("audit")}
                       />
                     )}
 
                     {/* 7. Supporting Evidence Panels */}
-                    <RelevancePanel relevance={msg.relevance} initialExpanded={false} />
+                    <RelevancePanel relevance={msg.relevance} initialExpanded={shouldExpandPanel("relevance")} />
                     {msg.comparativeInsights && (
                       <ComparativePanel 
                         insights={msg.comparativeInsights} 
-                        initialExpanded={false} 
+                        initialExpanded={shouldExpandPanel("comparative")} 
                       />
                     )}
                     
@@ -728,5 +747,17 @@ export default function AssistantPage() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Main page component with perspective provider wrapper.
+ * Phase R-02: Demo perspective framing support.
+ */
+export default function AssistantPage() {
+  return (
+    <DemoPerspectiveProvider>
+      <AssistantPageContent />
+    </DemoPerspectiveProvider>
   );
 }
