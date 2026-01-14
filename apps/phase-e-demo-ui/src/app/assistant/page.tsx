@@ -15,6 +15,14 @@
  * to a predefined sequence. Free mode enables open exploration.
  * Narrative mode is UI-only — NO logic changes, NO permission changes.
  *
+ * Phase R-06: Perspective-Aware Response Framing
+ * Assistant responses are now framed differently based on perspective:
+ * - Patient: Plain language, reassuring, explanatory, no jargon
+ * - Clinician: Concise, neutral, workflow-aware
+ * - Operator: Procedural, policy-oriented, observational
+ * Framing is deterministic (no LLM), preserves all facts, and uses only
+ * conditional language. NO execution capability, NO authority changes.
+ *
  * This is a non-executing assistant that displays contextual relevance
  * information alongside assistant responses. The human confirmation preview
  * flow allows users to experience a realistic confirmation UX while
@@ -67,6 +75,7 @@ import {
   useDemoPerspective,
 } from "@/lib/demoPerspectiveContext";
 import { DemoModeProvider, useDemoMode } from "@/lib/demoModeContext";
+import { frameResponseForPerspective } from "@/lib/perspectiveFramingEngine";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -157,7 +166,8 @@ function AssistantPageContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Phase R-02: Demo perspective framing (UI-only, no logic changes)
-  const { shouldExpandPanel, chatDeemphasized } = useDemoPerspective();
+  // Phase R-06: Added perspective for response framing
+  const { perspective, shouldExpandPanel, chatDeemphasized } = useDemoPerspective();
 
   // Phase R-03: Demo narrative mode (UI-only, no logic changes)
   const { mode, isInputEnabled } = useDemoMode();
@@ -548,7 +558,12 @@ function AssistantPageContent() {
                               : "bg-white border border-gray-200 text-gray-800"
                           }`}
                         >
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                          {/* Phase R-06: Apply perspective-aware framing to assistant messages */}
+                          <p className="text-sm whitespace-pre-wrap">
+                            {msg.role === "assistant"
+                              ? frameResponseForPerspective(msg.content, perspective).framedResponse
+                              : msg.content}
+                          </p>
                           <p className={`text-[10px] mt-1 ${msg.role === "user" ? "text-blue-200" : "text-gray-400"}`}>
                             {msg.timestamp.toLocaleTimeString()}
                           </p>
