@@ -5,7 +5,9 @@
  * technical feasibility of a single governed execution path.
  */
 
-export type ExecutionStatus = "SUCCESS" | "ABORT" | "DENIED" | "PENDING";
+import { SANDBOX_EXECUTION_HALTED, getSandboxKillSwitchState } from "@/lib/sandboxKillSwitch";
+
+export type ExecutionStatus = "SUCCESS" | "ABORT" | "DENIED" | "PENDING" | "HALTED";
 
 export interface SandboxExecutionReceipt {
   executionId: string;
@@ -15,7 +17,8 @@ export interface SandboxExecutionReceipt {
   clinicianName: string;
   appointmentTime: string;
   governanceHash: string;
-  disclaimer: "This action had no external effects.";
+  disclaimer: string;
+  reason?: string;
 }
 
 /**
@@ -32,6 +35,25 @@ export class SandboxExecutionAdapter {
     clinicianId: string,
     slotId: string
   ): SandboxExecutionReceipt {
+    console.log("[SANDBOX EXECUTION] Checking kill-switch authority...");
+
+    if (SANDBOX_EXECUTION_HALTED) {
+      const haltState = getSandboxKillSwitchState();
+      console.error("[SANDBOX EXECUTION] BLOCKED: Kill-switch is active.");
+      
+      return {
+        executionId: `sbx-halted-${Date.now()}`,
+        status: "HALTED",
+        ts: new Date().toISOString(),
+        patientName: "N/A",
+        clinicianName: "N/A",
+        appointmentTime: "N/A",
+        governanceHash: "NONE",
+        reason: haltState.reason || "Unknown",
+        disclaimer: "Sandbox execution halted. No action taken.",
+      };
+    }
+
     console.log("[SANDBOX EXECUTION] Initiating simulated appointment confirmation...");
     console.log(`[SANDBOX EXECUTION] Patient: ${patientId}, Clinician: ${clinicianId}, Slot: ${slotId}`);
 

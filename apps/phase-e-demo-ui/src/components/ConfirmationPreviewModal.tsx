@@ -21,6 +21,7 @@ import {
   getActorDisplayConfig,
   formatPreviewTimestamp,
 } from "@/lib/interactivePreviewEngine";
+import { SANDBOX_EXECUTION_HALTED, getSandboxKillSwitchState } from "@/lib/sandboxKillSwitch";
 
 interface ConfirmationPreviewModalProps {
   /** The preview confirmation record to display */
@@ -140,6 +141,10 @@ export function ConfirmationPreviewModal({
   const actorConfig = getActorDisplayConfig(record.actor);
   const colors = getColorClasses(actorConfig.colorClass);
 
+  // Phase U-03: Kill-switch validation
+  const haltState = getSandboxKillSwitchState();
+  const isHalted = SANDBOX_EXECUTION_HALTED;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -151,11 +156,23 @@ export function ConfirmationPreviewModal({
 
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* PHASE U-02: SANDBOX EXECUTION BOUNDARY BANNERS */}
-        <div className="bg-amber-600 px-6 py-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sandbox Execution</span>
-          <span className="text-[10px] font-bold text-amber-100 uppercase tracking-wider">Internal Test Only</span>
-        </div>
+        {/* PHASE U-03: SANDBOX KILL-SWITCH BANNER */}
+        {isHalted ? (
+          <div className="bg-red-700 px-6 py-3 flex flex-col items-center justify-center border-b border-red-800">
+            <span className="text-xs font-black text-white uppercase tracking-[0.3em] animate-pulse">
+              SANDBOX HALTED · EXECUTION DISABLED
+            </span>
+            <span className="text-[10px] font-bold text-red-200 uppercase mt-1">
+              REASON: {haltState.reason || "Manual Override"}
+            </span>
+          </div>
+        ) : (
+          /* PHASE U-02: SANDBOX EXECUTION BOUNDARY BANNERS */
+          <div className="bg-amber-600 px-6 py-1.5 flex items-center justify-between">
+            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sandbox Execution</span>
+            <span className="text-[10px] font-bold text-amber-100 uppercase tracking-wider">Internal Test Only</span>
+          </div>
+        )}
 
         {/* MANDATORY HEADER — PREVIEW ONLY */}
         <div className="bg-gradient-to-r from-purple-700 to-purple-800 px-6 py-4">
@@ -318,9 +335,9 @@ export function ConfirmationPreviewModal({
             </button>
             <button
               onClick={onAcknowledge}
-              disabled={!canSandboxExecute}
+              disabled={!canSandboxExecute || isHalted}
               className={`flex-1 px-4 py-2.5 rounded-lg border-2 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
-                canSandboxExecute 
+                canSandboxExecute && !isHalted
                   ? "border-green-600 bg-green-600 text-white hover:bg-green-700" 
                   : "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
               }`}

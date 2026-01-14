@@ -74,6 +74,11 @@ import {
   SandboxExecutionAdapter,
   type SandboxExecutionReceipt,
 } from "@/lib/sandboxExecutionAdapter";
+import {
+  haltSandboxExecution,
+  resetSandboxExecution,
+  SANDBOX_EXECUTION_HALTED,
+} from "@/lib/sandboxKillSwitch";
 import { getIntentLabel } from "@/lib/intentClassifier";
 import { classifyQuestionType } from "@/lib/questionTypeClassifier";
 import { routeEvidence } from "@/lib/evidenceRouter";
@@ -121,6 +126,22 @@ function AssistantPageContent() {
 
   // Phase R-03: Demo narrative mode (UI-only, no logic changes)
   const { mode, isInputEnabled } = useDemoMode();
+
+  // Phase U-03: Sandbox Kill-Switch (Internal Only)
+  const [isSandboxHalted, setIsSandboxHalted] = useState(SANDBOX_EXECUTION_HALTED);
+
+  const handleHaltSandbox = () => {
+    const reason = window.prompt("Enter reason for halting sandbox execution:", "Manual override for safety validation");
+    if (reason) {
+      haltSandboxExecution(reason);
+      setIsSandboxHalted(true);
+    }
+  };
+
+  const handleResetSandbox = () => {
+    resetSandboxExecution();
+    setIsSandboxHalted(false);
+  };
 
   // Phase O-02: Interactive human confirmation preview state (session-only)
   const [previewConfirmations, setPreviewConfirmations] = useState<
@@ -757,6 +778,42 @@ function AssistantPageContent() {
           }
         />
       )}
+
+      {/* PHASE U-03: INTERNAL KILL-SWITCH CONTROL SURFACE */}
+      <div className="mt-12 mb-8 p-6 border-2 border-dashed border-red-200 rounded-xl bg-red-50/30 flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center text-center">
+          <span className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">
+            Internal Validation Surface · Objective U-03
+          </span>
+          <p className="text-xs text-slate-500 max-w-md">
+            Use these controls to validate sandbox halt capabilities. 
+            Internal only. Not a product feature.
+          </p>
+        </div>
+
+        <div className="flex gap-4">
+          {!isSandboxHalted ? (
+            <button
+              onClick={handleHaltSandbox}
+              className="px-6 py-2.5 bg-red-600 text-white rounded-lg font-black text-xs uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-95"
+            >
+              HALT SANDBOX EXECUTION (INTERNAL)
+            </button>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <div className="px-4 py-2 bg-red-100 border border-red-200 rounded text-red-700 text-xs font-bold uppercase">
+                Status: Sandbox Execution Halted
+              </div>
+              <button
+                onClick={handleResetSandbox}
+                className="text-[10px] text-slate-400 font-bold uppercase hover:text-slate-600 underline underline-offset-4"
+              >
+                Reset Sandbox (Dev Only)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
