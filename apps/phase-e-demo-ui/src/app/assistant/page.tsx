@@ -70,6 +70,9 @@ import {
   transitionPreviewState,
 } from "@/lib/interactivePreviewEngine";
 import { getIntentLabel } from "@/lib/intentClassifier";
+import { classifyQuestionType } from "@/lib/questionTypeClassifier";
+import { routeEvidence } from "@/lib/evidenceRouter";
+import { composePrimaryResponse } from "@/lib/responseComposer";
 import {
   DemoPerspectiveProvider,
   useDemoPerspective,
@@ -81,69 +84,6 @@ import type {
   RelevanceResult,
   PreviewConfirmationRecord,
 } from "@/lib/types";
-
-/**
- * Generates a deterministic "assistant response" based on the intent.
- * This is a static simulation — no LLM, no execution.
- */
-function generateAssistantResponse(
-  message: string,
-  relevance: RelevanceResult
-): string {
-  const intentLabel = getIntentLabel(relevance.intent);
-
-  // Shadow Mode Prompt Grounding (Strict)
-  const shadowModeGrounding = SHADOW_MODE 
-    ? "\n\n[SYSTEM INSTRUCTION: You may only reason over the provided data. Do not infer missing information. Do not suggest actions. Do not assume correctness. Some information may be incomplete or unavailable.]"
-    : "";
-
-  // Phase M: Clarifying Question Rule
-  const threshold = 3;
-  if (relevance.intent === "unknown" || relevance.maxScore < threshold) {
-    // Generate exactly ONE clarifying question
-    if (message.toLowerCase().includes("appointment") || message.toLowerCase().includes("visit")) {
-      return "Are you asking about an upcoming appointment or a past visit?" + shadowModeGrounding;
-    }
-    if (message.toLowerCase().includes("note") || message.toLowerCase().includes("summary")) {
-      return "Do you want a summary of your last visit or help drafting a note?" + shadowModeGrounding;
-    }
-    return "Could you please clarify if you are looking for information about your medical history, current medications, or scheduling?" + shadowModeGrounding;
-  }
-
-  if (!relevance.hasEvidence) {
-    return `I understand you're asking about "${message.slice(0, 50)}${message.length > 50 ? "..." : ""}". However, I couldn't find any relevant information in the patient's ${SHADOW_MODE ? "live" : "demo"} timeline for this query. ${SHADOW_MODE ? "This is a read-only shadow mode preview." : "This is a demo with limited static data."} Please try asking about visits, appointments, or clinical notes. ${shadowModeGrounding}`;
-  }
-
-  const topItem = relevance.selectedItems[0];
-  const itemCount = relevance.selectedItems.length;
-
-  // Generate intent-specific responses (all read-only, no actions)
-  let response = "";
-  switch (relevance.intent) {
-    case "scheduling":
-      response = `Based on the patient timeline, I found ${itemCount} relevant record${itemCount > 1 ? "s" : ""}. The most recent is from ${topItem.date}: "${topItem.title}". This is read-only ${SHADOW_MODE ? "shadow mode preview" : "demo data"} — no scheduling actions can be performed.`;
-      break;
-
-    case "clinical_drafting":
-      response = `I found ${itemCount} clinical record${itemCount > 1 ? "s" : ""} that may be relevant. The most relevant is from ${topItem.date}: "${topItem.title}". Summary: "${topItem.summary.slice(0, 100)}${topItem.summary.length > 100 ? "..." : ""}". Note: This is ${SHADOW_MODE ? "read-only shadow mode preview" : "demo data only"} — no clinical notes can be drafted or saved.`;
-      break;
-
-    case "record_summary":
-      response = `Here's what I found in the patient's ${SHADOW_MODE ? "live" : "demo"} timeline: ${itemCount} relevant item${itemCount > 1 ? "s" : ""}. Most relevant: ${topItem.date} — "${topItem.title}". ${topItem.summary}. This is ${SHADOW_MODE ? "read-only shadow mode preview" : "static demo data for demonstration purposes only"}.`;
-      break;
-
-    case "billing_explanation":
-      response = `I searched for billing-related information. Found ${itemCount} item${itemCount > 1 ? "s" : ""}: ${topItem.date} — "${topItem.title}". Note: The ${SHADOW_MODE ? "live" : "demo"} timeline has limited billing data. No billing actions can be performed.`;
-      break;
-
-    default:
-      response = `I found ${itemCount} potentially relevant item${itemCount > 1 ? "s" : ""} in the ${SHADOW_MODE ? "live" : "demo"} timeline. Most relevant: ${topItem.date} — "${topItem.title}". This is read-only ${SHADOW_MODE ? "shadow mode preview" : "demo data for demonstration purposes"}.`;
-  }
-
-  // Phase M: Evidence Attribution Footer
-  const footer = `\n\nBased on:\n${relevance.evidenceAttribution.map(a => `• ${a}`).join("\n")}`;
-  return response + footer + shadowModeGrounding;
-}
 
 /**
  * Generates a unique ID for messages.
@@ -396,8 +336,22 @@ function AssistantPageContent() {
         overallConfidence
       );
 
-      // Generate assistant response
-      const responseContent = generateAssistantResponse(trimmed, relevance);
+      // Generate assistant response (Phase R-07 Question-Type Routing)
+      const questionType = classifyQuestionType(trimmed);
+      const routed = routeEvidence({
+        message: trimmed,
+        questionType,
+        patientContext: patientContext!,
+        patientTimeline: patientTimeline!,
+      });
+      const primary = composePrimaryResponse({
+        message: trimmed,
+        questionType,
+        routed,
+      });
+
+      // Visually combine headline and body with footer
+      const responseContent = `${primary.headline}\n\n${primary.body}\n\nBased on:\n${primary.basedOn.map(b => `• ${b}`).join("\n")}`;
 
       const assistantId = generateId();
 
