@@ -79,6 +79,7 @@ import {
 } from "@/lib/demoPerspectiveContext";
 import { DemoModeProvider, useDemoMode } from "@/lib/demoModeContext";
 import { frameResponseForPerspective } from "@/lib/perspectiveFramingEngine";
+import { mapNarrativeSubject } from "@/lib/narrativeSubjectMapper";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -512,10 +513,13 @@ function AssistantPageContent() {
                               : "bg-white border border-gray-200 text-gray-800"
                           }`}
                         >
-                          {/* Phase R-06: Apply perspective-aware framing to assistant messages */}
+                          {/* Phase R-06 & R-08: Apply perspective-aware framing and narrative subject mapping to assistant messages */}
                           <p className="text-sm whitespace-pre-wrap">
                             {msg.role === "assistant"
-                              ? frameResponseForPerspective(msg.content, perspective).framedResponse
+                              ? mapNarrativeSubject(
+                                  frameResponseForPerspective(msg.content, perspective).framedResponse,
+                                  perspective
+                                )
                               : msg.content}
                           </p>
                           <p className={`text-[10px] mt-1 ${msg.role === "user" ? "text-blue-200" : "text-gray-400"}`}>
