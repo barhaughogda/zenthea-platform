@@ -83,6 +83,7 @@ import { frameResponseForPerspective } from "@/lib/perspectiveFramingEngine";
 import { mapNarrativeSubject } from "@/lib/narrativeSubjectMapper";
 import { normalizeNarrativeSubject } from "@/lib/narrativeNormalizer";
 import { getSectionOrder } from "@/lib/perspectiveContentOrder";
+import { resolveIdentity } from "@/lib/identityResolver";
 import type {
   ChatMessage,
   RelevanceResult,
@@ -512,14 +513,19 @@ function AssistantPageContent() {
                           }`}
                         >
                           {/* Phase R-06, R-08 & R-09: Apply perspective-aware framing and normalization to assistant messages */}
+                          {/* Phase R-11: Apply final-pass identity resolution */}
                           <p className="text-sm whitespace-pre-wrap">
                             {msg.role === "assistant"
-                              ? normalizeNarrativeSubject(
-                                  mapNarrativeSubject(
-                                    frameResponseForPerspective(msg.content, perspective).framedResponse,
+                              ? resolveIdentity(
+                                  normalizeNarrativeSubject(
+                                    mapNarrativeSubject(
+                                      frameResponseForPerspective(msg.content, perspective).framedResponse,
+                                      perspective
+                                    ),
                                     perspective
                                   ),
-                                  perspective
+                                  perspective,
+                                  patientContext?.fullName
                                 )
                               : msg.content}
                           </p>
