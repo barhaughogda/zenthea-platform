@@ -1,0 +1,25 @@
+{
+  "name": "@zenthea/scheduling-domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Phase Y-02: Scheduling Domain Execution Skeleton (Design-Only, Execution BLOCKED)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "keywords": [
+    "scheduling",
+    "domain",
+    "execution-skeleton",
+    "phase-y-02",
+    "design-only",
+    "execution-blocked"
+  ]
+}
