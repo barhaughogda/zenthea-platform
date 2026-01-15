@@ -10,7 +10,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@zenthea/audit-core": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.7.3"
   },
