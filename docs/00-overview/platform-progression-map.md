@@ -17,15 +17,13 @@ This document provides a high-level progression view of the platform across majo
 | X | Identity & Authentication | Implement robust authentication and authorization for real users. | COMPLETE | 100% | Architecture, execution planning, and governance complete. No runtime activation. |
 | Y | Execution Pathways | Build and govern pathways for state-changing actions within the platform. | COMPLETE | 100% | Execution skeletons, audit core, domain wiring, and locks complete. Execution blocked by design. |
 | Z | Scale & Resilience | Ensure platform performance and security at production scale. | COMPLETE | 100% | Governance frameworks Z-01 through Z-05 locked. No operational enablement. |
-| AA–AD | Product Interaction & Proposal Layer | Establish user-facing product surfaces and proposal-based workflows without execution. | COMPLETE | 100% | Read-only, proposal, refinement, and decision-support layers complete and locked. Execution remains explicitly blocked. |
+| AA–AF | Product Interaction & Decision Layer | Establish user-facing product surfaces and decision modeling without execution. | COMPLETE | 100% | Read-only (AB), proposal (AC), refinement (AD), non-operational signal capture (AE), and human decision readiness (AF) complete and locked. Execution remains explicitly blocked. |
 
 ## Current Overall Platform Status
-Governance, architecture, execution skeletons, and product interaction layers (through Phase AD) are complete and locked. The platform now has a full, non-operational product surface with proposal, refinement, and decision-support capabilities. Execution remains intentionally and explicitly blocked pending future governance.
+Governance, architecture, execution skeletons, and the end-to-end product interaction & decision layer (through Phase AF) are complete and locked. The platform represents a fully non-operational but end-to-end product system with proposal, refinement, signal capture, and human decision readiness modeling. All phases through AF are verified COMPLETE and LOCKED. Execution remains intentionally and explicitly blocked.
 
 ## What Comes Next (High-Level)
-- **Product Interaction & Proposal Layer**: Establishing human-centered surfaces for proposal interaction and governance.
-- **Controlled Validation**: Testing interaction models within locked execution boundaries.
-- **Feedback Integration**: Refining product surfaces based on read-only and proposal-based validation.
+The platform has reached a state of end-to-end design completion through Phase AF. Further progression is subject to formal governance review and the release of new implementation mandates. Execution remains intentionally and explicitly blocked.
 
 ## Estimation and Planning Notes
 - Percentages are directional and reflect high-level phase progress, not contractual deadlines.
