@@ -1,0 +1,11 @@
+{
+  "name": "@zenthea/audit-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DESIGN-ONLY SKELETON — EXECUTION NOT ENABLED. Core audit and evidence structures for Zenthea.",
+  "main": "src/index.ts",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
