@@ -15,6 +15,7 @@ import {
   Globe,
   Bot,
   Home,
+  GitCompare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +63,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: Bot,
     description: "Read-only AI assistant preview",
   },
+  {
+    href: "/proposals",
+    label: "Proposals",
+    icon: GitCompare,
+    description: "Read-only proposal visualization",
+  },
 ];
 
 export function NavigationShell({ children }: { children: React.ReactNode }) {
@@ -103,7 +110,7 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
 
         <div className="p-4 border-t">
           <div className="text-xs text-muted-foreground">
-            <p className="font-medium">Phase AJ-03</p>
+            <p className="font-medium">Phase AJ-04</p>
             <p>Read-Only Mode</p>
           </div>
         </div>
@@ -145,7 +152,7 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
         {/* Footer */}
         <footer className="border-t bg-muted/10 p-4 text-center text-xs text-muted-foreground">
           <p>
-            Phase AJ-03: READ-ONLY / NON-OPERATIONAL. Execution is not enabled.
+            Phase AJ-04: READ-ONLY / NON-OPERATIONAL. Execution is not enabled.
             All proposals are ephemeral.
           </p>
         </footer>

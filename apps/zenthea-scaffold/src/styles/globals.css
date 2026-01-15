@@ -81,4 +81,21 @@
   .nav-link-inactive {
     @apply text-muted-foreground hover:bg-muted hover:text-foreground;
   }
+
+  /* Phase AJ-04: Proposal visualization components */
+  .proposal-card {
+    @apply p-6 border rounded-lg bg-card shadow-sm;
+  }
+
+  .proposal-variant-label {
+    @apply text-sm font-semibold px-3 py-1 bg-secondary text-secondary-foreground rounded-full;
+  }
+
+  .proposal-toggle-active {
+    @apply px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md;
+  }
+
+  .proposal-toggle-inactive {
+    @apply px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors;
+  }
 }
