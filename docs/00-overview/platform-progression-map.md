@@ -18,12 +18,14 @@ This document provides a high-level progression view of the platform across majo
 | Y | Execution Pathways | Build and govern pathways for state-changing actions within the platform. | COMPLETE | 100% | Execution skeletons, audit core, domain wiring, and locks complete. Execution blocked by design. |
 | Z | Scale & Resilience | Ensure platform performance and security at production scale. | COMPLETE | 100% | Governance frameworks Z-01 through Z-05 locked. No operational enablement. |
 | AA–AF | Product Interaction & Decision Layer | Establish user-facing product surfaces and decision modeling without execution. | COMPLETE | 100% | Read-only (AB), proposal (AC), refinement (AD), non-operational signal capture (AE), and human decision readiness (AF) complete and locked. Execution remains explicitly blocked. |
+| AG | Enablement Reasoning | Establish core reasoning for platform enablement and governance logic. | COMPLETE | 100% | Governance reasoning is complete and locked. Execution remains explicitly BLOCKED. |
+| AH | Governance Evolution & Conflict Resolution | Define mechanisms for governance updates and conflict resolution within the platform. | COMPLETE | 100% | Governance evolution mechanisms are defined and locked. Execution remains explicitly BLOCKED. |
 
 ## Current Overall Platform Status
-Governance, architecture, execution skeletons, and the end-to-end product interaction & decision layer (through Phase AF) are complete and locked. The platform represents a fully non-operational but end-to-end product system with proposal, refinement, signal capture, and human decision readiness modeling. All phases through AF are verified COMPLETE and LOCKED. Execution remains intentionally and explicitly blocked.
+Governance architecture through Phase AH is COMPLETE and LOCKED. No execution, persistence, or autonomy has been enabled. The platform is governance-complete but operationally inactive. Execution remains intentionally and explicitly blocked.
 
 ## What Comes Next (High-Level)
-The platform has reached a state of end-to-end design completion through Phase AF. Further progression is subject to formal governance review and the release of new implementation mandates. Execution remains intentionally and explicitly blocked.
+The platform has reached a state of end-to-end design completion through Phase AH. Further progression is subject to formal governance review and the release of new implementation mandates. Execution remains intentionally and explicitly blocked.
 
 ## Estimation and Planning Notes
 - Percentages are directional and reflect high-level phase progress, not contractual deadlines.
