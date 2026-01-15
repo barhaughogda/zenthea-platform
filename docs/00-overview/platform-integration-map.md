@@ -15,10 +15,16 @@ The Zenthea platform is experienced through several distinct surfaces, each with
 - **What it is allowed to read**: The patient’s own records, shared care plans, and authorized messages.
 - **What it is NOT allowed to do**: Access data for other patients, modify clinical records without provider review, or initiate clinical actions without explicit provider oversight.
 
+
 ### Provider Portal (EHR)
 - **Primary Responsibility**: Serves as the primary clinical interface for healthcare providers to manage patient care, document encounters, and coordinate workflows.
 - **What it is allowed to read**: Full clinical records for patients under the provider’s care, platform-generated summaries, and AI-assisted drafts.
 - **What it is NOT allowed to do**: Bypass platform-level audit logs or modify core platform governance policies.
+
+### Website Builder (Clinic Web Presence & Booking)
+- **Primary Responsibility**: Enables clinics to build, customize, and manage their public-facing website, including service information, provider profiles, and patient booking entry points.
+- **What it is allowed to read**: Clinic-owned configuration data, branding assets, provider availability metadata, and booking configuration necessary to render public pages.
+- **What it is NOT allowed to do**: Access or expose protected health information (PHI), bypass patient consent boundaries, or directly modify clinical records or appointments without routing through governed booking and orchestration layers.
 
 ### Operator / Admin Surfaces
 - **Primary Responsibility**: Used by administrative and operational staff for system configuration, user management, and platform-level oversight.
