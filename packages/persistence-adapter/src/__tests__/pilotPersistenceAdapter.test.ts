@@ -79,4 +79,70 @@ describe("PilotPersistenceAdapter (Slice 1)", () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain("inhibited by kill-switch");
   });
+
+  describe("Slice 2: Real Persistence for Finalized Notes", () => {
+    it("should successfully persist a finalized note when gates are open", async () => {
+      const inactiveKillSwitch: IPersistenceKillSwitch = {
+        isPersistenceInhibited: () => false,
+      };
+      
+      const adapter = createPilotPersistenceAdapter({ 
+        enabled: true, 
+        killSwitch: inactiveKillSwitch 
+      });
+      
+      const result = await adapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", mockFinalizedMetadata);
+      
+      expect(result.success).toBe(true);
+      expect(result.message).toBe("Finalized note persisted to pilot storage.");
+    });
+
+    it("should fail to persist finalized note when kill-switch is active", async () => {
+      const activeKillSwitch: IPersistenceKillSwitch = {
+        isPersistenceInhibited: () => true,
+      };
+      
+      const adapter = createPilotPersistenceAdapter({ 
+        enabled: true, 
+        killSwitch: activeKillSwitch 
+      });
+      
+      const result = await adapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", mockFinalizedMetadata);
+      
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("inhibited by kill-switch");
+    });
+
+    it("should fail to persist finalized note when feature flag is disabled", async () => {
+      const inactiveKillSwitch: IPersistenceKillSwitch = {
+        isPersistenceInhibited: () => false,
+      };
+      
+      const adapter = createPilotPersistenceAdapter({ 
+        enabled: false, 
+        killSwitch: inactiveKillSwitch 
+      });
+      
+      const result = await adapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", mockFinalizedMetadata);
+      
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Persistence disabled");
+    });
+
+    it("should keep recordSessionStarted as a stub (no real write)", async () => {
+      const inactiveKillSwitch: IPersistenceKillSwitch = {
+        isPersistenceInhibited: () => false,
+      };
+      
+      const adapter = createPilotPersistenceAdapter({ 
+        enabled: true, 
+        killSwitch: inactiveKillSwitch 
+      });
+      
+      const result = await adapter.recordSessionStarted("HUMAN_CONFIRMED_START", mockMetadata);
+      
+      expect(result.success).toBe(true);
+      expect(result.message).toBe("Session start record stubbed successfully.");
+    });
+  });
 });
