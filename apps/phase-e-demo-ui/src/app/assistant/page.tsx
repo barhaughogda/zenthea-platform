@@ -167,8 +167,6 @@ function AssistantPageContent() {
 
   // Phase V-01: Session reset and end
   const handleResetSession = useCallback(async () => {
-    // TEMPORARY DRY-RUN LOGS
-    console.log("[PILOT DRY-RUN] Invoking persistenceAdapter.recordSessionStarted");
     const persistenceResult = await persistenceAdapter.recordSessionStarted("HUMAN_CONFIRMED_START", {
       sessionId: `demo-${Date.now()}`,
       providerId: "demo-provider",
@@ -176,7 +174,6 @@ function AssistantPageContent() {
       timestamp: new Date(),
       ...({ source: "ui", humanAction: true } as any)
     } as any);
-    console.log("[PILOT DRY-RUN] recordSessionStarted result:", persistenceResult);
 
     setMessages([]);
     setPreviewConfirmations(new Map());
@@ -282,7 +279,6 @@ function AssistantPageContent() {
       // If the intent is scheduling and it's acknowledged, simulate a sandbox execution
       const msg = messages.find((m) => m.id === messageId);
       if (msg && msg.relevance?.intent === "scheduling") {
-        console.log("[PHASE U] Triggering Sandbox Execution for scheduling intent...");
         const receipt = SandboxExecutionAdapter.executeAppointmentConfirmation(
           "PAT-12345",
           "DR-67890",

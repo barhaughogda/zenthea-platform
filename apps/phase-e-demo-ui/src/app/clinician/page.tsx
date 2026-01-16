@@ -22,17 +22,13 @@ export default function ClinicianPage() {
 
   async function handleFinalize() {
     setIsFinalizing(true);
-    // TEMPORARY DRY-RUN LOGS
-    console.log("[PILOT DRY-RUN] Invoking persistenceAdapter.recordFinalizedNote");
     const result = await persistenceAdapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", {
       noteId: `note-${Date.now()}`,
       authorId: "demo-clinician",
       signedAt: new Date(),
       ...({ source: "ui", humanAction: true } as any)
     } as any);
-    console.log("[PILOT DRY-RUN] recordFinalizedNote result:", result);
     setIsFinalizing(false);
-    alert(`Finalize attempt complete. Success: ${result.success}. Message: ${result.message}`);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
