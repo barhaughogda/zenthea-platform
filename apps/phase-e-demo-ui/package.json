@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@zenthea/persistence-adapter": "workspace:*",
     "@starter/ui": "workspace:*",
     "@starter/patient-scope-gate": "workspace:*",
     "@starter/patient-portal-agent": "workspace:*",

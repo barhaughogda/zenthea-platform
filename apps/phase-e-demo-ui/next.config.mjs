@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
+    "@zenthea/persistence-adapter",
     "@starter/ui", 
     "@starter/patient-scope-gate", 
     "@starter/observability",

@@ -13,13 +13,16 @@ This adapter is specifically designed for the **Mock Consultation Loop** and ali
 - All writes are strictly human-gated and checked against the kill switch.
 
 ## Safety Mechanisms
-1. **Kill Switch**: Every write method checks the `IPersistenceKillSwitch` first. If inhibited, the operation fails immediately.
+1. **Kill Switch**: Every write method checks the `IPersistenceKillSwitch` first. If inhibited, the operation fails immediately. 
+   - **Default**: INHIBITED (ON).
+   - **Explicit OFF**: Requires `PILOT_KILL_SWITCH=OFF`.
 2. **Feature Flag**: Persistence must be explicitly enabled via `PILOT_PERSISTENCE_ENABLED=true`.
-3. **Human Gating**: Every method requires an explicit signal (e.g., `HUMAN_SIGNED_FINALIZE`) to proceed.
+3. **Double Gate**: BOTH the Kill Switch must be OFF AND the Feature Flag must be ENABLED for persistence to occur.
+4. **Human Gating**: Every method requires an explicit signal (e.g., `HUMAN_SIGNED_FINALIZE`) to proceed.
 
 ## Usage
 ```typescript
-import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
+import { createPilotPersistenceAdapter } from "@zenthea/persistence-adapter";
 
 const adapter = createPilotPersistenceAdapter({
   enabled: true, // or via process.env.PILOT_PERSISTENCE_ENABLED

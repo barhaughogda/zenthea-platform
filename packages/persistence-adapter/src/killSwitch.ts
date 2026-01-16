@@ -13,14 +13,17 @@ export interface IPersistenceKillSwitch {
 }
 
 /**
- * Default kill switch implementation for Slice 1.
- * Currently hardcoded to inhibit all persistence as per AP-01.
+ * Default kill switch implementation for Slice 2.
+ * 
+ * FAIL-CLOSED BEHAVIOR:
+ * 1. Defaults to INHIBITED (true).
+ * 2. Can ONLY be turned OFF by explicitly setting PILOT_KILL_SWITCH="OFF".
+ * 3. Any other value (including undefined) results in persistence being inhibited.
  */
 export const PilotKillSwitch: IPersistenceKillSwitch = {
   isPersistenceInhibited: () => {
-    // Slice 1: Hard-inhibit all persistence by default.
-    // This aligns with AP-01 which authorizes infrastructure ONLY,
-    // and BLOCKS application execution/persistence.
-    return true;
+    // Kill switch is explicitly OFF only when environment variable is exactly "OFF"
+    const killSwitchState = process.env.PILOT_KILL_SWITCH;
+    return killSwitchState !== "OFF";
   }
 };
