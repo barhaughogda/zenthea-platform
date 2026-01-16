@@ -1,0 +1,39 @@
+# Pilot Persistence Adapter
+
+## Purpose
+The Pilot Persistence Adapter is the authoritative gateway for all write operations during the Zenthea pilot phase. It ensures that data persistence is explicit, minimal, and strictly human-gated.
+
+This adapter is specifically designed for the **Mock Consultation Loop** and aligns with `docs/06-beta/pilot-persistence-adapter-design.md`.
+
+## Current Status: Slice 1 (Stubbed)
+- **Persistence is DISABLED by default.**
+- **Application execution is BLOCKED.**
+- All storage operations are currently stubbed (NO-OP).
+- Real storage (AWS/RDS) will be wired later behind this same interface once authorized.
+
+## Safety Mechanisms
+1. **Kill Switch**: Every write method checks the `IPersistenceKillSwitch` first. If inhibited, the operation fails immediately.
+2. **Feature Flag**: Persistence must be explicitly enabled via `PILOT_PERSISTENCE_ENABLED=true`.
+3. **Human Gating**: Every method requires an explicit signal (e.g., `HUMAN_SIGNED_FINALIZE`) to proceed.
+
+## Usage
+```typescript
+import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
+
+const adapter = createPilotPersistenceAdapter();
+
+const result = await adapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", {
+  noteId: "note-123",
+  authorId: "provider-456",
+  signedAt: new Date()
+});
+
+if (!result.success) {
+  console.error(result.message); // "Persistence disabled: PILOT_PERSISTENCE_ENABLED is false."
+}
+```
+
+## Alignment
+This implementation strictly follows:
+- `docs/06-beta/pilot-persistence-adapter-design.md`
+- `docs/03-governance/phase-ap/ap-01-pilot-phi-sandbox-provisioning-authorization.md` (Infrastructure only authorized)
