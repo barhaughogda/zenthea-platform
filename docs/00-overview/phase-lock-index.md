@@ -26,6 +26,7 @@ This consolidated lock index exists to provide a single, authoritative reference
 | Phase AD | [Phase AD Product Lock](../05-product/phase-ad-product-lock.md) | Proposal Refinement and Decision Support | LOCKED |
 | Phase AE | [Phase AE Product Lock](../05-product/phase-ae-product-lock.md) | Non-Operational Product Validation and Signal Model | LOCKED |
 | Phase AF | [Phase AF Product Lock](../05-product/phase-af-product-lock.md) | Human Decision Outcomes and Recording Model | LOCKED |
+| Phase AO | [Phase AO Governance Lock (AO-01, AO-02, AO-03)](../03-governance/phase-ao/) | Booking Pre-Execution Governance | LOCKED |
 
 ## 5. Architectural Lock Boundary (W–Y)
 The architecture, execution planning, and execution skeletons defined in Phases W, X, and Y are completely frozen. No changes to the underlying structural design or execution sequence are permitted.
