@@ -9,12 +9,31 @@ import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
 import { DEMO_PATIENT_TIMELINE } from "@/lib/demoPatientTimeline";
 import { generateClinicalDraft } from "./actions";
 import { ClinicalDraftingResponse } from "@starter/patient-portal-agent/orchestration/clinical-drafting-workflow";
+import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
+
+const persistenceAdapter = createPilotPersistenceAdapter();
 
 export default function ClinicianPage() {
   const [result, setResult] = useState<ClinicalDraftingResponse | null>(null);
   const [failure, setFailure] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [useInvalidContext, setUseInvalidContext] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  async function handleFinalize() {
+    setIsFinalizing(true);
+    // TEMPORARY DRY-RUN LOGS
+    console.log("[PILOT DRY-RUN] Invoking persistenceAdapter.recordFinalizedNote");
+    const result = await persistenceAdapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", {
+      noteId: `note-${Date.now()}`,
+      authorId: "demo-clinician",
+      signedAt: new Date(),
+      ...({ source: "ui", humanAction: true } as any)
+    } as any);
+    console.log("[PILOT DRY-RUN] recordFinalizedNote result:", result);
+    setIsFinalizing(false);
+    alert(`Finalize attempt complete. Success: ${result.success}. Message: ${result.message}`);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -124,7 +143,7 @@ export default function ClinicianPage() {
 
         {result && result.draft && (
           <div className="space-y-6 pt-6 border-t border-gray-100">
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 items-center">
               <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold border border-red-200">
                 DRAFT ONLY
               </span>
@@ -134,6 +153,13 @@ export default function ClinicianPage() {
               <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold border border-yellow-200">
                 Requires clinician review
               </span>
+              <button
+                onClick={handleFinalize}
+                disabled={isFinalizing}
+                className="ml-auto bg-green-600 text-white px-4 py-1.5 rounded-md text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                {isFinalizing ? "Finalizing..." : "Sign and Finalize"}
+              </button>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">

@@ -89,17 +89,23 @@ import {
   useDemoPerspective,
   PanelId,
 } from "@/lib/demoPerspectiveContext";
-import { DemoModeProvider, useDemoMode } from "@/lib/demoModeContext";
+import {
+  DemoModeProvider,
+  useDemoMode,
+} from "@/lib/demoModeContext";
 import { frameResponseForPerspective } from "@/lib/perspectiveFramingEngine";
 import { mapNarrativeSubject } from "@/lib/narrativeSubjectMapper";
 import { normalizeNarrativeSubject } from "@/lib/narrativeNormalizer";
 import { getSectionOrder } from "@/lib/perspectiveContentOrder";
 import { resolveIdentity } from "@/lib/identityResolver";
+import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
 import type {
   ChatMessage,
   RelevanceResult,
   PreviewConfirmationRecord,
 } from "@/lib/types";
+
+const persistenceAdapter = createPilotPersistenceAdapter();
 
 /**
  * Generates a unique ID for messages.
@@ -160,7 +166,18 @@ function AssistantPageContent() {
   };
 
   // Phase V-01: Session reset and end
-  const handleResetSession = useCallback(() => {
+  const handleResetSession = useCallback(async () => {
+    // TEMPORARY DRY-RUN LOGS
+    console.log("[PILOT DRY-RUN] Invoking persistenceAdapter.recordSessionStarted");
+    const persistenceResult = await persistenceAdapter.recordSessionStarted("HUMAN_CONFIRMED_START", {
+      sessionId: `demo-${Date.now()}`,
+      providerId: "demo-provider",
+      mockPatientId: "PAT-12345",
+      timestamp: new Date(),
+      ...({ source: "ui", humanAction: true } as any)
+    } as any);
+    console.log("[PILOT DRY-RUN] recordSessionStarted result:", persistenceResult);
+
     setMessages([]);
     setPreviewConfirmations(new Map());
     resetSandboxExecution();

@@ -4,8 +4,21 @@ import { executeClinicalDrafting } from "@starter/patient-portal-agent/orchestra
 import { MOCK_PATIENT_SESSION, MOCK_INVALID_PATIENT_SESSION, MOCK_CLINICIAN } from "@/lib/mocks";
 import { DEMO_PATIENT_CONTEXT } from "@/lib/demoPatientContext";
 import { DEMO_PATIENT_TIMELINE } from "@/lib/demoPatientTimeline";
+import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
+
+const persistenceAdapter = createPilotPersistenceAdapter();
 
 export async function generateClinicalDraft(formData: FormData, useInvalidSession: boolean = false) {
+  // TEMPORARY DRY-RUN LOGS
+  console.log("[PILOT DRY-RUN] Invoking persistenceAdapter.recordDraftGenerated");
+  const persistenceResult = await persistenceAdapter.recordDraftGenerated("HUMAN_CONFIRMED_END_SESSION", {
+    draftId: `draft-${Date.now()}`,
+    labels: ["AI Suggested", "Pilot Dry-Run"],
+    authorId: "demo-clinician",
+    ...({ source: "ui", humanAction: true } as any)
+  } as any);
+  console.log("[PILOT DRY-RUN] recordDraftGenerated result:", persistenceResult);
+
   const intentInput = formData.get("intent") as string;
   const structure = formData.get("structure") as string;
   const tone = formData.get("tone") as string;
