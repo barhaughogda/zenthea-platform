@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { PilotSessionShell, AudioInputSim, PreparingDraftState } from "@/components/pilot";
 import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
@@ -28,6 +28,15 @@ const persistenceAdapter = createPilotPersistenceAdapter();
  */
 
 type PilotStep = "idle" | "session_active" | "preparing" | "draft_ready" | "finalized";
+
+// Speaker attribution types - EPHEMERAL (React state only)
+type Speaker = "clinician" | "patient";
+
+interface TranscriptSegment {
+  speaker: Speaker;
+  text: string;
+  timestamp: number;
+}
 
 // Demo draft content for the pilot experience
 const DEMO_DRAFT = {
@@ -118,9 +127,40 @@ export default function PilotPage() {
   // Transcript state - EPHEMERAL (React state only, never persisted)
   // SAFETY: Transcript exists ONLY in memory. On reset or page refresh, it is lost.
   // SAFETY: No localStorage, sessionStorage, indexedDB, filesystem, or logging.
-  const [liveTranscript, setLiveTranscript] = useState<string>("");
-  const [frozenTranscript, setFrozenTranscript] = useState<string>("");
+  const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
+  const [currentSegmentText, setCurrentSegmentText] = useState<string>("");
+  const [activeSpeaker, setActiveSpeaker] = useState<Speaker>("clinician");
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
+  
+  // Ref to track latest speaker for use in callbacks
+  const activeSpeakerRef = useRef<Speaker>("clinician");
+  
+  // Sync activeSpeakerRef with state
+  useEffect(() => {
+    activeSpeakerRef.current = activeSpeaker;
+  }, [activeSpeaker]);
+  
+  // Keyboard shortcuts for speaker switching (C = Clinician, P = Patient)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only active during recording session
+      if (step !== "session_active") return;
+      
+      // Ignore if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      
+      const key = event.key.toLowerCase();
+      if (key === "c") {
+        setActiveSpeaker("clinician");
+      } else if (key === "p") {
+        setActiveSpeaker("patient");
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [step]);
   
   // Audio blob ref - held in memory only during processing
   // IMPORTANT: This is set to null after draft generation
@@ -133,8 +173,10 @@ export default function PilotPage() {
     setTranscriptionError(null);
     setDraftGenerationError(null);
     // Clear transcript state (ephemeral - memory only)
-    setLiveTranscript("");
-    setFrozenTranscript("");
+    setTranscriptSegments([]);
+    setCurrentSegmentText("");
+    setActiveSpeaker("clinician");
+    activeSpeakerRef.current = "clinician";
     audioBlobRef.current = null;
   }, []);
 
@@ -143,10 +185,19 @@ export default function PilotPage() {
     // SAFETY: Transcript is stored ONLY in React state
     // No persistence to localStorage, sessionStorage, indexedDB, or filesystem
     // No logging to console
-    setLiveTranscript(transcript);
-    if (isFinal) {
-      // When recording stops, this will be the final accumulated transcript
-      setFrozenTranscript(transcript);
+    
+    // Update current segment text (interim)
+    setCurrentSegmentText(transcript);
+    
+    if (isFinal && transcript.trim()) {
+      // When recording stops, finalize the current segment with the active speaker
+      const newSegment: TranscriptSegment = {
+        speaker: activeSpeakerRef.current,
+        text: transcript.trim(),
+        timestamp: Date.now(),
+      };
+      setTranscriptSegments(prev => [...prev, newSegment]);
+      setCurrentSegmentText("");
     }
   }, []);
 
@@ -200,13 +251,17 @@ export default function PilotPage() {
     // Stop any active listening
     setIsListening(false);
     
-    // Freeze the transcript at end of session
-    const transcriptToUse = liveTranscript.trim() || frozenTranscript.trim();
-    if (transcriptToUse) {
-      setFrozenTranscript(transcriptToUse);
+    // Finalize any pending current segment text
+    if (currentSegmentText.trim()) {
+      const finalSegment: TranscriptSegment = {
+        speaker: activeSpeakerRef.current,
+        text: currentSegmentText.trim(),
+        timestamp: Date.now(),
+      };
+      setTranscriptSegments(prev => [...prev, finalSegment]);
+      setCurrentSegmentText("");
     }
-    // Clear live transcript (session ended)
-    setLiveTranscript("");
+    
     setDraftGenerationError(null);
     
     // Show preparing state
@@ -219,6 +274,12 @@ export default function PilotPage() {
       authorId: "pilot-demo-clinician",
       ...({ source: "pilot-ui", humanAction: true } as any),
     } as any);
+
+    // Build transcript text from segments for draft generation
+    // Include speaker labels for context
+    const transcriptToUse = transcriptSegments
+      .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${seg.text}`)
+      .join("\n");
 
     // Generate SOAP draft from transcript if available
     let draftText: string;
@@ -254,7 +315,7 @@ export default function PilotPage() {
     
     // Discard audio blob after draft generation
     audioBlobRef.current = null;
-  }, [liveTranscript, frozenTranscript, processCapturedAudioAndGenerateDraft]);
+  }, [currentSegmentText, transcriptSegments, processCapturedAudioAndGenerateDraft]);
 
   // Skip recording and use demo draft directly
   const handleSkipRecording = useCallback(async () => {
@@ -263,8 +324,8 @@ export default function PilotPage() {
     
     // Discard any captured audio and transcript (ephemeral - memory only)
     audioBlobRef.current = null;
-    setLiveTranscript("");
-    setFrozenTranscript("");
+    setTranscriptSegments([]);
+    setCurrentSegmentText("");
     setDraftGenerationError(null);
     
     // Show preparing state
@@ -313,8 +374,10 @@ export default function PilotPage() {
     setEditableDraft(""); // Discard any draft changes
     // Clear all transcript state (ephemeral - memory only)
     // SAFETY: On reset, transcript is lost. This is intended.
-    setLiveTranscript("");
-    setFrozenTranscript("");
+    setTranscriptSegments([]);
+    setCurrentSegmentText("");
+    setActiveSpeaker("clinician");
+    activeSpeakerRef.current = "clinician";
     setIsTranscriptExpanded(true);
     audioBlobRef.current = null; // Ensure no audio is retained
   }, []);
@@ -406,12 +469,44 @@ export default function PilotPage() {
               onTranscriptUpdate={handleTranscriptUpdate}
             />
 
+            {/* Speaker selection UI */}
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-slate-600">Current speaker:</span>
+                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                  <button
+                    onClick={() => setActiveSpeaker("clinician")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      activeSpeaker === "clinician"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Clinician
+                  </button>
+                  <button
+                    onClick={() => setActiveSpeaker("patient")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                      activeSpeaker === "patient"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Patient
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400">
+                Press <kbd className="px-1.5 py-0.5 bg-slate-100 rounded border border-slate-300 font-mono">C</kbd> for Clinician or <kbd className="px-1.5 py-0.5 bg-slate-100 rounded border border-slate-300 font-mono">P</kbd> for Patient
+              </p>
+            </div>
+
             {/* Live transcript display during recording */}
-            {(isListening || liveTranscript) && (
+            {(isListening || transcriptSegments.length > 0 || currentSegmentText) && (
               <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                    Live transcript (draft · not saved)
+                    Live transcript (reference only · not saved)
                   </span>
                   {isListening && (
                     <span className="flex h-2 w-2">
@@ -420,13 +515,40 @@ export default function PilotPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-700 min-h-[60px] whitespace-pre-wrap">
-                  {liveTranscript || (
-                    <span className="text-slate-400 italic">
+                <div className="space-y-3 min-h-[60px]">
+                  {/* Render completed segments */}
+                  {transcriptSegments.map((segment, index) => (
+                    <div key={index} className="flex gap-2">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
+                        segment.speaker === "clinician"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {segment.speaker === "clinician" ? "Clinician" : "Patient"}
+                      </span>
+                      <p className="text-sm text-slate-700">{segment.text}</p>
+                    </div>
+                  ))}
+                  {/* Current segment being transcribed */}
+                  {currentSegmentText && (
+                    <div className="flex gap-2">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
+                        activeSpeaker === "clinician"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {activeSpeaker === "clinician" ? "Clinician" : "Patient"}
+                      </span>
+                      <p className="text-sm text-slate-700 italic">{currentSegmentText}</p>
+                    </div>
+                  )}
+                  {/* Empty state */}
+                  {transcriptSegments.length === 0 && !currentSegmentText && (
+                    <span className="text-slate-400 italic text-sm">
                       {isListening ? "Listening... speak now" : "No transcript captured"}
                     </span>
                   )}
-                </p>
+                </div>
               </div>
             )}
 
@@ -501,7 +623,7 @@ export default function PilotPage() {
           )}
 
           {/* Transcript reference panel (collapsible) */}
-          {frozenTranscript && (
+          {transcriptSegments.length > 0 && (
             <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
               <button
                 onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
@@ -529,8 +651,19 @@ export default function PilotPage() {
                   <p className="text-xs text-slate-500 mt-3 mb-2 italic">
                     The transcript is not part of the medical record unless you copy content into the note.
                   </p>
-                  <div className="p-3 bg-white rounded border border-slate-200 text-sm text-slate-700 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                    {frozenTranscript}
+                  <div className="p-3 bg-white rounded border border-slate-200 max-h-48 overflow-y-auto space-y-2">
+                    {transcriptSegments.map((segment, index) => (
+                      <div key={index} className="flex gap-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 h-fit ${
+                          segment.speaker === "clinician"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {segment.speaker === "clinician" ? "Clinician" : "Patient"}
+                        </span>
+                        <p className="text-sm text-slate-700">{segment.text}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
