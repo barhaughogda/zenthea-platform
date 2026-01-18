@@ -60,6 +60,8 @@ export default function PilotPage() {
   const [isListening, setIsListening] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  // Editable draft state - source of truth for finalization
+  const [editableDraft, setEditableDraft] = useState<string>("");
 
   const handleStartSession = useCallback(() => {
     setStep("session_active");
@@ -93,6 +95,8 @@ export default function PilotPage() {
     // Deterministic delay (1.5 seconds)
     await new Promise((resolve) => setTimeout(resolve, 1500));
     
+    // Initialize editable draft with demo content
+    setEditableDraft(DEMO_DRAFT.text);
     setStep("draft_ready");
   }, []);
 
@@ -100,22 +104,25 @@ export default function PilotPage() {
     setIsFinalizing(true);
     
     // Reuse existing finalize logic (persistence behavior unchanged)
+    // Uses the CURRENT edited draft text as source of truth
     await persistenceAdapter.recordFinalizedNote("HUMAN_SIGNED_FINALIZE", {
       noteId: `pilot-note-${Date.now()}`,
       authorId: "pilot-demo-clinician",
       signedAt: new Date(),
+      content: editableDraft, // Edited draft content
       ...({ source: "pilot-ui", humanAction: true } as any),
     } as any);
     
     setIsFinalizing(false);
     setStep("finalized");
-  }, []);
+  }, [editableDraft]);
 
   const handleReset = useCallback(() => {
     setStep("idle");
     setIsListening(false);
     setHasRecorded(false);
     setIsFinalizing(false);
+    setEditableDraft(""); // Discard any draft changes
   }, []);
 
   return (
@@ -257,12 +264,19 @@ export default function PilotPage() {
             </div>
 
             <div className="p-6">
-              <h3 className="font-bold text-gray-700 mb-4 pb-2 border-b border-gray-200">
-                Draft Content (Review before finalizing)
-              </h3>
-              <div className="whitespace-pre-wrap text-gray-800 font-serif leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200">
-                {DEMO_DRAFT.text}
-              </div>
+              <label htmlFor="clinical-draft" className="block font-bold text-gray-700 mb-2 pb-2 border-b border-gray-200">
+                Clinical draft (review and edit before finalizing)
+              </label>
+              <p className="text-sm text-gray-500 mb-4">
+                This draft will not be saved until you sign and finalize.
+              </p>
+              <textarea
+                id="clinical-draft"
+                value={editableDraft}
+                onChange={(e) => setEditableDraft(e.target.value)}
+                className="w-full min-h-[400px] text-gray-800 font-serif leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none resize-y"
+                placeholder="Clinical draft content..."
+              />
             </div>
 
             <div className="px-6 pb-6">
@@ -277,20 +291,26 @@ export default function PilotPage() {
             </div>
           </div>
 
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={handleReset}
-              className="px-6 py-3 rounded-lg font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
-            >
-              Start New Session
-            </button>
-            <button
-              onClick={handleFinalize}
-              disabled={isFinalizing}
-              className="px-8 py-3 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50"
-            >
-              {isFinalizing ? "Finalizing..." : "Sign and Finalize"}
-            </button>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleReset}
+                className="px-6 py-3 rounded-lg font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
+              >
+                Start New Session
+              </button>
+              <button
+                onClick={handleFinalize}
+                disabled={isFinalizing || !editableDraft.trim()}
+                className="px-8 py-3 rounded-lg font-bold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isFinalizing ? "Finalizing..." : "✓ Sign and Finalize"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 text-center max-w-md">
+              You are signing this note as final. By clicking &quot;Sign and Finalize&quot;, 
+              you confirm this documentation is accurate and complete.
+            </p>
           </div>
         </div>
       )}
