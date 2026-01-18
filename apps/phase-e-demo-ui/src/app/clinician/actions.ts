@@ -59,10 +59,57 @@ const ASSESSMENT_KEYWORDS = [
   "clinical picture",
 ] as const;
 
-/** Keywords indicating plan/forward actions */
+/** 
+ * Keywords indicating clinical reasoning/causal explanation.
+ * These should go to ASSESSMENT, not PLAN.
+ * Captures informal clinician speech patterns explaining "why" symptoms occur.
+ */
+const ASSESSMENT_REASONING_KEYWORDS = [
+  "i think",
+  "this is because",
+  "that's your problem",
+  "that is your problem",
+  "the reason is",
+  "what's happening is",
+  "what is happening is",
+  "this would explain",
+  "it sounds like",
+  "likely related to",
+  "probably because",
+  "most likely",
+  "this means",
+  "that means",
+  "which means",
+  "which explains",
+  "that explains",
+  "this explains",
+  "due to",
+  "caused by",
+  "resulting from",
+  "as a result of",
+  "because of",
+  "the issue is",
+  "the problem is",
+  "what we're seeing is",
+  "what i'm seeing is",
+  "my impression is",
+  "my thinking is",
+  "in my view",
+  "based on this",
+  "based on that",
+  "based on what you've told me",
+  "from what you're describing",
+  "it looks like",
+  "it seems like",
+  "it appears that",
+] as const;
+
+/** Keywords indicating plan/forward actions (actions only, no explanations) */
 const PLAN_KEYWORDS = [
   "plan",
   "recommend",
+  "i suggest",
+  "you should",
   "start",
   "stop",
   "follow up",
@@ -83,6 +130,22 @@ const PLAN_KEYWORDS = [
   "advise",
   "counseled",
   "education",
+  "ensure",
+  "make sure",
+  "take",
+  "avoid",
+  "limit",
+  "increase",
+  "decrease",
+  "reduce",
+  "try",
+  "let's",
+  "we'll",
+  "we will",
+  "i'll",
+  "i will",
+  "next step",
+  "going forward",
 ] as const;
 
 // =============================================================================
@@ -163,16 +226,91 @@ function containsKeyword(text: string, keywords: readonly string[]): boolean {
 }
 
 /**
+ * Check if a clinician statement is a question.
+ * Questions are excluded from Plan and Assessment.
+ */
+function isQuestion(text: string): boolean {
+  const trimmed = text.trim();
+  // Direct question mark at end
+  if (trimmed.endsWith("?")) {
+    return true;
+  }
+  // Interrogative phrases at start (even without question mark)
+  const lowerText = trimmed.toLowerCase();
+  const interrogativePhrases = [
+    "do you",
+    "did you",
+    "does it",
+    "does that",
+    "does this",
+    "are you",
+    "is it",
+    "is that",
+    "is this",
+    "have you",
+    "has it",
+    "can you",
+    "could you",
+    "would you",
+    "will you",
+    "how do you",
+    "how does",
+    "how long",
+    "how often",
+    "how much",
+    "what do you",
+    "what does",
+    "what is",
+    "what's",
+    "when do you",
+    "when did",
+    "when does",
+    "where do you",
+    "where does",
+    "where is",
+    "why do you",
+    "why does",
+    "which one",
+    "tell me about",
+    "can you describe",
+    "can you tell me",
+  ];
+  return interrogativePhrases.some(phrase => lowerText.startsWith(phrase));
+}
+
+/**
+ * Check if a statement is primarily reasoning/explanation (should be Assessment).
+ * Used in reclassification pass to move explanatory content from Plan to Assessment.
+ */
+function isReasoningStatement(text: string): boolean {
+  return containsKeyword(text, ASSESSMENT_REASONING_KEYWORDS);
+}
+
+/**
+ * Check if a statement contains forward action intent (should be Plan).
+ */
+function isActionStatement(text: string): boolean {
+  return containsKeyword(text, PLAN_KEYWORDS);
+}
+
+/**
  * Deterministically assign transcript segments to SOAP sections.
  * 
  * Rules:
  * - SUBJECTIVE: All Patient segments
  * - OBJECTIVE: Clinician statements with observable/exam keywords
- * - ASSESSMENT: Clinician statements with assessment framing keywords
- * - PLAN: Clinician statements with forward action keywords
+ * - ASSESSMENT: Clinician statements with assessment framing OR reasoning/explanation keywords
+ * - PLAN: Clinician statements with forward action keywords ONLY (no explanations, no questions)
  * 
- * Clinician statements may appear in multiple sections if they match multiple keyword sets.
- * If a clinician statement matches no keywords, it's not assigned to O/A/P.
+ * Intent-Aware Classification:
+ * - Questions are excluded from Plan and Assessment
+ * - Reasoning/causal explanations go to Assessment (not Plan)
+ * - Plan contains only forward actions
+ * 
+ * Reclassification Pass:
+ * - After initial assignment, statements with both action and reasoning keywords
+ *   are moved from Plan to Assessment (reasoning takes precedence)
+ * - If ambiguous, prefer Assessment over Plan (safety)
  */
 function assignSegmentsToSoap(segments: TranscriptSegment[]): SoapDraft {
   const subjectiveLines: string[] = [];
@@ -180,30 +318,69 @@ function assignSegmentsToSoap(segments: TranscriptSegment[]): SoapDraft {
   const assessmentLines: string[] = [];
   const planLines: string[] = [];
   
+  // Track statements that may need reclassification
+  const potentialPlanStatements: { content: string; hasReasoning: boolean }[] = [];
+  
   for (const segment of segments) {
     if (segment.speaker === "Patient") {
       // All patient speech goes to Subjective
       subjectiveLines.push(segment.content);
     } else if (segment.speaker === "Clinician") {
-      // Clinician statements are categorized by keywords
-      // A statement can appear in multiple sections if it matches multiple keyword sets
+      const content = segment.content;
+      const isQuestionStatement = isQuestion(content);
+      const hasReasoning = isReasoningStatement(content);
+      const hasAction = isActionStatement(content);
+      const hasAssessmentKeyword = containsKeyword(content, ASSESSMENT_KEYWORDS);
+      const hasObjectiveKeyword = containsKeyword(content, OBJECTIVE_KEYWORDS);
       
-      if (containsKeyword(segment.content, OBJECTIVE_KEYWORDS)) {
-        objectiveLines.push(segment.content);
+      // OBJECTIVE: Observable findings (questions allowed here, they're clinical queries)
+      if (hasObjectiveKeyword) {
+        objectiveLines.push(content);
       }
       
-      if (containsKeyword(segment.content, ASSESSMENT_KEYWORDS)) {
-        assessmentLines.push(segment.content);
+      // ASSESSMENT: Reasoning, explanations, or diagnostic framing
+      // Questions are excluded from Assessment
+      if (!isQuestionStatement && (hasAssessmentKeyword || hasReasoning)) {
+        assessmentLines.push(content);
       }
       
-      if (containsKeyword(segment.content, PLAN_KEYWORDS)) {
-        planLines.push(segment.content);
+      // PLAN: Forward actions only
+      // Questions are excluded from Plan
+      // Reasoning statements are excluded from Plan (they go to Assessment)
+      if (!isQuestionStatement && hasAction) {
+        // Track for reclassification pass
+        potentialPlanStatements.push({ content, hasReasoning });
       }
     } else {
       // Unknown speaker - place in Subjective as fallback
       subjectiveLines.push(segment.content);
     }
   }
+  
+  // ==========================================================================
+  // RECLASSIFICATION PASS
+  // ==========================================================================
+  // Review potential Plan statements and filter out those that are primarily
+  // reasoning/explanation. If a statement has both action and reasoning keywords,
+  // prefer Assessment (safety: don't put explanations in Plan).
+  
+  for (const statement of potentialPlanStatements) {
+    if (statement.hasReasoning) {
+      // Statement has reasoning markers - ensure it's in Assessment, not Plan
+      // It may already be in Assessment from the first pass, but we ensure it's there
+      if (!assessmentLines.includes(statement.content)) {
+        assessmentLines.push(statement.content);
+      }
+      // Do NOT add to Plan (skip)
+    } else {
+      // Pure action statement - add to Plan
+      planLines.push(statement.content);
+    }
+  }
+  
+  // ==========================================================================
+  // FORMAT OUTPUT
+  // ==========================================================================
   
   // Format sections with appropriate placeholders for empty sections
   const subjective = subjectiveLines.length > 0
