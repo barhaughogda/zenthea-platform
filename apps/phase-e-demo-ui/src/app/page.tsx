@@ -43,6 +43,18 @@ export default function Home() {
           <h3 className="text-lg font-bold mb-2">Clinician Drafting Demo View</h3>
           <p className="text-sm text-gray-600">SL-04 Clinical Drafting</p>
         </Link>
+
+        <Link 
+          href="/pilot" 
+          className="p-6 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-lg shadow-sm border border-emerald-500 hover:border-emerald-300 transition-colors text-white"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold uppercase bg-white/20 px-2 py-0.5 rounded">PILOT</span>
+            <h3 className="text-lg font-bold">Pilot Clinical Experience</h3>
+          </div>
+          <p className="text-sm text-emerald-100">Guided end-to-end clinician workflow (demo)</p>
+          <p className="text-xs text-emerald-200 mt-2">Enter Pilot Experience →</p>
+        </Link>
       </div>
     </div>
   );
