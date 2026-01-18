@@ -253,6 +253,7 @@ export default function PilotPage() {
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
   const [draftGenerationError, setDraftGenerationError] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   
   // Editable draft state - source of truth for finalization
   const [editableDraft, setEditableDraft] = useState<string>("");
@@ -262,38 +263,8 @@ export default function PilotPage() {
   // SAFETY: No localStorage, sessionStorage, indexedDB, filesystem, or logging.
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [currentSegmentText, setCurrentSegmentText] = useState<string>("");
-  const [activeSpeaker, setActiveSpeaker] = useState<Speaker>("clinician");
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
   
-  // Ref to track latest speaker for use in callbacks
-  const activeSpeakerRef = useRef<Speaker>("clinician");
-  
-  // Sync activeSpeakerRef with state
-  useEffect(() => {
-    activeSpeakerRef.current = activeSpeaker;
-  }, [activeSpeaker]);
-  
-  // Keyboard shortcuts for speaker switching (C = Clinician, P = Patient)
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Only active during recording session
-      if (step !== "session_active") return;
-      
-      // Ignore if user is typing in an input field
-      const target = event.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
-      
-      const key = event.key.toLowerCase();
-      if (key === "c") {
-        setActiveSpeaker("clinician");
-      } else if (key === "p") {
-        setActiveSpeaker("patient");
-      }
-    };
-    
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [step]);
   
   // Audio blob ref - held in memory only during processing
   // IMPORTANT: This is set to null after draft generation
@@ -308,9 +279,38 @@ export default function PilotPage() {
     // Clear transcript state (ephemeral - memory only)
     setTranscriptSegments([]);
     setCurrentSegmentText("");
-    setActiveSpeaker("clinician");
-    activeSpeakerRef.current = "clinician";
     audioBlobRef.current = null;
+  }, []);
+
+  /**
+   * Automatically infer speaker from transcript content using conservative rules.
+   * 
+   * Conservative approach: Default to "clinician" unless there are strong indicators
+   * of patient speech. This errs on the side of caution since the clinician is
+   * operating the system and most medical terminology comes from them.
+   * 
+   * The user can correct any misattributions during the review phase.
+   */
+  const inferSpeaker = useCallback((text: string): Speaker => {
+    const lowerText = text.toLowerCase();
+    
+    // Conservative patient indicators: first-person health complaints
+    // Only trigger on strong indicators to avoid false positives
+    const patientIndicators = [
+      /^i('m| am| have| feel| think| was| got| had| need)/,  // First person start
+      /^my (head|back|chest|stomach|arm|leg|throat|pain|symptom)/,  // Possessive health
+      /^it (hurts|aches|burns|itches|started)/,  // Symptom descriptions
+      /^(yes|no|yeah|nope|uh-huh|okay),? (i|my|it)/i,  // Responses + first person
+    ];
+    
+    for (const pattern of patientIndicators) {
+      if (pattern.test(lowerText)) {
+        return "patient";
+      }
+    }
+    
+    // Default to clinician (conservative)
+    return "clinician";
   }, []);
 
   // Handle transcript updates from speech recognition (ephemeral - React state only)
@@ -323,16 +323,17 @@ export default function PilotPage() {
     setCurrentSegmentText(transcript);
     
     if (isFinal && transcript.trim()) {
-      // When recording stops, finalize the current segment with the active speaker
+      // When recording stops, finalize the current segment with inferred speaker
+      const trimmedText = transcript.trim();
       const newSegment: TranscriptSegment = {
-        speaker: activeSpeakerRef.current,
-        text: transcript.trim(),
+        speaker: inferSpeaker(trimmedText),
+        text: trimmedText,
         timestamp: Date.now(),
       };
       setTranscriptSegments(prev => [...prev, newSegment]);
       setCurrentSegmentText("");
     }
-  }, []);
+  }, [inferSpeaker]);
 
   const handleToggleListening = useCallback(() => {
     if (isListening) {
@@ -386,9 +387,10 @@ export default function PilotPage() {
     
     // Finalize any pending current segment text
     if (currentSegmentText.trim()) {
+      const trimmedText = currentSegmentText.trim();
       const finalSegment: TranscriptSegment = {
-        speaker: activeSpeakerRef.current,
-        text: currentSegmentText.trim(),
+        speaker: inferSpeaker(trimmedText),
+        text: trimmedText,
         timestamp: Date.now(),
       };
       setTranscriptSegments(prev => [...prev, finalSegment]);
@@ -448,7 +450,7 @@ export default function PilotPage() {
     
     // Discard audio blob after draft generation
     audioBlobRef.current = null;
-  }, [currentSegmentText, transcriptSegments, processCapturedAudioAndGenerateDraft]);
+  }, [currentSegmentText, transcriptSegments, processCapturedAudioAndGenerateDraft, inferSpeaker]);
 
   // Skip recording and use demo draft directly
   const handleSkipRecording = useCallback(async () => {
@@ -497,11 +499,53 @@ export default function PilotPage() {
     setStep("finalized");
   }, [editableDraft]);
 
+  // Handler to correct speaker attribution during review
+  const handleSpeakerCorrection = useCallback((index: number) => {
+    setTranscriptSegments(prev => prev.map((segment, i) => {
+      if (i === index) {
+        // Toggle between clinician and patient
+        return {
+          ...segment,
+          speaker: segment.speaker === "clinician" ? "patient" : "clinician",
+        };
+      }
+      return segment;
+    }));
+  }, []);
+
+  // Handler to regenerate draft after speaker corrections
+  const handleRegenerateDraft = useCallback(async () => {
+    if (transcriptSegments.length === 0) return;
+    
+    setIsRegenerating(true);
+    setDraftGenerationError(null);
+    
+    try {
+      // Build transcript text from corrected segments
+      const transcriptToUse = transcriptSegments
+        .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${formatTranscriptText(seg.text)}`)
+        .join("\n\n");
+      
+      const result = await generateSoapDraftFromTranscript(transcriptToUse);
+      
+      if (result.success && result.draft) {
+        setEditableDraft(result.draft);
+      } else {
+        setDraftGenerationError(result.error || "Could not regenerate draft. You may continue editing manually.");
+      }
+    } catch {
+      setDraftGenerationError("Could not regenerate draft. You may continue editing manually.");
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [transcriptSegments]);
+
   const handleReset = useCallback(() => {
     setStep("idle");
     setIsListening(false);
     setHasRecorded(false);
     setIsFinalizing(false);
+    setIsRegenerating(false);
     setTranscriptionError(null);
     setDraftGenerationError(null);
     setEditableDraft(""); // Discard any draft changes
@@ -509,8 +553,6 @@ export default function PilotPage() {
     // SAFETY: On reset, transcript is lost. This is intended.
     setTranscriptSegments([]);
     setCurrentSegmentText("");
-    setActiveSpeaker("clinician");
-    activeSpeakerRef.current = "clinician";
     setIsTranscriptExpanded(true);
     audioBlobRef.current = null; // Ensure no audio is retained
   }, []);
@@ -602,38 +644,6 @@ export default function PilotPage() {
               onTranscriptUpdate={handleTranscriptUpdate}
             />
 
-            {/* Speaker selection UI */}
-            <div className="mt-6 flex flex-col items-center gap-2">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-600">Current speaker:</span>
-                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-                  <button
-                    onClick={() => setActiveSpeaker("clinician")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      activeSpeaker === "clinician"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Clinician
-                  </button>
-                  <button
-                    onClick={() => setActiveSpeaker("patient")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
-                      activeSpeaker === "patient"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Patient
-                  </button>
-                </div>
-              </div>
-              <p className="text-xs text-slate-400">
-                Press <kbd className="px-1.5 py-0.5 bg-slate-100 rounded border border-slate-300 font-mono">C</kbd> for Clinician or <kbd className="px-1.5 py-0.5 bg-slate-100 rounded border border-slate-300 font-mono">P</kbd> for Patient
-              </p>
-            </div>
-
             {/* Live transcript display during recording */}
             {(isListening || transcriptSegments.length > 0 || currentSegmentText) && (
               <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
@@ -663,18 +673,22 @@ export default function PilotPage() {
                     </div>
                   ))}
                   {/* Current segment being transcribed (live - show raw for immediacy) */}
-                  {currentSegmentText && (
-                    <div className="flex gap-2">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
-                        activeSpeaker === "clinician"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}>
-                        {activeSpeaker === "clinician" ? "Clinician" : "Patient"}
-                      </span>
-                      <p className="text-sm text-slate-700 italic">{currentSegmentText}</p>
-                    </div>
-                  )}
+                  {currentSegmentText && (() => {
+                    const inferredSpeaker = inferSpeaker(currentSegmentText);
+                    return (
+                      <div className="flex gap-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
+                          inferredSpeaker === "clinician"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {inferredSpeaker === "clinician" ? "Clinician" : "Patient"}
+                          <span className="ml-1 opacity-60">(auto)</span>
+                        </span>
+                        <p className="text-sm text-slate-700 italic">{currentSegmentText}</p>
+                      </div>
+                    );
+                  })()}
                   {/* Empty state */}
                   {transcriptSegments.length === 0 && !currentSegmentText && (
                     <span className="text-slate-400 italic text-sm">
@@ -783,21 +797,35 @@ export default function PilotPage() {
                 <div className="px-4 pb-4 border-t border-slate-200">
                   <p className="text-xs text-slate-500 mt-3 mb-2 italic">
                     The transcript is not part of the medical record unless you copy content into the note.
+                    <span className="block mt-1 text-slate-400">
+                      Click a speaker label to correct attribution if needed.
+                    </span>
                   </p>
                   <div className="p-3 bg-white rounded border border-slate-200 max-h-48 overflow-y-auto space-y-2">
                     {transcriptSegments.map((segment, index) => (
                       <div key={index} className="flex gap-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 h-fit ${
-                          segment.speaker === "clinician"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}>
+                        <button
+                          onClick={() => handleSpeakerCorrection(index)}
+                          className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 h-fit cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
+                            segment.speaker === "clinician"
+                              ? "bg-emerald-100 text-emerald-700 hover:ring-emerald-400"
+                              : "bg-blue-100 text-blue-700 hover:ring-blue-400"
+                          }`}
+                          title="Click to change speaker"
+                        >
                           {segment.speaker === "clinician" ? "Clinician" : "Patient"}
-                        </span>
+                        </button>
                         <p className="text-sm text-slate-700 whitespace-pre-wrap">{formatTranscriptText(segment.text)}</p>
                       </div>
                     ))}
                   </div>
+                  <button
+                    onClick={handleRegenerateDraft}
+                    disabled={isRegenerating}
+                    className="mt-3 text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded border border-slate-300 transition-colors disabled:opacity-50"
+                  >
+                    {isRegenerating ? "Regenerating..." : "Regenerate draft from transcript"}
+                  </button>
                 </div>
               )}
             </div>

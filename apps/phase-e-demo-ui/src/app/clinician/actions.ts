@@ -9,11 +9,67 @@ import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
 const persistenceAdapter = createPilotPersistenceAdapter();
 
 // =============================================================================
-// DETERMINISTIC SOAP EXTRACTION - KEYWORD LISTS
+// TWO-PASS SOAP EXTRACTION - INTENT TYPES
 // =============================================================================
 
+/**
+ * Intent types for Pass 1 classification.
+ * Each transcript segment is assigned exactly one intent.
+ */
+type Intent = 
+  | "question"           // Clinician questions (excluded from SOAP sections)
+  | "symptom_or_history" // Patient-reported symptoms, history, complaints
+  | "observation"        // Clinician factual findings (vitals, exam)
+  | "reasoning"          // Clinician causal explanations ("this is because...")
+  | "instruction"        // Clinician advice, meds, follow-ups
+  | "acknowledgement";   // Short responses ("ok", "thanks", "yes")
+
+// =============================================================================
+// TWO-PASS SOAP EXTRACTION - KEYWORD LISTS
+// =============================================================================
+
+/** Keywords indicating questions (clinician interrogatives) */
+const QUESTION_KEYWORDS = [
+  "do you",
+  "did you",
+  "does it",
+  "does that",
+  "does this",
+  "are you",
+  "is it",
+  "is that",
+  "is this",
+  "have you",
+  "has it",
+  "can you",
+  "could you",
+  "would you",
+  "will you",
+  "how do you",
+  "how does",
+  "how long",
+  "how often",
+  "how much",
+  "what do you",
+  "what does",
+  "what is",
+  "what's",
+  "when do you",
+  "when did",
+  "when does",
+  "where do you",
+  "where does",
+  "where is",
+  "why do you",
+  "why does",
+  "which one",
+  "tell me about",
+  "can you describe",
+  "can you tell me",
+] as const;
+
 /** Keywords indicating objective/observable clinical findings */
-const OBJECTIVE_KEYWORDS = [
+const OBSERVATION_KEYWORDS = [
   "on exam",
   "vital",
   "observed",
@@ -40,31 +96,18 @@ const OBJECTIVE_KEYWORDS = [
   "abnormal",
   "unremarkable",
   "noted",
-] as const;
-
-/** Keywords indicating assessment/diagnostic framing */
-const ASSESSMENT_KEYWORDS = [
-  "assessment",
-  "likely",
-  "suggests",
-  "consistent with",
-  "appears to be",
-  "impression",
-  "diagnosis",
-  "differential",
-  "concern for",
-  "suspect",
-  "indicative of",
-  "presentation",
-  "clinical picture",
+  "see that",
+  "i see",
+  "i notice",
+  "looks",
 ] as const;
 
 /** 
  * Keywords indicating clinical reasoning/causal explanation.
- * These should go to ASSESSMENT, not PLAN.
+ * These go to ASSESSMENT.
  * Captures informal clinician speech patterns explaining "why" symptoms occur.
  */
-const ASSESSMENT_REASONING_KEYWORDS = [
+const REASONING_KEYWORDS = [
   "i think",
   "this is because",
   "that's your problem",
@@ -102,10 +145,23 @@ const ASSESSMENT_REASONING_KEYWORDS = [
   "it looks like",
   "it seems like",
   "it appears that",
+  "assessment",
+  "likely",
+  "suggests",
+  "consistent with",
+  "appears to be",
+  "impression",
+  "diagnosis",
+  "differential",
+  "concern for",
+  "suspect",
+  "indicative of",
+  "presentation",
+  "clinical picture",
 ] as const;
 
 /** Keywords indicating plan/forward actions (actions only, no explanations) */
-const PLAN_KEYWORDS = [
+const INSTRUCTION_KEYWORDS = [
   "plan",
   "recommend",
   "i suggest",
@@ -146,15 +202,54 @@ const PLAN_KEYWORDS = [
   "i will",
   "next step",
   "going forward",
+  "drink",
+  "rest",
+  "come back",
+  "see me",
+  "call",
+  "contact",
+] as const;
+
+/** Short acknowledgement phrases */
+const ACKNOWLEDGEMENT_PHRASES = [
+  "ok",
+  "okay",
+  "yes",
+  "no",
+  "yeah",
+  "yep",
+  "nope",
+  "uh-huh",
+  "mm-hmm",
+  "thanks",
+  "thank you",
+  "got it",
+  "understood",
+  "alright",
+  "all right",
+  "sure",
+  "right",
+  "i see",
+  "i understand",
 ] as const;
 
 // =============================================================================
-// DETERMINISTIC SOAP EXTRACTION - TYPES
+// TWO-PASS SOAP EXTRACTION - TYPES
 // =============================================================================
 
 interface TranscriptSegment {
   speaker: "Patient" | "Clinician" | "Unknown";
   content: string;
+}
+
+/**
+ * Pass 1 output: Segment with attributed intent.
+ * Intent is assigned deterministically using keyword rules.
+ */
+interface AttributedSegment {
+  speaker: "Patient" | "Clinician" | "Unknown";
+  content: string;
+  intent: Intent;
 }
 
 interface SoapDraft {
@@ -165,7 +260,7 @@ interface SoapDraft {
 }
 
 // =============================================================================
-// DETERMINISTIC SOAP EXTRACTION - PARSING LOGIC
+// TWO-PASS SOAP EXTRACTION - PARSING LOGIC
 // =============================================================================
 
 /**
@@ -226,8 +321,32 @@ function containsKeyword(text: string, keywords: readonly string[]): boolean {
 }
 
 /**
- * Check if a clinician statement is a question.
- * Questions are excluded from Plan and Assessment.
+ * Check if text starts with any phrase from the list (case-insensitive).
+ */
+function startsWithPhrase(text: string, phrases: readonly string[]): boolean {
+  const lowerText = text.toLowerCase().trim();
+  return phrases.some(phrase => lowerText.startsWith(phrase.toLowerCase()));
+}
+
+/**
+ * Check if text is a short acknowledgement (case-insensitive, exact or near-exact match).
+ */
+function isAcknowledgement(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  // Check for exact match or very short content with acknowledgement word
+  const words = trimmed.split(/\s+/);
+  
+  // Very short responses (1-3 words) that start with acknowledgement phrases
+  if (words.length <= 3) {
+    return ACKNOWLEDGEMENT_PHRASES.some(phrase => 
+      trimmed === phrase || trimmed.startsWith(phrase + " ") || trimmed.startsWith(phrase + ",")
+    );
+  }
+  return false;
+}
+
+/**
+ * Check if a statement is a question.
  */
 function isQuestion(text: string): boolean {
   const trimmed = text.trim();
@@ -236,153 +355,148 @@ function isQuestion(text: string): boolean {
     return true;
   }
   // Interrogative phrases at start (even without question mark)
-  const lowerText = trimmed.toLowerCase();
-  const interrogativePhrases = [
-    "do you",
-    "did you",
-    "does it",
-    "does that",
-    "does this",
-    "are you",
-    "is it",
-    "is that",
-    "is this",
-    "have you",
-    "has it",
-    "can you",
-    "could you",
-    "would you",
-    "will you",
-    "how do you",
-    "how does",
-    "how long",
-    "how often",
-    "how much",
-    "what do you",
-    "what does",
-    "what is",
-    "what's",
-    "when do you",
-    "when did",
-    "when does",
-    "where do you",
-    "where does",
-    "where is",
-    "why do you",
-    "why does",
-    "which one",
-    "tell me about",
-    "can you describe",
-    "can you tell me",
-  ];
-  return interrogativePhrases.some(phrase => lowerText.startsWith(phrase));
+  return startsWithPhrase(trimmed, QUESTION_KEYWORDS);
+}
+
+// =============================================================================
+// PASS 1: INTENT ATTRIBUTION
+// =============================================================================
+
+/**
+ * PASS 1: Attribute intent to each transcript segment.
+ * 
+ * Rules (deterministic, keyword-based):
+ * - Patient speech defaults to symptom_or_history unless clearly acknowledgement
+ * - Clinician questions → question
+ * - Clinician causal explanations → reasoning
+ * - Clinician advice, meds, hydration, follow-ups → instruction
+ * - Clinician factual findings → observation
+ * - Short responses ("ok", "thanks") → acknowledgement
+ * 
+ * Priority order for clinician speech (first match wins):
+ * 1. Question (explicit exclusion from SOAP)
+ * 2. Acknowledgement (very short responses)
+ * 3. Reasoning (causal explanations - goes to Assessment)
+ * 4. Observation (factual findings - goes to Objective)
+ * 5. Instruction (forward actions - goes to Plan)
+ * 6. Default: reasoning (conservative fallback for clinician)
+ */
+function attributeIntent(segment: TranscriptSegment): AttributedSegment {
+  const { speaker, content } = segment;
+  const lowerContent = content.toLowerCase();
+  
+  // Patient speech classification
+  if (speaker === "Patient") {
+    // Check for acknowledgement first
+    if (isAcknowledgement(content)) {
+      return { speaker, content, intent: "acknowledgement" };
+    }
+    // Default: Patient speech is symptom/history
+    return { speaker, content, intent: "symptom_or_history" };
+  }
+  
+  // Clinician speech classification (priority order)
+  if (speaker === "Clinician") {
+    // 1. Questions - explicitly excluded from SOAP
+    if (isQuestion(content)) {
+      return { speaker, content, intent: "question" };
+    }
+    
+    // 2. Acknowledgement - very short responses
+    if (isAcknowledgement(content)) {
+      return { speaker, content, intent: "acknowledgement" };
+    }
+    
+    // 3. Reasoning - causal explanations (goes to Assessment)
+    // Check reasoning BEFORE instruction to prioritize explanations over action words
+    if (containsKeyword(lowerContent, REASONING_KEYWORDS)) {
+      return { speaker, content, intent: "reasoning" };
+    }
+    
+    // 4. Observation - factual clinical findings (goes to Objective)
+    if (containsKeyword(lowerContent, OBSERVATION_KEYWORDS)) {
+      return { speaker, content, intent: "observation" };
+    }
+    
+    // 5. Instruction - forward actions (goes to Plan)
+    if (containsKeyword(lowerContent, INSTRUCTION_KEYWORDS)) {
+      return { speaker, content, intent: "instruction" };
+    }
+    
+    // 6. Default for clinician: reasoning (conservative - goes to Assessment)
+    // This ensures clinician speech doesn't get lost
+    return { speaker, content, intent: "reasoning" };
+  }
+  
+  // Unknown speaker - treat as patient symptom/history (conservative)
+  return { speaker, content, intent: "symptom_or_history" };
 }
 
 /**
- * Check if a statement is primarily reasoning/explanation (should be Assessment).
- * Used in reclassification pass to move explanatory content from Plan to Assessment.
+ * PASS 1: Attribute intents to all segments.
  */
-function isReasoningStatement(text: string): boolean {
-  return containsKeyword(text, ASSESSMENT_REASONING_KEYWORDS);
+function pass1AttributeIntents(segments: TranscriptSegment[]): AttributedSegment[] {
+  return segments.map(attributeIntent);
 }
 
-/**
- * Check if a statement contains forward action intent (should be Plan).
- */
-function isActionStatement(text: string): boolean {
-  return containsKeyword(text, PLAN_KEYWORDS);
-}
+// =============================================================================
+// PASS 2: SOAP ASSIGNMENT FROM INTENTS
+// =============================================================================
 
 /**
- * Deterministically assign transcript segments to SOAP sections.
+ * PASS 2: Map attributed segments to SOAP sections.
  * 
- * Rules:
- * - SUBJECTIVE: All Patient segments
- * - OBJECTIVE: Clinician statements with observable/exam keywords
- * - ASSESSMENT: Clinician statements with assessment framing OR reasoning/explanation keywords
- * - PLAN: Clinician statements with forward action keywords ONLY (no explanations, no questions)
+ * Mapping rules:
+ * - SUBJECTIVE: Patient + symptom_or_history, Patient + acknowledgement (optional)
+ * - OBJECTIVE: Clinician + observation
+ * - ASSESSMENT: Clinician + reasoning (prefixed with AI disclaimer)
+ * - PLAN: Clinician + instruction (prefixed with AI disclaimer)
+ * - QUESTIONS: Explicitly EXCLUDED from all SOAP sections
  * 
- * Intent-Aware Classification:
- * - Questions are excluded from Plan and Assessment
- * - Reasoning/causal explanations go to Assessment (not Plan)
- * - Plan contains only forward actions
- * 
- * Reclassification Pass:
- * - After initial assignment, statements with both action and reasoning keywords
- *   are moved from Plan to Assessment (reasoning takes precedence)
- * - If ambiguous, prefer Assessment over Plan (safety)
+ * Fallback: If no content for a section, include placeholder text.
  */
-function assignSegmentsToSoap(segments: TranscriptSegment[]): SoapDraft {
+function pass2AssignToSoap(attributedSegments: AttributedSegment[]): SoapDraft {
   const subjectiveLines: string[] = [];
   const objectiveLines: string[] = [];
   const assessmentLines: string[] = [];
   const planLines: string[] = [];
   
-  // Track statements that may need reclassification
-  const potentialPlanStatements: { content: string; hasReasoning: boolean }[] = [];
-  
-  for (const segment of segments) {
-    if (segment.speaker === "Patient") {
-      // All patient speech goes to Subjective
-      subjectiveLines.push(segment.content);
-    } else if (segment.speaker === "Clinician") {
-      const content = segment.content;
-      const isQuestionStatement = isQuestion(content);
-      const hasReasoning = isReasoningStatement(content);
-      const hasAction = isActionStatement(content);
-      const hasAssessmentKeyword = containsKeyword(content, ASSESSMENT_KEYWORDS);
-      const hasObjectiveKeyword = containsKeyword(content, OBJECTIVE_KEYWORDS);
-      
-      // OBJECTIVE: Observable findings (questions allowed here, they're clinical queries)
-      if (hasObjectiveKeyword) {
-        objectiveLines.push(content);
-      }
-      
-      // ASSESSMENT: Reasoning, explanations, or diagnostic framing
-      // Questions are excluded from Assessment
-      if (!isQuestionStatement && (hasAssessmentKeyword || hasReasoning)) {
-        assessmentLines.push(content);
-      }
-      
-      // PLAN: Forward actions only
-      // Questions are excluded from Plan
-      // Reasoning statements are excluded from Plan (they go to Assessment)
-      if (!isQuestionStatement && hasAction) {
-        // Track for reclassification pass
-        potentialPlanStatements.push({ content, hasReasoning });
-      }
-    } else {
-      // Unknown speaker - place in Subjective as fallback
-      subjectiveLines.push(segment.content);
+  for (const segment of attributedSegments) {
+    const { speaker, content, intent } = segment;
+    
+    // SUBJECTIVE: Patient symptom/history and acknowledgements
+    if (speaker === "Patient" && (intent === "symptom_or_history" || intent === "acknowledgement")) {
+      subjectiveLines.push(content);
+    }
+    
+    // OBJECTIVE: Clinician observations
+    if (speaker === "Clinician" && intent === "observation") {
+      objectiveLines.push(content);
+    }
+    
+    // ASSESSMENT: Clinician reasoning
+    if (speaker === "Clinician" && intent === "reasoning") {
+      assessmentLines.push(content);
+    }
+    
+    // PLAN: Clinician instructions
+    if (speaker === "Clinician" && intent === "instruction") {
+      planLines.push(content);
+    }
+    
+    // QUESTIONS: Explicitly excluded (no assignment)
+    // ACKNOWLEDGEMENTS from clinician: Excluded (not clinically relevant)
+    
+    // Unknown speaker with symptom_or_history: Include in Subjective
+    if (speaker === "Unknown" && intent === "symptom_or_history") {
+      subjectiveLines.push(content);
     }
   }
   
   // ==========================================================================
-  // RECLASSIFICATION PASS
-  // ==========================================================================
-  // Review potential Plan statements and filter out those that are primarily
-  // reasoning/explanation. If a statement has both action and reasoning keywords,
-  // prefer Assessment (safety: don't put explanations in Plan).
-  
-  for (const statement of potentialPlanStatements) {
-    if (statement.hasReasoning) {
-      // Statement has reasoning markers - ensure it's in Assessment, not Plan
-      // It may already be in Assessment from the first pass, but we ensure it's there
-      if (!assessmentLines.includes(statement.content)) {
-        assessmentLines.push(statement.content);
-      }
-      // Do NOT add to Plan (skip)
-    } else {
-      // Pure action statement - add to Plan
-      planLines.push(statement.content);
-    }
-  }
-  
-  // ==========================================================================
-  // FORMAT OUTPUT
+  // FORMAT OUTPUT WITH PLACEHOLDERS AND DISCLAIMERS
   // ==========================================================================
   
-  // Format sections with appropriate placeholders for empty sections
   const subjective = subjectiveLines.length > 0
     ? subjectiveLines.join("\n\n")
     : "No patient-reported symptoms or history documented during this session.";
@@ -400,6 +514,20 @@ function assignSegmentsToSoap(segments: TranscriptSegment[]): SoapDraft {
     : "Plan to be defined by clinician.";
   
   return { subjective, objective, assessment, plan };
+}
+
+/**
+ * TWO-PASS SOAP EXTRACTION
+ * 
+ * Combines Pass 1 (Intent Attribution) and Pass 2 (SOAP Assignment)
+ * for clean, intent-aware transcript processing.
+ */
+function assignSegmentsToSoap(segments: TranscriptSegment[]): SoapDraft {
+  // Pass 1: Attribute intent to each segment
+  const attributedSegments = pass1AttributeIntents(segments);
+  
+  // Pass 2: Map intents to SOAP sections
+  return pass2AssignToSoap(attributedSegments);
 }
 
 /**
