@@ -2,45 +2,119 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 
+// SpeechRecognition types for browser compatibility
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message?: string;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 interface AudioInputSimProps {
   isListening: boolean;
   onToggle: () => void;
   onAudioCaptured?: (audioBlob: Blob | null) => void;
+  onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
   disabled?: boolean;
 }
 
 type PermissionState = "prompt" | "granted" | "denied" | "error";
+type SpeechSupportState = "checking" | "supported" | "unsupported";
 
 /**
- * AudioInputSim - Real push-to-talk audio capture component
+ * AudioInputSim - Real push-to-talk audio capture with live transcription
  * 
  * SAFETY INVARIANTS:
  * - Audio capture is user-initiated ONLY (button click required)
+ * - Transcription is user-initiated ONLY (starts with recording)
  * - Push-to-talk model: click to start, click to stop
- * - Audio blob is passed to parent for transcription, then discarded
+ * - Transcript exists only in React state (passed via callback)
+ * - No transcript persistence (localStorage, sessionStorage, indexedDB, filesystem)
+ * - No transcript logging to console
+ * - Audio blob is passed to parent for backup, then discarded
  * - No background or passive listening
  * - No audio persistence or upload
- * - No auto-start recording
+ * - No auto-start recording/transcription
  * 
  * Uses:
+ * - Web Speech API (SpeechRecognition) for real-time transcription
  * - navigator.mediaDevices.getUserMedia (user-initiated)
- * - MediaRecorder for audio capture
+ * - MediaRecorder for audio capture (fallback)
  */
 export function AudioInputSim({ 
   isListening, 
   onToggle, 
   onAudioCaptured,
+  onTranscriptUpdate,
   disabled 
 }: AudioInputSimProps) {
   const [permissionState, setPermissionState] = useState<PermissionState>("prompt");
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [speechSupport, setSpeechSupport] = useState<SpeechSupportState>("checking");
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const accumulatedTranscriptRef = useRef<string>("");
+
+  // Check for SpeechRecognition support on mount
+  useEffect(() => {
+    const SpeechRecognitionAPI = 
+      typeof window !== "undefined" 
+        ? window.SpeechRecognition || window.webkitSpeechRecognition 
+        : null;
+    
+    setSpeechSupport(SpeechRecognitionAPI ? "supported" : "unsupported");
+  }, []);
 
   // Cleanup function to release media resources
   const cleanupMediaResources = useCallback(() => {
+    // Stop speech recognition
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.abort();
+      speechRecognitionRef.current = null;
+    }
+    // Stop media recorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -50,6 +124,8 @@ export function AudioInputSim({
     }
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
+    // Clear accumulated transcript (ephemeral - memory only)
+    accumulatedTranscriptRef.current = "";
   }, []);
 
   // Cleanup on unmount
@@ -58,6 +134,106 @@ export function AudioInputSim({
       cleanupMediaResources();
     };
   }, [cleanupMediaResources]);
+
+  // Initialize and start speech recognition (user-initiated only)
+  const startSpeechRecognition = useCallback(() => {
+    const SpeechRecognitionAPI = 
+      typeof window !== "undefined" 
+        ? window.SpeechRecognition || window.webkitSpeechRecognition 
+        : null;
+    
+    if (!SpeechRecognitionAPI) {
+      return; // Speech recognition not supported, but don't block recording
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      // Reset accumulated transcript at start
+      accumulatedTranscriptRef.current = "";
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interimTranscript = "";
+        let finalTranscriptPart = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0].transcript;
+          
+          if (result.isFinal) {
+            finalTranscriptPart += transcript + " ";
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Accumulate final transcript parts
+        if (finalTranscriptPart) {
+          accumulatedTranscriptRef.current += finalTranscriptPart;
+        }
+
+        // Build full current transcript: accumulated finals + current interim
+        const fullTranscript = accumulatedTranscriptRef.current + interimTranscript;
+        
+        // Pass transcript to parent (ephemeral - React state only)
+        if (onTranscriptUpdate) {
+          onTranscriptUpdate(fullTranscript.trim(), false);
+        }
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        // Handle non-fatal errors silently - don't break the recording
+        if (event.error === "no-speech") {
+          // User hasn't spoken yet - this is normal, restart recognition
+          try {
+            recognition.stop();
+            setTimeout(() => {
+              if (speechRecognitionRef.current === recognition) {
+                recognition.start();
+              }
+            }, 100);
+          } catch {
+            // Ignore restart errors
+          }
+        }
+        // For other errors, we let recording continue without transcription
+      };
+
+      recognition.onend = () => {
+        // If we're still supposed to be listening, restart recognition
+        // This handles the case where recognition auto-stops (timeout)
+        // The ref check ensures we don't restart after manual stop (when ref is null)
+        if (speechRecognitionRef.current === recognition) {
+          try {
+            recognition.start();
+          } catch {
+            // Recognition may have been aborted, which is fine
+          }
+        }
+      };
+
+      speechRecognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      // Speech recognition failed to start, but don't block recording
+    }
+  }, [onTranscriptUpdate]);
+
+  // Stop speech recognition
+  const stopSpeechRecognition = useCallback(() => {
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.abort();
+      speechRecognitionRef.current = null;
+      
+      // Send final transcript to parent
+      if (onTranscriptUpdate && accumulatedTranscriptRef.current) {
+        onTranscriptUpdate(accumulatedTranscriptRef.current.trim(), true);
+      }
+    }
+  }, [onTranscriptUpdate]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -74,7 +250,7 @@ export function AudioInputSim({
       streamRef.current = stream;
       setPermissionState("granted");
       
-      // Create MediaRecorder
+      // Create MediaRecorder for audio blob capture (fallback)
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm') 
           ? 'audio/webm' 
@@ -96,7 +272,7 @@ export function AudioInputSim({
           type: mediaRecorder.mimeType 
         });
         
-        // Pass audio blob to parent for transcription
+        // Pass audio blob to parent (backup in case transcription fails)
         if (onAudioCaptured) {
           onAudioCaptured(audioBlob);
         }
@@ -111,13 +287,15 @@ export function AudioInputSim({
         }
       };
       
-      // Start recording
+      // Start media recording
       mediaRecorder.start(1000); // Collect data every second
+      
+      // Start speech recognition for live transcription (user-initiated)
+      startSpeechRecognition();
+      
       onToggle();
       
     } catch (error) {
-      console.error("Microphone access error:", error);
-      
       if (error instanceof DOMException) {
         if (error.name === "NotAllowedError") {
           setPermissionState("denied");
@@ -134,14 +312,18 @@ export function AudioInputSim({
         setPermissionError("Could not access microphone. Please use 'Skip recording'.");
       }
     }
-  }, [onToggle, onAudioCaptured]);
+  }, [onToggle, onAudioCaptured, startSpeechRecognition]);
 
   const stopRecording = useCallback(() => {
+    // Stop speech recognition first to get final transcript
+    stopSpeechRecognition();
+    
+    // Stop media recorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
     }
     onToggle();
-  }, [onToggle]);
+  }, [onToggle, stopSpeechRecognition]);
 
   const handleToggle = useCallback(() => {
     if (isListening) {
@@ -151,10 +333,13 @@ export function AudioInputSim({
     }
   }, [isListening, startRecording, stopRecording]);
 
-  // Check if browser supports required APIs
-  const isSupported = typeof navigator !== "undefined" && 
+  // Check if browser supports required APIs for audio recording
+  const isRecordingSupported = typeof navigator !== "undefined" && 
     "mediaDevices" in navigator && 
     "getUserMedia" in navigator.mediaDevices;
+  
+  // Transcription requires speech recognition support
+  const isTranscriptionSupported = speechSupport === "supported";
 
   return (
     <div className="flex flex-col items-center gap-4 py-8">
@@ -165,8 +350,8 @@ export function AudioInputSim({
         </div>
       )}
 
-      {/* Browser not supported message */}
-      {!isSupported && (
+      {/* Browser not supported message for recording */}
+      {!isRecordingSupported && (
         <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-sm text-center">
           <p className="text-sm text-amber-700">
             Your browser doesn&apos;t support audio recording. 
@@ -175,13 +360,24 @@ export function AudioInputSim({
         </div>
       )}
 
+      {/* Transcription not supported notice */}
+      {isRecordingSupported && !isTranscriptionSupported && speechSupport !== "checking" && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-sm text-center">
+          <p className="text-sm text-blue-700">
+            Live transcription is not available in this browser. 
+            Recording will work, but you may want to use Chrome or Edge for live transcription, 
+            or use &quot;Skip recording&quot; to continue with the demo draft.
+          </p>
+        </div>
+      )}
+
       <button
         onClick={handleToggle}
-        disabled={disabled || !isSupported}
+        disabled={disabled || !isRecordingSupported}
         className={`
           relative w-24 h-24 rounded-full transition-all duration-300 
           flex items-center justify-center
-          ${disabled || !isSupported ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+          ${disabled || !isRecordingSupported ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
           ${isListening 
             ? "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50" 
             : "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30"
@@ -257,8 +453,8 @@ export function AudioInputSim({
       <div className="mt-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
         <p className="text-xs text-amber-700 font-medium">
           {isListening 
-            ? "Listening (demo mode · audio is not stored)"
-            : "Demo mode · Audio is not stored"
+            ? "Listening (audio and transcript are not stored)"
+            : "Demo mode · Audio and transcript are not stored"
           }
         </p>
       </div>

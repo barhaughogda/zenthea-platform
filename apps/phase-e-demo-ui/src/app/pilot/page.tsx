@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { PilotSessionShell, AudioInputSim, PreparingDraftState } from "@/components/pilot";
 import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
+import { generateSoapDraftFromTranscript } from "@/app/clinician/actions";
 
 const persistenceAdapter = createPilotPersistenceAdapter();
 
@@ -109,9 +110,17 @@ export default function PilotPage() {
   const [hasRecorded, setHasRecorded] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+  const [draftGenerationError, setDraftGenerationError] = useState<string | null>(null);
   
   // Editable draft state - source of truth for finalization
   const [editableDraft, setEditableDraft] = useState<string>("");
+  
+  // Transcript state - EPHEMERAL (React state only, never persisted)
+  // SAFETY: Transcript exists ONLY in memory. On reset or page refresh, it is lost.
+  // SAFETY: No localStorage, sessionStorage, indexedDB, filesystem, or logging.
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
+  const [frozenTranscript, setFrozenTranscript] = useState<string>("");
+  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
   
   // Audio blob ref - held in memory only during processing
   // IMPORTANT: This is set to null after draft generation
@@ -122,7 +131,23 @@ export default function PilotPage() {
     setIsListening(false);
     setHasRecorded(false);
     setTranscriptionError(null);
+    setDraftGenerationError(null);
+    // Clear transcript state (ephemeral - memory only)
+    setLiveTranscript("");
+    setFrozenTranscript("");
     audioBlobRef.current = null;
+  }, []);
+
+  // Handle transcript updates from speech recognition (ephemeral - React state only)
+  const handleTranscriptUpdate = useCallback((transcript: string, isFinal: boolean) => {
+    // SAFETY: Transcript is stored ONLY in React state
+    // No persistence to localStorage, sessionStorage, indexedDB, or filesystem
+    // No logging to console
+    setLiveTranscript(transcript);
+    if (isFinal) {
+      // When recording stops, this will be the final accumulated transcript
+      setFrozenTranscript(transcript);
+    }
   }, []);
 
   const handleToggleListening = useCallback(() => {
@@ -175,6 +200,15 @@ export default function PilotPage() {
     // Stop any active listening
     setIsListening(false);
     
+    // Freeze the transcript at end of session
+    const transcriptToUse = liveTranscript.trim() || frozenTranscript.trim();
+    if (transcriptToUse) {
+      setFrozenTranscript(transcriptToUse);
+    }
+    // Clear live transcript (session ended)
+    setLiveTranscript("");
+    setDraftGenerationError(null);
+    
     // Show preparing state
     setStep("preparing");
     
@@ -186,24 +220,52 @@ export default function PilotPage() {
       ...({ source: "pilot-ui", humanAction: true } as any),
     } as any);
 
-    // Process captured audio (if any) and generate draft
-    const draftText = await processCapturedAudioAndGenerateDraft();
+    // Generate SOAP draft from transcript if available
+    let draftText: string;
     
-    // Additional deterministic delay for UI consistency
+    if (transcriptToUse) {
+      try {
+        // Call server action to generate SOAP draft from transcript
+        const result = await generateSoapDraftFromTranscript(transcriptToUse);
+        
+        if (result.success && result.draft) {
+          draftText = result.draft;
+        } else {
+          // Draft generation failed, show error but allow manual editing
+          setDraftGenerationError(result.error || "Could not generate draft from transcript. You may edit manually.");
+          draftText = DEMO_DRAFT.text;
+        }
+      } catch {
+        // Server action failed, fall back to demo draft
+        setDraftGenerationError("Could not generate draft from transcript. You may edit manually.");
+        draftText = DEMO_DRAFT.text;
+      }
+    } else {
+      // No transcript available, use demo draft
+      draftText = await processCapturedAudioAndGenerateDraft();
+    }
+    
+    // Additional deterministic delay for UI consistency (1-2 seconds total)
     await new Promise((resolve) => setTimeout(resolve, 1000));
     
     // Initialize editable draft
     setEditableDraft(draftText);
     setStep("draft_ready");
-  }, [processCapturedAudioAndGenerateDraft]);
+    
+    // Discard audio blob after draft generation
+    audioBlobRef.current = null;
+  }, [liveTranscript, frozenTranscript, processCapturedAudioAndGenerateDraft]);
 
   // Skip recording and use demo draft directly
   const handleSkipRecording = useCallback(async () => {
     // Stop any active listening
     setIsListening(false);
     
-    // Discard any captured audio
+    // Discard any captured audio and transcript (ephemeral - memory only)
     audioBlobRef.current = null;
+    setLiveTranscript("");
+    setFrozenTranscript("");
+    setDraftGenerationError(null);
     
     // Show preparing state
     setStep("preparing");
@@ -247,7 +309,13 @@ export default function PilotPage() {
     setHasRecorded(false);
     setIsFinalizing(false);
     setTranscriptionError(null);
+    setDraftGenerationError(null);
     setEditableDraft(""); // Discard any draft changes
+    // Clear all transcript state (ephemeral - memory only)
+    // SAFETY: On reset, transcript is lost. This is intended.
+    setLiveTranscript("");
+    setFrozenTranscript("");
+    setIsTranscriptExpanded(true);
     audioBlobRef.current = null; // Ensure no audio is retained
   }, []);
 
@@ -335,7 +403,32 @@ export default function PilotPage() {
               isListening={isListening}
               onToggle={handleToggleListening}
               onAudioCaptured={handleAudioCaptured}
+              onTranscriptUpdate={handleTranscriptUpdate}
             />
+
+            {/* Live transcript display during recording */}
+            {(isListening || liveTranscript) && (
+              <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    Live transcript (draft · not saved)
+                  </span>
+                  {isListening && (
+                    <span className="flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-700 min-h-[60px] whitespace-pre-wrap">
+                  {liveTranscript || (
+                    <span className="text-slate-400 italic">
+                      {isListening ? "Listening... speak now" : "No transcript captured"}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
 
             {hasRecorded && !isListening && (
               <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
@@ -395,6 +488,52 @@ export default function PilotPage() {
               <p className="text-sm text-amber-700 text-center">
                 {transcriptionError}
               </p>
+            </div>
+          )}
+
+          {/* Draft generation error notice */}
+          {draftGenerationError && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-700 text-center">
+                {draftGenerationError}
+              </p>
+            </div>
+          )}
+
+          {/* Transcript reference panel (collapsible) */}
+          {frozenTranscript && (
+            <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+              <button
+                onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg 
+                    className={`w-4 h-4 text-slate-500 transition-transform ${isTranscriptExpanded ? "rotate-90" : ""}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-700">
+                    Transcript (reference only · not saved)
+                  </span>
+                </div>
+                <span className="text-xs text-slate-400">
+                  {isTranscriptExpanded ? "Click to collapse" : "Click to expand"}
+                </span>
+              </button>
+              {isTranscriptExpanded && (
+                <div className="px-4 pb-4 border-t border-slate-200">
+                  <p className="text-xs text-slate-500 mt-3 mb-2 italic">
+                    The transcript is not part of the medical record unless you copy content into the note.
+                  </p>
+                  <div className="p-3 bg-white rounded border border-slate-200 text-sm text-slate-700 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                    {frozenTranscript}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
