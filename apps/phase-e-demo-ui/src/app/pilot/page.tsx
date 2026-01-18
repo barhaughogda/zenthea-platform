@@ -38,6 +38,139 @@ interface TranscriptSegment {
   timestamp: number;
 }
 
+/**
+ * Deterministic transcript text formatter
+ * 
+ * Improves readability by adding punctuation and paragraph breaks
+ * WITHOUT changing, removing, or rewording any spoken content.
+ * 
+ * SAFETY: Pure function, no LLM/AI, no persistence, no logging.
+ * 
+ * @param rawText - The raw transcript text (words exactly as spoken)
+ * @returns Formatted text with sentence boundaries and paragraphs
+ */
+function formatTranscriptText(rawText: string): string {
+  if (!rawText || !rawText.trim()) return rawText;
+  
+  const text = rawText.trim();
+  
+  // Split into words while preserving whitespace structure
+  const words = text.split(/\s+/);
+  if (words.length === 0) return text;
+  
+  // Conjunction patterns that often indicate sentence boundaries
+  // These are common speech patterns where speakers naturally pause
+  const sentenceBreakPatterns = [
+    /^(so)$/i,
+    /^(and)$/i,
+    /^(but)$/i,
+    /^(then)$/i,
+    /^(now)$/i,
+    /^(okay)$/i,
+    /^(ok)$/i,
+    /^(well)$/i,
+    /^(also)$/i,
+    /^(anyway)$/i,
+    /^(actually)$/i,
+    /^(basically)$/i,
+  ];
+  
+  // Multi-word patterns that indicate boundaries (check previous + current word)
+  const multiWordBreakPatterns = [
+    ["and", "then"],
+    ["and", "so"],
+    ["so", "then"],
+    ["and", "now"],
+    ["but", "then"],
+    ["okay", "so"],
+    ["ok", "so"],
+  ];
+  
+  const sentences: string[] = [];
+  let currentSentence: string[] = [];
+  let wordsSinceLastBreak = 0;
+  const minWordsPerSentence = 5; // Minimum words before allowing a break
+  const maxWordsPerSentence = 20; // Force break after this many words
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const prevWord = i > 0 ? words[i - 1].toLowerCase() : "";
+    const currentWordLower = word.toLowerCase();
+    
+    // Check if we should break before this word
+    let shouldBreak = false;
+    
+    // Only consider breaking if we have enough words
+    if (wordsSinceLastBreak >= minWordsPerSentence) {
+      // Check multi-word patterns (break BEFORE current word)
+      for (const [first, second] of multiWordBreakPatterns) {
+        if (prevWord === first && currentWordLower === second) {
+          shouldBreak = true;
+          break;
+        }
+      }
+      
+      // Check single-word patterns at word boundaries
+      if (!shouldBreak && sentenceBreakPatterns.some(p => p.test(word))) {
+        shouldBreak = true;
+      }
+    }
+    
+    // Force break if sentence is too long
+    if (wordsSinceLastBreak >= maxWordsPerSentence) {
+      shouldBreak = true;
+    }
+    
+    // Execute break if needed
+    if (shouldBreak && currentSentence.length > 0) {
+      sentences.push(currentSentence.join(" "));
+      currentSentence = [];
+      wordsSinceLastBreak = 0;
+    }
+    
+    currentSentence.push(word);
+    wordsSinceLastBreak++;
+  }
+  
+  // Add remaining words as final sentence
+  if (currentSentence.length > 0) {
+    sentences.push(currentSentence.join(" "));
+  }
+  
+  // Format sentences: capitalize first letter, add period at end
+  const formattedSentences = sentences.map(sentence => {
+    const trimmed = sentence.trim();
+    if (!trimmed) return "";
+    
+    // Capitalize first letter
+    const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    
+    // Add period if not already ending with punctuation
+    const lastChar = capitalized.slice(-1);
+    if (!/[.!?]/.test(lastChar)) {
+      return capitalized + ".";
+    }
+    return capitalized;
+  }).filter(s => s.length > 0);
+  
+  // Group sentences into paragraphs (2-3 sentences per paragraph)
+  const paragraphs: string[] = [];
+  const sentencesPerParagraph = 3;
+  
+  for (let i = 0; i < formattedSentences.length; i += sentencesPerParagraph) {
+    const paragraphSentences = formattedSentences.slice(i, i + sentencesPerParagraph);
+    paragraphs.push(paragraphSentences.join(" "));
+  }
+  
+  // Join paragraphs with double newline for visual separation
+  // For short transcripts (1 paragraph), just return the text
+  if (paragraphs.length <= 1) {
+    return paragraphs.join("");
+  }
+  
+  return paragraphs.join("\n\n");
+}
+
 // Demo draft content for the pilot experience
 const DEMO_DRAFT = {
   text: `SUBJECTIVE:
@@ -276,10 +409,10 @@ export default function PilotPage() {
     } as any);
 
     // Build transcript text from segments for draft generation
-    // Include speaker labels for context
+    // Include speaker labels for context, with formatted text for better readability
     const transcriptToUse = transcriptSegments
-      .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${seg.text}`)
-      .join("\n");
+      .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${formatTranscriptText(seg.text)}`)
+      .join("\n\n");
 
     // Generate SOAP draft from transcript if available
     let draftText: string;
@@ -516,7 +649,7 @@ export default function PilotPage() {
                   )}
                 </div>
                 <div className="space-y-3 min-h-[60px]">
-                  {/* Render completed segments */}
+                  {/* Render completed segments with formatted text */}
                   {transcriptSegments.map((segment, index) => (
                     <div key={index} className="flex gap-2">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
@@ -526,10 +659,10 @@ export default function PilotPage() {
                       }`}>
                         {segment.speaker === "clinician" ? "Clinician" : "Patient"}
                       </span>
-                      <p className="text-sm text-slate-700">{segment.text}</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{formatTranscriptText(segment.text)}</p>
                     </div>
                   ))}
-                  {/* Current segment being transcribed */}
+                  {/* Current segment being transcribed (live - show raw for immediacy) */}
                   {currentSegmentText && (
                     <div className="flex gap-2">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
@@ -661,7 +794,7 @@ export default function PilotPage() {
                         }`}>
                           {segment.speaker === "clinician" ? "Clinician" : "Patient"}
                         </span>
-                        <p className="text-sm text-slate-700">{segment.text}</p>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{formatTranscriptText(segment.text)}</p>
                       </div>
                     ))}
                   </div>
