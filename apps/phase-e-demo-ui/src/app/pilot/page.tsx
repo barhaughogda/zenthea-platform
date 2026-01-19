@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
-import { PilotSessionShell, AudioInputSim, PreparingDraftState } from "@/components/pilot";
+import { PilotSessionShell, AudioInputSim, PreparingDraftState, SoapSectionDisplay } from "@/components/pilot";
 import { createPilotPersistenceAdapter } from "@starter/persistence-adapter";
 import { generateSoapDraftFromTranscript } from "@/app/clinician/actions";
 
@@ -263,7 +263,10 @@ export default function PilotPage() {
   // SAFETY: No localStorage, sessionStorage, indexedDB, filesystem, or logging.
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [currentSegmentText, setCurrentSegmentText] = useState<string>("");
-  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
+  // Transcript collapsed by default in Review step for cleaner initial view
+  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
+  // Toggle between preview (parsed SOAP) and edit (textarea) modes
+  const [isEditMode, setIsEditMode] = useState(false);
   
   
   // Audio blob ref - held in memory only during processing
@@ -553,7 +556,8 @@ export default function PilotPage() {
     // SAFETY: On reset, transcript is lost. This is intended.
     setTranscriptSegments([]);
     setCurrentSegmentText("");
-    setIsTranscriptExpanded(true);
+    setIsTranscriptExpanded(false); // Collapsed by default
+    setIsEditMode(false); // Reset to preview mode
     audioBlobRef.current = null; // Ensure no audio is retained
   }, []);
 
@@ -769,39 +773,49 @@ export default function PilotPage() {
             </div>
           )}
 
-          {/* Transcript reference panel (collapsible) */}
+          {/* Transcript reference panel (collapsible) - COLLAPSED BY DEFAULT */}
           {transcriptSegments.length > 0 && (
-            <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+            <div className="bg-slate-100/50 rounded-xl border border-slate-200 overflow-hidden">
               <button
                 onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-100 transition-colors"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-100 transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <svg 
-                    className={`w-4 h-4 text-slate-500 transition-transform ${isTranscriptExpanded ? "rotate-90" : ""}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  <span className="text-sm font-medium text-slate-700">
-                    Transcript (reference only · not saved)
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
+                    <svg 
+                      className={`w-4 h-4 text-slate-500 transition-transform ${isTranscriptExpanded ? "rotate-90" : ""}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-slate-700 block">
+                      Transcript (reference only · not part of the medical record)
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {transcriptSegments.length} segment{transcriptSegments.length !== 1 ? "s" : ""} captured
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-slate-400">
-                  {isTranscriptExpanded ? "Click to collapse" : "Click to expand"}
+                <span className="text-xs text-slate-400 bg-slate-200 px-2 py-1 rounded">
+                  {isTranscriptExpanded ? "Collapse" : "Expand"}
                 </span>
               </button>
               {isTranscriptExpanded && (
-                <div className="px-4 pb-4 border-t border-slate-200">
-                  <p className="text-xs text-slate-500 mt-3 mb-2 italic">
-                    The transcript is not part of the medical record unless you copy content into the note.
-                    <span className="block mt-1 text-slate-400">
-                      Click a speaker label to correct attribution if needed.
-                    </span>
+                <div className="px-5 pb-5 border-t border-slate-200 bg-white/50">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4 mb-3">
+                    <p className="text-xs text-amber-800">
+                      <span className="font-semibold">Reference only:</span> The transcript is NOT part of the medical record 
+                      unless you copy content into the note above.
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">
+                    Click a speaker label to correct attribution if needed.
                   </p>
-                  <div className="p-3 bg-white rounded border border-slate-200 max-h-48 overflow-y-auto space-y-2">
+                  <div className="p-3 bg-white rounded-lg border border-slate-200 max-h-48 overflow-y-auto space-y-2">
                     {transcriptSegments.map((segment, index) => (
                       <div key={index} className="flex gap-2">
                         <button
@@ -831,44 +845,113 @@ export default function PilotPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-amber-50 border-b border-amber-200 px-6 py-4">
+          {/* Visual divider between transcript and draft */}
+          {transcriptSegments.length > 0 && (
+            <div className="flex items-center gap-4 py-2">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
+              <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Draft Below</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
+            </div>
+          )}
+
+          {/* Draft status banner */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-4">
               <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold border border-red-200">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-sm font-bold border border-red-200 shadow-sm">
                     DRAFT ONLY
                   </span>
-                  <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-bold border border-gray-200">
+                  <span className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-sm font-bold border border-gray-200 shadow-sm">
                     Not signed
                   </span>
-                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold border border-yellow-200">
+                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full text-sm font-bold border border-yellow-200 shadow-sm">
                     Requires clinician review
                   </span>
                 </div>
               </div>
-            </div>
-
-            <div className="p-6">
-              <label htmlFor="clinical-draft" className="block font-bold text-gray-700 mb-2 pb-2 border-b border-gray-200">
-                Clinical draft (review and edit before finalizing)
-              </label>
-              <p className="text-sm text-gray-500 mb-4">
-                This draft will not be saved until you sign and finalize.
+              <p className="text-sm text-amber-800 mt-3 font-medium">
+                Nothing is saved until you sign and finalize below.
               </p>
-              <textarea
-                id="clinical-draft"
-                value={editableDraft}
-                onChange={(e) => setEditableDraft(e.target.value)}
-                className="w-full min-h-[400px] text-gray-800 font-serif leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none resize-y"
-                placeholder="Clinical draft content..."
-              />
+            </div>
+          </div>
+
+          {/* Main draft content card */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            {/* Header with view toggle */}
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">
+                    Clinical Draft
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Review each section, then edit or sign
+                  </p>
+                </div>
+                
+                {/* View mode toggle */}
+                <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 p-1">
+                  <button
+                    onClick={() => setIsEditMode(false)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      !isEditMode 
+                        ? "bg-emerald-100 text-emerald-800" 
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    onClick={() => setIsEditMode(true)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      isEditMode 
+                        ? "bg-emerald-100 text-emerald-800" 
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="px-6 pb-6">
-              <h4 className="font-bold text-gray-700 mb-2 text-sm">Labels:</h4>
+            {/* Draft content area */}
+            <div className="p-6">
+              {isEditMode ? (
+                /* Edit mode: textarea */
+                <div>
+                  <label htmlFor="clinical-draft" className="sr-only">
+                    Clinical draft content
+                  </label>
+                  <textarea
+                    id="clinical-draft"
+                    value={editableDraft}
+                    onChange={(e) => setEditableDraft(e.target.value)}
+                    className="w-full min-h-[400px] text-gray-800 font-serif leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none resize-y"
+                    placeholder="Clinical draft content..."
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Editing raw SOAP content. Switch to Preview to see formatted sections.
+                  </p>
+                </div>
+              ) : (
+                /* Preview mode: parsed SOAP sections */
+                <div>
+                  <SoapSectionDisplay draftText={editableDraft} />
+                  <p className="text-xs text-gray-500 mt-4 text-center">
+                    Click &quot;Edit&quot; above to modify the draft content.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Labels footer */}
+            <div className="px-6 pb-6 pt-2 border-t border-slate-100">
+              <h4 className="font-semibold text-gray-600 mb-2 text-xs uppercase tracking-wide">Labels:</h4>
               <div className="flex flex-wrap gap-2">
                 {DEMO_DRAFT.labels.map((label, i) => (
-                  <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                  <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full border border-gray-200">
                     {label}
                   </span>
                 ))}
@@ -876,26 +959,38 @@ export default function PilotPage() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleReset}
-                className="px-6 py-3 rounded-lg font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
-              >
-                Start New Session
-              </button>
-              <button
-                onClick={handleFinalize}
-                disabled={isFinalizing || !editableDraft.trim()}
-                className="px-8 py-3 rounded-lg font-bold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isFinalizing ? "Finalizing..." : "✓ Sign and Finalize"}
-              </button>
+          {/* Finalize action section */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="text-center">
+              <h3 className="font-bold text-gray-800 text-lg mb-1">Ready to Finalize?</h3>
+              <p className="text-sm text-gray-600 mb-6 max-w-lg mx-auto">
+                Review the draft above carefully. Nothing is saved until you sign.
+              </p>
+              
+              <div className="flex justify-center gap-4 mb-4">
+                <button
+                  onClick={handleReset}
+                  className="px-6 py-3 rounded-lg font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
+                >
+                  Discard &amp; Start Over
+                </button>
+                <button
+                  onClick={handleFinalize}
+                  disabled={isFinalizing || !editableDraft.trim()}
+                  className="px-10 py-4 rounded-xl font-bold text-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-lg shadow-green-500/40 disabled:opacity-50 disabled:cursor-not-allowed ring-2 ring-green-600 ring-offset-2"
+                >
+                  {isFinalizing ? "Finalizing..." : "✓ Sign and Finalize"}
+                </button>
+              </div>
+              
+              <div className="bg-slate-50 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  <span className="font-semibold text-gray-700">Clinician attestation:</span>{" "}
+                  By clicking &quot;Sign and Finalize&quot;, you confirm this documentation 
+                  is accurate, complete, and ready to be part of the patient record.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 text-center max-w-md">
-              You are signing this note as final. By clicking &quot;Sign and Finalize&quot;, 
-              you confirm this documentation is accurate and complete.
-            </p>
           </div>
         </div>
       )}
