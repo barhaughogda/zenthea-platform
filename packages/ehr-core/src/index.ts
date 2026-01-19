@@ -37,6 +37,20 @@ export type {
 export { PatientWriteModel } from "./patient/write.js";
 export { PatientReadModel } from "./patient/read.js";
 
+// Practitioner types
+export type {
+  PractitionerRecord,
+  PractitionerReadView,
+  CreatePractitionerInput,
+  UpdatePractitionerInput,
+} from "./practitioner/types.js";
+
+// Practitioner models
+export { PractitionerWriteModel } from "./practitioner/write.js";
+export { PractitionerReadModel } from "./practitioner/read.js";
+
 // Repository (internal, for testing only)
 export { InMemoryPatientRepository } from "./patient/repository.js";
 export type { PatientRepository } from "./patient/repository.js";
+export { InMemoryPractitionerRepository } from "./practitioner/repository.js";
+export type { PractitionerRepository } from "./practitioner/repository.js";
