@@ -299,6 +299,9 @@ importers:
       '@starter/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@zenthea/persistence-adapter':
+        specifier: workspace:*
+        version: link:../../packages/persistence-adapter
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -345,6 +348,9 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.28)(jsdom@27.4.0)
 
   apps/provider-portal:
     dependencies:
@@ -624,6 +630,55 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  apps/zenthea-scaffold:
+    dependencies:
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      lucide-react:
+        specifier: ^0.378.0
+        version: 0.378.0(react@18.3.1)
+      next:
+        specifier: ^14.2.0
+        version: 14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tailwind-merge:
+        specifier: ^2.3.0
+        version: 2.6.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.12.7
+        version: 20.19.28
+      '@types/react':
+        specifier: ^18.3.1
+        version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.27)
+      autoprefixer:
+        specifier: ^10.4.19
+        version: 10.4.23(postcss@8.5.6)
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-next:
+        specifier: 14.2.3
+        version: 14.2.3(eslint@8.57.1)(typescript@5.9.3)
+      postcss:
+        specifier: ^8.4.38
+        version: 8.5.6
+      tailwindcss:
+        specifier: ^3.4.3
+        version: 3.4.19
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/ai-eval:
     dependencies:
       '@starter/ai-runtime':
@@ -669,6 +724,12 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/audit-core:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   packages/chat-agent-sdk:
     dependencies:
       '@starter/service-control-adapter':
@@ -707,6 +768,15 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/ehr-core:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.28)(jsdom@27.4.0)
+
   packages/maintenance:
     devDependencies:
       '@types/node':
@@ -727,6 +797,16 @@ importers:
     devDependencies:
       typescript:
         specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/messaging-domain:
+    dependencies:
+      '@zenthea/audit-core':
+        specifier: workspace:*
+        version: link:../audit-core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
         version: 5.9.3
 
   packages/observability:
@@ -792,6 +872,12 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@20.19.28)(jsdom@27.4.0)
 
+  packages/persistence-adapter:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/policy:
     dependencies:
       zod:
@@ -803,6 +889,16 @@ importers:
         version: 20.19.28
       typescript:
         specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/scheduling-domain:
+    dependencies:
+      '@zenthea/audit-core':
+        specifier: workspace:*
+        version: link:../audit-core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
         version: 5.9.3
 
   packages/sdk:
