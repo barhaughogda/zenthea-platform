@@ -1,0 +1,19 @@
+{
+  "name": "@zenthea/ehr-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EHR Core - Phase F implementation. Deny-by-default, fail-closed authority enforcement.",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
