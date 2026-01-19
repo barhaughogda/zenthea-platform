@@ -33,142 +33,201 @@ type PilotStep = "idle" | "session_active" | "preparing" | "draft_ready" | "fina
 type Speaker = "clinician" | "patient";
 
 interface TranscriptSegment {
+  id: string;
   speaker: Speaker;
   text: string;
   timestamp: number;
 }
 
+// ============================================================================
+// TRANSCRIPT TURN NORMALIZATION
+// ============================================================================
+// 
+// This layer splits continuous speech recognition output into conversational
+// turns and applies speaker inference per segment rather than globally.
+// 
+// DESIGN PRINCIPLES:
+// - Deterministic: Same input always produces same output
+// - Conservative: When uncertain, defaults to clinician (operator of system)
+// - Ephemeral: All state is in React, no persistence
+// ============================================================================
+
 /**
- * Deterministic transcript text formatter
+ * Splits raw transcript text into sentence-like segments.
  * 
- * Improves readability by adding punctuation and paragraph breaks
- * WITHOUT changing, removing, or rewording any spoken content.
+ * Rules:
+ * 1. Split on sentence-ending punctuation: . ? !
+ * 2. If no punctuation found and segment exceeds ~20 words, split at word boundary
  * 
- * SAFETY: Pure function, no LLM/AI, no persistence, no logging.
- * 
- * @param rawText - The raw transcript text (words exactly as spoken)
- * @returns Formatted text with sentence boundaries and paragraphs
+ * @param text - Raw transcript text from speech recognition
+ * @returns Array of text segments (trimmed, non-empty)
  */
-function formatTranscriptText(rawText: string): string {
-  if (!rawText || !rawText.trim()) return rawText;
+function splitIntoTurnSegments(text: string): string[] {
+  if (!text || !text.trim()) return [];
   
-  const text = rawText.trim();
+  const segments: string[] = [];
+  const trimmedText = text.trim();
   
-  // Split into words while preserving whitespace structure
-  const words = text.split(/\s+/);
-  if (words.length === 0) return text;
+  // Regex to split on sentence-ending punctuation while keeping the punctuation
+  // This captures: sentences ending with . ? or !
+  const sentencePattern = /([^.?!]+[.?!]+)/g;
+  const matches = trimmedText.match(sentencePattern);
   
-  // Conjunction patterns that often indicate sentence boundaries
-  // These are common speech patterns where speakers naturally pause
-  const sentenceBreakPatterns = [
-    /^(so)$/i,
-    /^(and)$/i,
-    /^(but)$/i,
-    /^(then)$/i,
-    /^(now)$/i,
-    /^(okay)$/i,
-    /^(ok)$/i,
-    /^(well)$/i,
-    /^(also)$/i,
-    /^(anyway)$/i,
-    /^(actually)$/i,
-    /^(basically)$/i,
-  ];
-  
-  // Multi-word patterns that indicate boundaries (check previous + current word)
-  const multiWordBreakPatterns = [
-    ["and", "then"],
-    ["and", "so"],
-    ["so", "then"],
-    ["and", "now"],
-    ["but", "then"],
-    ["okay", "so"],
-    ["ok", "so"],
-  ];
-  
-  const sentences: string[] = [];
-  let currentSentence: string[] = [];
-  let wordsSinceLastBreak = 0;
-  const minWordsPerSentence = 5; // Minimum words before allowing a break
-  const maxWordsPerSentence = 20; // Force break after this many words
-  
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const prevWord = i > 0 ? words[i - 1].toLowerCase() : "";
-    const currentWordLower = word.toLowerCase();
-    
-    // Check if we should break before this word
-    let shouldBreak = false;
-    
-    // Only consider breaking if we have enough words
-    if (wordsSinceLastBreak >= minWordsPerSentence) {
-      // Check multi-word patterns (break BEFORE current word)
-      for (const [first, second] of multiWordBreakPatterns) {
-        if (prevWord === first && currentWordLower === second) {
-          shouldBreak = true;
-          break;
+  if (matches && matches.length > 0) {
+    // Found sentence boundaries - use them
+    let remainder = trimmedText;
+    for (const match of matches) {
+      const trimmedMatch = match.trim();
+      if (trimmedMatch) {
+        segments.push(trimmedMatch);
+        remainder = remainder.slice(remainder.indexOf(match) + match.length);
+      }
+    }
+    // Handle any trailing text without punctuation
+    const leftover = remainder.trim();
+    if (leftover) {
+      // Split long leftover by word count (~20 words max)
+      const words = leftover.split(/\s+/);
+      if (words.length > 20) {
+        // Split into chunks of ~20 words
+        for (let i = 0; i < words.length; i += 20) {
+          const chunk = words.slice(i, i + 20).join(" ");
+          if (chunk.trim()) segments.push(chunk.trim());
         }
-      }
-      
-      // Check single-word patterns at word boundaries
-      if (!shouldBreak && sentenceBreakPatterns.some(p => p.test(word))) {
-        shouldBreak = true;
+      } else {
+        segments.push(leftover);
       }
     }
-    
-    // Force break if sentence is too long
-    if (wordsSinceLastBreak >= maxWordsPerSentence) {
-      shouldBreak = true;
+  } else {
+    // No sentence punctuation found - split by word count
+    const words = trimmedText.split(/\s+/);
+    if (words.length > 20) {
+      for (let i = 0; i < words.length; i += 20) {
+        const chunk = words.slice(i, i + 20).join(" ");
+        if (chunk.trim()) segments.push(chunk.trim());
+      }
+    } else if (words.length > 0) {
+      segments.push(trimmedText);
     }
+  }
+  
+  return segments.filter(s => s.length > 0);
+}
+
+/**
+ * Common clinician question-starting phrases.
+ * If a segment starts with one of these, it's likely a clinician question.
+ */
+const CLINICIAN_QUESTION_STARTERS = [
+  "how ",
+  "when ",
+  "do you ",
+  "have you ",
+  "are you ",
+  "what ",
+  "where ",
+  "can you ",
+  "could you ",
+  "would you ",
+  "does ",
+  "did ",
+  "is there ",
+  "any ",
+];
+
+/**
+ * Patterns indicating first-person symptom language (strong patient indicators).
+ */
+const PATIENT_SYMPTOM_PATTERNS = [
+  /\bi have\b/i,
+  /\bi feel\b/i,
+  /\bi've been\b/i,
+  /\bi am\b/i,
+  /\bi'm\b/i,
+  /\bmy head\b/i,
+  /\bmy sleep\b/i,
+  /\bmy symptoms?\b/i,
+  /\bmy pain\b/i,
+  /\bmy back\b/i,
+  /\bmy stomach\b/i,
+  /\bmy chest\b/i,
+  /\bmy leg\b/i,
+  /\bmy arm\b/i,
+  /\bmy throat\b/i,
+  /\bit hurts\b/i,
+  /\bwhen i\b/i,
+];
+
+/**
+ * Infer speaker for a single segment with conversational context.
+ * 
+ * RULES (applied in strict order):
+ * 1. First segment of session → always "clinician"
+ * 2. If previous segment ends with "?" OR starts with a clinician question phrase
+ *    → next segment defaults to "patient" (answering the question)
+ * 3. If segment contains strong first-person symptom language → "patient"
+ * 4. Otherwise → default to "clinician"
+ * 
+ * This is:
+ * - Pure: No side effects
+ * - Deterministic: Same inputs → same output
+ * 
+ * @param segmentText - The text of the current segment
+ * @param previousSegment - The previous segment (null if first segment)
+ * @param isFirstSegment - Whether this is the first segment in the session
+ * @returns Inferred speaker
+ */
+function inferSpeakerForSegment(
+  segmentText: string,
+  previousSegment: TranscriptSegment | null,
+  isFirstSegment: boolean
+): Speaker {
+  // Rule 1: First segment is always clinician
+  if (isFirstSegment || !previousSegment) {
+    return "clinician";
+  }
+  
+  const lowerText = segmentText.toLowerCase();
+  const prevText = previousSegment.text.toLowerCase();
+  
+  // Rule 2: If previous segment was a question, this segment is likely the patient's answer
+  const prevEndsWithQuestion = previousSegment.text.trim().endsWith("?");
+  const prevStartsWithClinicianQuestion = CLINICIAN_QUESTION_STARTERS.some(
+    starter => prevText.startsWith(starter)
+  );
+  
+  // If previous was a clinician question, default to patient (unless strong clinician indicators)
+  if (previousSegment.speaker === "clinician" && (prevEndsWithQuestion || prevStartsWithClinicianQuestion)) {
+    // Check for strong clinician indicators that would override patient default
+    // (assessment language, instructions, etc.)
+    const clinicianOverrideIndicators = [
+      /\bi think\b/i,
+      /\bthis suggests\b/i,
+      /\bevidence of\b/i,
+      /\bdiagnosis\b/i,
+      /\bconsistent with\b/i,
+      /\bi recommend\b/i,
+      /\bwe will\b/i,
+      /\bplease try\b/i,
+      /\blet's look\b/i,
+      /\byou should\b/i,
+    ];
     
-    // Execute break if needed
-    if (shouldBreak && currentSentence.length > 0) {
-      sentences.push(currentSentence.join(" "));
-      currentSentence = [];
-      wordsSinceLastBreak = 0;
+    const hasClinicianOverride = clinicianOverrideIndicators.some(p => p.test(lowerText));
+    
+    if (!hasClinicianOverride) {
+      return "patient";
     }
-    
-    currentSentence.push(word);
-    wordsSinceLastBreak++;
   }
   
-  // Add remaining words as final sentence
-  if (currentSentence.length > 0) {
-    sentences.push(currentSentence.join(" "));
+  // Rule 3: Strong first-person symptom language → patient
+  const hasPatientSymptomLanguage = PATIENT_SYMPTOM_PATTERNS.some(p => p.test(lowerText));
+  if (hasPatientSymptomLanguage) {
+    return "patient";
   }
   
-  // Format sentences: capitalize first letter, add period at end
-  const formattedSentences = sentences.map(sentence => {
-    const trimmed = sentence.trim();
-    if (!trimmed) return "";
-    
-    // Capitalize first letter
-    const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-    
-    // Add period if not already ending with punctuation
-    const lastChar = capitalized.slice(-1);
-    if (!/[.!?]/.test(lastChar)) {
-      return capitalized + ".";
-    }
-    return capitalized;
-  }).filter(s => s.length > 0);
-  
-  // Group sentences into paragraphs (2-3 sentences per paragraph)
-  const paragraphs: string[] = [];
-  const sentencesPerParagraph = 3;
-  
-  for (let i = 0; i < formattedSentences.length; i += sentencesPerParagraph) {
-    const paragraphSentences = formattedSentences.slice(i, i + sentencesPerParagraph);
-    paragraphs.push(paragraphSentences.join(" "));
-  }
-  
-  // Join paragraphs with double newline for visual separation
-  // For short transcripts (1 paragraph), just return the text
-  if (paragraphs.length <= 1) {
-    return paragraphs.join("");
-  }
-  
-  return paragraphs.join("\n\n");
+  // Rule 4: Default to clinician
+  return "clinician";
 }
 
 // Demo draft content for the pilot experience
@@ -255,6 +314,10 @@ export default function PilotPage() {
   const [draftGenerationError, setDraftGenerationError] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   
+  // Finalized draft state - EPHEMERAL (React state only, never persisted)
+  // Used to show the final note after signing
+  const [finalizedDraft, setFinalizedDraft] = useState<string>("");
+  
   // Editable draft state - source of truth for finalization
   const [editableDraft, setEditableDraft] = useState<string>("");
   
@@ -286,57 +349,82 @@ export default function PilotPage() {
   }, []);
 
   /**
-   * Automatically infer speaker from transcript content using conservative rules.
+   * Infer speaker for the current live segment (interim display).
    * 
-   * Conservative approach: Default to "clinician" unless there are strong indicators
-   * of patient speech. This errs on the side of caution since the clinician is
-   * operating the system and most medical terminology comes from them.
+   * This is a simplified version used only for live display while recording.
+   * The full segment-level inference with context is applied when segments
+   * are finalized.
    * 
-   * The user can correct any misattributions during the review phase.
+   * SAFETY: Pure function, deterministic, no side effects.
    */
-  const inferSpeaker = useCallback((text: string): Speaker => {
-    const lowerText = text.toLowerCase();
+  const inferSpeakerForLiveDisplay = useCallback((text: string, existingSegments: TranscriptSegment[]): Speaker => {
+    // Use the full inference logic with the last existing segment as context
+    const lastSegment = existingSegments.length > 0 
+      ? existingSegments[existingSegments.length - 1] 
+      : null;
+    const isFirst = existingSegments.length === 0;
     
-    // Conservative patient indicators: first-person health complaints
-    // Only trigger on strong indicators to avoid false positives
-    const patientIndicators = [
-      /^i('m| am| have| feel| think| was| got| had| need)/,  // First person start
-      /^my (head|back|chest|stomach|arm|leg|throat|pain|symptom)/,  // Possessive health
-      /^it (hurts|aches|burns|itches|started)/,  // Symptom descriptions
-      /^(yes|no|yeah|nope|uh-huh|okay),? (i|my|it)/i,  // Responses + first person
-    ];
-    
-    for (const pattern of patientIndicators) {
-      if (pattern.test(lowerText)) {
-        return "patient";
-      }
-    }
-    
-    // Default to clinician (conservative)
-    return "clinician";
+    return inferSpeakerForSegment(text, lastSegment, isFirst);
   }, []);
 
   // Handle transcript updates from speech recognition (ephemeral - React state only)
+  // 
+  // TRANSCRIPT TURN NORMALIZATION:
+  // - Buffers incoming text from the continuous Web Speech API stream
+  // - On finalization, splits into sentence-based segments
+  // - Applies speaker inference per segment with conversational context
+  // 
   const handleTranscriptUpdate = useCallback((transcript: string, isFinal: boolean) => {
     // SAFETY: Transcript is stored ONLY in React state
-    // No persistence to localStorage, sessionStorage, indexedDB, or filesystem
-    // No logging to console
     
-    // Update current segment text (interim)
+    // Update current segment text (interim display)
     setCurrentSegmentText(transcript);
     
     if (isFinal && transcript.trim()) {
-      // When recording stops, finalize the current segment with inferred speaker
-      const trimmedText = transcript.trim();
-      const newSegment: TranscriptSegment = {
-        speaker: inferSpeaker(trimmedText),
-        text: trimmedText,
-        timestamp: Date.now(),
-      };
-      setTranscriptSegments(prev => [...prev, newSegment]);
+      // TURN NORMALIZATION: Split into sentence-based segments
+      const turnSegments = splitIntoTurnSegments(transcript);
+      const now = Date.now();
+      
+      // Apply segment-level speaker inference with conversational context
+      setTranscriptSegments(prev => {
+        const newSegments: TranscriptSegment[] = [];
+        
+        // Track the "previous segment" for context-aware inference
+        // Start with the last existing segment (if any)
+        let previousSeg: TranscriptSegment | null = prev.length > 0 
+          ? prev[prev.length - 1] 
+          : null;
+        
+        for (let i = 0; i < turnSegments.length; i++) {
+          const segmentText = turnSegments[i];
+          const isFirstInSession = prev.length === 0 && i === 0;
+          
+          // Apply segment-level speaker inference with context
+          const inferredSpeaker = inferSpeakerForSegment(
+            segmentText,
+            previousSeg,
+            isFirstInSession
+          );
+          
+          const newSegment: TranscriptSegment = {
+            id: `${now}-${i}`,
+            speaker: inferredSpeaker,
+            text: segmentText,
+            timestamp: now,
+          };
+          
+          newSegments.push(newSegment);
+          
+          // Update context for next segment
+          previousSeg = newSegment;
+        }
+        
+        return [...prev, ...newSegments];
+      });
+      
       setCurrentSegmentText("");
     }
-  }, [inferSpeaker]);
+  }, []);
 
   const handleToggleListening = useCallback(() => {
     if (isListening) {
@@ -388,15 +476,41 @@ export default function PilotPage() {
     // Stop any active listening
     setIsListening(false);
     
-    // Finalize any pending current segment text
+    let updatedSegments = [...transcriptSegments];
+    // Finalize any pending current segment text using turn normalization
     if (currentSegmentText.trim()) {
-      const trimmedText = currentSegmentText.trim();
-      const finalSegment: TranscriptSegment = {
-        speaker: inferSpeaker(trimmedText),
-        text: trimmedText,
-        timestamp: Date.now(),
-      };
-      setTranscriptSegments(prev => [...prev, finalSegment]);
+      const turnSegments = splitIntoTurnSegments(currentSegmentText);
+      const now = Date.now();
+      
+      // Apply segment-level speaker inference with context
+      let previousSeg: TranscriptSegment | null = updatedSegments.length > 0
+        ? updatedSegments[updatedSegments.length - 1]
+        : null;
+      
+      const finalSegments: TranscriptSegment[] = [];
+      for (let i = 0; i < turnSegments.length; i++) {
+        const segmentText = turnSegments[i];
+        const isFirstInSession = updatedSegments.length === 0 && i === 0;
+        
+        const inferredSpeaker = inferSpeakerForSegment(
+          segmentText,
+          previousSeg,
+          isFirstInSession
+        );
+        
+        const newSegment: TranscriptSegment = {
+          id: `final-${now}-${i}`,
+          speaker: inferredSpeaker,
+          text: segmentText,
+          timestamp: now,
+        };
+        
+        finalSegments.push(newSegment);
+        previousSeg = newSegment;
+      }
+      
+      updatedSegments = [...updatedSegments, ...finalSegments];
+      setTranscriptSegments(updatedSegments);
       setCurrentSegmentText("");
     }
     
@@ -405,7 +519,7 @@ export default function PilotPage() {
     // Show preparing state
     setStep("preparing");
     
-    // Record draft generation (reuses existing persistence logic)
+    // Record draft generation (uses existing persistence logic)
     await persistenceAdapter.recordDraftGenerated("HUMAN_CONFIRMED_END_SESSION", {
       draftId: `pilot-draft-${Date.now()}`,
       labels: DEMO_DRAFT.labels,
@@ -414,9 +528,9 @@ export default function PilotPage() {
     } as any);
 
     // Build transcript text from segments for draft generation
-    // Include speaker labels for context, with formatted text for better readability
-    const transcriptToUse = transcriptSegments
-      .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${formatTranscriptText(seg.text)}`)
+    // Include speaker labels for context
+    const transcriptToUse = updatedSegments
+      .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${seg.text}`)
       .join("\n\n");
 
     // Generate SOAP draft from transcript if available
@@ -453,7 +567,7 @@ export default function PilotPage() {
     
     // Discard audio blob after draft generation
     audioBlobRef.current = null;
-  }, [currentSegmentText, transcriptSegments, processCapturedAudioAndGenerateDraft, inferSpeaker]);
+  }, [currentSegmentText, transcriptSegments, processCapturedAudioAndGenerateDraft]);
 
   // Skip recording and use demo draft directly
   const handleSkipRecording = useCallback(async () => {
@@ -498,6 +612,7 @@ export default function PilotPage() {
       ...({ source: "pilot-ui", humanAction: true } as any),
     } as any);
     
+    setFinalizedDraft(editableDraft);
     setIsFinalizing(false);
     setStep("finalized");
   }, [editableDraft]);
@@ -526,7 +641,7 @@ export default function PilotPage() {
     try {
       // Build transcript text from corrected segments
       const transcriptToUse = transcriptSegments
-        .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${formatTranscriptText(seg.text)}`)
+        .map(seg => `[${seg.speaker === "clinician" ? "Clinician" : "Patient"}]: ${seg.text}`)
         .join("\n\n");
       
       const result = await generateSoapDraftFromTranscript(transcriptToUse);
@@ -552,6 +667,7 @@ export default function PilotPage() {
     setTranscriptionError(null);
     setDraftGenerationError(null);
     setEditableDraft(""); // Discard any draft changes
+    setFinalizedDraft(""); // Clear finalized draft
     // Clear all transcript state (ephemeral - memory only)
     // SAFETY: On reset, transcript is lost. This is intended.
     setTranscriptSegments([]);
@@ -664,8 +780,8 @@ export default function PilotPage() {
                 </div>
                 <div className="space-y-3 min-h-[60px]">
                   {/* Render completed segments with formatted text */}
-                  {transcriptSegments.map((segment, index) => (
-                    <div key={index} className="flex gap-2">
+                  {transcriptSegments.map((segment) => (
+                    <div key={segment.id} className="flex gap-2">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
                         segment.speaker === "clinician"
                           ? "bg-emerald-100 text-emerald-700"
@@ -673,12 +789,12 @@ export default function PilotPage() {
                       }`}>
                         {segment.speaker === "clinician" ? "Clinician" : "Patient"}
                       </span>
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{formatTranscriptText(segment.text)}</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{segment.text}</p>
                     </div>
                   ))}
                   {/* Current segment being transcribed (live - show raw for immediacy) */}
                   {currentSegmentText && (() => {
-                    const inferredSpeaker = inferSpeaker(currentSegmentText);
+                    const inferredSpeaker = inferSpeakerForLiveDisplay(currentSegmentText, transcriptSegments);
                     return (
                       <div className="flex gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
@@ -817,7 +933,7 @@ export default function PilotPage() {
                   </p>
                   <div className="p-3 bg-white rounded-lg border border-slate-200 max-h-48 overflow-y-auto space-y-2">
                     {transcriptSegments.map((segment, index) => (
-                      <div key={index} className="flex gap-2">
+                      <div key={segment.id} className="flex gap-2">
                         <button
                           onClick={() => handleSpeakerCorrection(index)}
                           className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 h-fit cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
@@ -829,16 +945,31 @@ export default function PilotPage() {
                         >
                           {segment.speaker === "clinician" ? "Clinician" : "Patient"}
                         </button>
-                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{formatTranscriptText(segment.text)}</p>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{segment.text}</p>
                       </div>
                     ))}
                   </div>
                   <button
                     onClick={handleRegenerateDraft}
                     disabled={isRegenerating}
-                    className="mt-3 text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded border border-slate-300 transition-colors disabled:opacity-50"
+                    className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50"
                   >
-                    {isRegenerating ? "Regenerating..." : "Regenerate draft from transcript"}
+                    {isRegenerating ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Regenerating SOAP notes...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Regenerate SOAP notes from transcript
+                      </>
+                    )}
                   </button>
                 </div>
               )}
@@ -997,34 +1128,65 @@ export default function PilotPage() {
 
       {/* Step 5: Finalized */}
       {step === "finalized" && (
-        <div className="bg-white rounded-xl shadow-sm border border-green-200 p-8 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-green-200 p-8 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                Notes Finalized
+              </h2>
+              <p className="text-slate-600 mb-2">
+                This is the final signed version of the clinical note.
+              </p>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              Notes Finalized
-            </h2>
-            <p className="text-slate-600 mb-6">
-              The clinical notes have been signed and finalized. In a production environment,
-              this would be persisted to the clinical record.
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleReset}
-                className="bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
-              >
-                Start New Session
-              </button>
-              <Link
-                href="/"
-                className="px-6 py-3 rounded-lg font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
-              >
-                Back to Home
-              </Link>
+          </div>
+
+          {/* Read-only Final Note Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+            {/* Final Badge */}
+            <div className="absolute top-4 right-4 z-10">
+              <span className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-200 shadow-sm flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M2.166 4.9L9.03 1.144a1.75 1.75 0 011.94 0l6.864 3.756A1.75 1.75 0 0118.75 6.42V14.3a1.75 1.75 0 01-1.03 1.6l-6.864 3.12a1.75 1.75 0 01-1.712 0l-6.864-3.12A1.75 1.75 0 011.25 14.3V6.42a1.75 1.75 0 01.916-1.52zm7.711-1.921a.25.25 0 00-.277 0l-6.864 3.756a.25.25 0 00-.115.155l6.984 3.82 6.983-3.82a.25.25 0 00-.114-.155L9.877 2.979zM2.75 7.64v6.66c0 .052.029.101.077.123l6.423 2.919a.25.25 0 00.25 0l6.423-2.92a.25.25 0 00.077-.122V7.64l-6.5 3.555v7.055a.25.25 0 01-.5 0v-7.055l-6.5-3.555z" clipRule="evenodd" />
+                </svg>
+                Final · Signed · Read-only
+              </span>
             </div>
+
+            <div className="p-8 pt-12">
+              <div className="max-w-2xl mx-auto">
+                <div className="font-serif text-slate-800 leading-relaxed whitespace-pre-wrap select-text cursor-default">
+                  {finalizedDraft}
+                </div>
+              </div>
+            </div>
+
+            {/* Demo Safety Language Footer */}
+            <div className="px-8 py-4 bg-slate-50 border-t border-slate-100">
+              <p className="text-xs text-slate-500 text-center italic">
+                This demonstration shows clinician-controlled documentation.
+                In a production environment, this note would be stored in the clinical record.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={handleReset}
+              className="bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/30"
+            >
+              Start New Session
+            </button>
+            <Link
+              href="/"
+              className="px-6 py-3 rounded-lg font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
+            >
+              Back to Home
+            </Link>
           </div>
         </div>
       )}
