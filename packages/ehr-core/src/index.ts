@@ -68,3 +68,18 @@ export { InMemoryPractitionerRepository } from "./practitioner/repository.js";
 export type { PractitionerRepository } from "./practitioner/repository.js";
 export { InMemoryEncounterRepository } from "./encounter/repository.js";
 export type { EncounterRepository } from "./encounter/repository.js";
+
+// Clinical Note types
+export type {
+  ClinicalNoteRecord,
+  ClinicalNoteReadView,
+  CreateClinicalNoteInput,
+  ClinicalNoteStatus,
+} from "./clinical-note/types.js";
+
+// Clinical Note models
+export { ClinicalNoteWriteModel } from "./clinical-note/write.js";
+export { ClinicalNoteReadModel } from "./clinical-note/read.js";
+
+// Clinical Note repository
+export { ClinicalNoteRepository } from "./clinical-note/repository.js";
