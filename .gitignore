@@ -1,6 +1,7 @@
 # Dependencies
 node_modules
 .pnpm-debug.log*
+packages/*/pnpm-lock.yaml
 
 # Build outputs
 dist
