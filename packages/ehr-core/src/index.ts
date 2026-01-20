@@ -49,8 +49,22 @@ export type {
 export { PractitionerWriteModel } from "./practitioner/write.js";
 export { PractitionerReadModel } from "./practitioner/read.js";
 
+// Encounter types
+export type {
+  EncounterRecord,
+  EncounterReadView,
+  CreateEncounterInput,
+  EncounterStatus,
+} from "./encounter/types.js";
+
+// Encounter models
+export { EncounterWriteModel } from "./encounter/write.js";
+export { EncounterReadModel } from "./encounter/read.js";
+
 // Repository (internal, for testing only)
 export { InMemoryPatientRepository } from "./patient/repository.js";
 export type { PatientRepository } from "./patient/repository.js";
 export { InMemoryPractitionerRepository } from "./practitioner/repository.js";
 export type { PractitionerRepository } from "./practitioner/repository.js";
+export { InMemoryEncounterRepository } from "./encounter/repository.js";
+export type { EncounterRepository } from "./encounter/repository.js";
