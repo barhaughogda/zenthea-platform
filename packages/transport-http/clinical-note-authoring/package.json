@@ -1,0 +1,22 @@
+{
+  "name": "@zenthea/transport-http-clinical-note-authoring",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP Transport Layer for Clinical Note Authoring - Phase I.3 Implementation",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
