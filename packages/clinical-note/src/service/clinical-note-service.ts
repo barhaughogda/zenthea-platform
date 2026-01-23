@@ -12,6 +12,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { ClinicalNoteRepository } from "../persistence/clinical-note-repository.js";
 import type {
   ClinicalNoteAuthoringService,
   ClinicalNoteDto,
@@ -39,6 +40,10 @@ export class InvalidStateError extends Error {
 }
 
 export class ClinicalNoteService implements ClinicalNoteAuthoringService {
+  constructor(
+    private readonly repository: ClinicalNoteRepository = new ClinicalNoteRepository(),
+  ) {}
+
   /**
    * Starts a new clinical note draft.
    *
@@ -82,6 +87,22 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
       createdAt: now,
       updatedAt: now,
     };
+
+    // 4. Persistence Boundary: Persist the draft and initial version.
+    // This happens AFTER authorization and service validation.
+    // If this throws, the service logic fails and no result is returned.
+    await this.repository.saveNewDraft(
+      {
+        noteId: clinicalNoteId,
+        tenantId,
+        encounterId: input.encounterId,
+        patientId: input.patientId,
+        practitionerId: authority.clinicianId,
+        status: "DRAFT",
+        createdAt: now,
+      },
+      input.content,
+    );
 
     return {
       success: true,
