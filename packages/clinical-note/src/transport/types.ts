@@ -129,6 +129,12 @@ export interface ClinicalNoteAuthoringService {
     clinicalNoteId: string,
   ): Promise<ServiceResult<ClinicalNoteDto>>;
 
+  signNote(
+    tenantId: string,
+    authority: TransportAuthorityContext,
+    clinicalNoteId: string,
+  ): Promise<ServiceResult<ClinicalNoteDto>>;
+
   readNote(
     tenantId: string,
     authority: TransportAuthorityContext,

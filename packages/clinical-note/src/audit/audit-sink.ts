@@ -27,6 +27,7 @@ export type AuditEventName =
   | "NOTE_DRAFT_STARTED"
   | "NOTE_DRAFT_UPDATED"
   | "NOTE_FINALIZED"
+  | "NOTE_SIGNED"
   | "NOTE_READ";
 
 /**
@@ -71,6 +72,19 @@ export interface NoteFinalizedPayload {
 }
 
 /**
+ * Audit event payload for NOTE_SIGNED (Slice 06).
+ * Contains NO PHI or PII.
+ */
+export interface NoteSignedPayload {
+  tenantId: string;
+  clinicianId: string;
+  noteId: string;
+  encounterId: string;
+  timestamp: string;
+  correlationId: string;
+}
+
+/**
  * Audit event payload for NOTE_READ.
  * Contains NO PHI or PII.
  */
@@ -90,6 +104,7 @@ export type AuditPayload =
   | NoteDraftStartedPayload
   | NoteDraftUpdatedPayload
   | NoteFinalizedPayload
+  | NoteSignedPayload
   | NoteReadPayload;
 
 /**
