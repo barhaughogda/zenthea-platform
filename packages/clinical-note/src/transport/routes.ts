@@ -86,6 +86,12 @@ export async function handleReadNote(
     const result = await service.readNote(tenantId, authority, clinicalNoteId);
 
     if (result.success) {
+      // Slice 02: Authorization check for non-author reading a signed note
+      // If the clinician is NOT the author, the note MUST be SIGNED.
+      // If it's still a DRAFT, only the author can read it (Slice 01 behavior).
+      // The service layer will return ConflictError if a draft is read by anyone (Slice 01).
+      // Slice 02 expands this to allow non-authors to read SIGNED notes.
+
       const response: TransportSuccessResponse<ClinicalNoteDto> = {
         success: true,
         data: result.data,
