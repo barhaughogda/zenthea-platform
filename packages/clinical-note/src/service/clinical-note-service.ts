@@ -375,7 +375,7 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
       };
     }
 
-    // Slice 01 invariant: Only SIGNED notes may be read (for authors too, in Slice 01)
+    // Slice 01 invariant: Only SIGNED notes may be read (even for authors).
     if (note.status !== "SIGNED") {
       return {
         success: false,
@@ -387,18 +387,20 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
     }
 
     // 4. Audit Boundary: Emit NOTE_READ event on success.
-
-    // 4. Audit Boundary: Emit NOTE_READ event on success.
-    // Payload (NON-PHI ONLY)
-    const now = new Date().toISOString();
-    this.auditSink.emit("NOTE_READ", {
-      tenantId,
-      clinicianId: authority.clinicianId,
-      noteId: clinicalNoteId,
-      encounterId: note.encounterId,
-      timestamp: now,
-      correlationId: authority.correlationId || "unknown",
-    });
+    // Ensure NOTE_READ is emitted exactly once on successful non-author read of a SIGNED note.
+    // Ensure audit payload contains NO PHI/PII and remains strictly metadata-only.
+    // Ensure audit emission happens only after all checks pass.
+    if (!isAuthor) {
+      const now = new Date().toISOString();
+      this.auditSink.emit("NOTE_READ", {
+        tenantId,
+        clinicianId: authority.clinicianId,
+        noteId: clinicalNoteId,
+        encounterId: note.encounterId,
+        timestamp: now,
+        correlationId: authority.correlationId || "unknown",
+      });
+    }
 
     return {
       success: true,
