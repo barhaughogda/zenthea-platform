@@ -13,6 +13,7 @@
 
 import { randomUUID } from "node:crypto";
 import { ClinicalNoteRepository } from "../persistence/clinical-note-repository.js";
+import { AuditSink, NoOpAuditSink } from "../audit/audit-sink.js";
 import type {
   ClinicalNoteAuthoringService,
   ClinicalNoteDto,
@@ -42,6 +43,7 @@ export class InvalidStateError extends Error {
 export class ClinicalNoteService implements ClinicalNoteAuthoringService {
   constructor(
     private readonly repository: ClinicalNoteRepository = new ClinicalNoteRepository(),
+    private readonly auditSink: AuditSink = new NoOpAuditSink(),
   ) {}
 
   /**
@@ -103,6 +105,19 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
       },
       input.content,
     );
+
+    // 5. Audit Boundary: Emit audit event on success.
+    // This happens AFTER persistence succeeds.
+    // Audit emission MUST NOT mutate business state.
+    // Audit failures MUST fail the request (fail-closed).
+    this.auditSink.emit("NOTE_DRAFT_STARTED", {
+      tenantId,
+      clinicianId: authority.clinicianId,
+      noteId: clinicalNoteId,
+      encounterId: input.encounterId,
+      timestamp: now,
+      correlationId: authority.correlationId || "unknown",
+    });
 
     return {
       success: true,
