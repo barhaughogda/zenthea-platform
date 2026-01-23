@@ -317,4 +317,85 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
       },
     };
   }
+
+  /**
+   * Reads a signed clinical note.
+   *
+   * @param tenantId - The tenant context.
+   * @param authority - The authorized clinician context.
+   * @param clinicalNoteId - The ID of the note to read.
+   * @returns A pure domain result object.
+   */
+  async readNote(
+    tenantId: string,
+    authority: TransportAuthorityContext,
+    clinicalNoteId: string,
+  ): Promise<ServiceResult<ClinicalNoteDto>> {
+    // 1. Persistence Boundary: Read root ClinicalNoteDraftRecord and latest DraftVersionRecord.
+    const existing = await this.repository.findById(clinicalNoteId);
+
+    if (!existing) {
+      return {
+        success: false,
+        error: {
+          type: "NotFoundError",
+          message: `Clinical note ${clinicalNoteId} not found`,
+        },
+      };
+    }
+
+    const { note, latestVersion } = existing;
+
+    // 2. Authorization Boundary: Cross-tenant isolation.
+    // Authorization is binary and fail-closed.
+    if (note.tenantId !== tenantId) {
+      return {
+        success: false,
+        error: {
+          type: "AuthorityError",
+          message: "Not authorized",
+        },
+      };
+    }
+
+    // 3. Business Rules: Only SIGNED notes may be read.
+    // Any attempt to read a DRAFT must fail with ConflictError.
+    if (note.status !== "SIGNED") {
+      return {
+        success: false,
+        error: {
+          type: "ConflictError",
+          message: "Draft notes are not readable",
+        },
+      };
+    }
+
+    // 4. Audit Boundary: Emit NOTE_READ event on success.
+    // Payload (NON-PHI ONLY)
+    const now = new Date().toISOString();
+    this.auditSink.emit("NOTE_READ", {
+      tenantId,
+      clinicianId: authority.clinicianId,
+      noteId: clinicalNoteId,
+      encounterId: note.encounterId,
+      timestamp: now,
+      correlationId: authority.correlationId || "unknown",
+    });
+
+    return {
+      success: true,
+      data: {
+        clinicalNoteId: note.noteId,
+        tenantId: note.tenantId,
+        encounterId: note.encounterId,
+        patientId: note.patientId,
+        practitionerId: note.practitionerId,
+        status: note.status,
+        content: latestVersion.content,
+        createdAt: note.createdAt,
+        updatedAt: note.signedAt || note.createdAt,
+        signedAt: note.signedAt,
+      },
+    };
+  }
 }

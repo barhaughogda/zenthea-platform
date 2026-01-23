@@ -47,6 +47,58 @@ export async function registerClinicalNoteRoutes(
       return handleFinalizeNote(request, reply, service);
     },
   );
+
+  // GET /api/v1/clinical-notes/:clinicalNoteId - Read a signed note
+  fastify.get(
+    "/api/v1/clinical-notes/:clinicalNoteId",
+    async (request, reply) => {
+      return handleReadNote(request, reply, service);
+    },
+  );
+}
+
+export async function handleReadNote(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  service: ClinicalNoteAuthoringService,
+): Promise<void> {
+  // 1. Extract and validate context
+  const contextResult = extractAndValidateContext(request);
+  if (!contextResult.valid) {
+    const { statusCode, body } = contextResult.error;
+    reply.status(statusCode).send(body);
+    return;
+  }
+  const { tenantId, authority } = contextResult;
+
+  // 2. Extract clinicalNoteId from params
+  const { clinicalNoteId } = request.params as { clinicalNoteId: string };
+  if (!clinicalNoteId || clinicalNoteId.trim().length === 0) {
+    const { statusCode, body } = createValidationErrorResponse([
+      "clinicalNoteId is required",
+    ]);
+    reply.status(statusCode).send(body);
+    return;
+  }
+
+  // 3. Call service
+  try {
+    const result = await service.readNote(tenantId, authority, clinicalNoteId);
+
+    if (result.success) {
+      const response: TransportSuccessResponse<ClinicalNoteDto> = {
+        success: true,
+        data: result.data,
+      };
+      reply.status(200).send(response);
+    } else {
+      const { statusCode, body } = mapServiceErrorToHttp(result.error);
+      reply.status(statusCode).send(body);
+    }
+  } catch {
+    const { statusCode, body } = createInternalErrorResponse();
+    reply.status(statusCode).send(body);
+  }
 }
 
 export async function handleStartDraft(
