@@ -57,10 +57,11 @@ export interface ClinicalNoteDto {
   readonly encounterId: string;
   readonly patientId: string;
   readonly practitionerId: string;
-  readonly status: "DRAFT";
+  readonly status: "DRAFT" | "SIGNED";
   readonly content: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly signedAt?: string;
 }
 
 /**
@@ -119,6 +120,12 @@ export interface ClinicalNoteAuthoringService {
     authority: TransportAuthorityContext,
     clinicalNoteId: string,
     input: UpdateDraftClinicalNoteRequest,
+  ): Promise<ServiceResult<ClinicalNoteDto>>;
+
+  finalizeNote(
+    tenantId: string,
+    authority: TransportAuthorityContext,
+    clinicalNoteId: string,
   ): Promise<ServiceResult<ClinicalNoteDto>>;
 }
 

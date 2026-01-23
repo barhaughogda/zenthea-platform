@@ -34,8 +34,9 @@ export interface ClinicalNoteDraftRecord {
   encounterId: string;
   patientId: string;
   practitionerId: string;
-  status: "DRAFT";
+  status: "DRAFT" | "SIGNED";
   createdAt: string;
+  signedAt?: string;
 }
 
 /**
@@ -109,9 +110,7 @@ export class ClinicalNoteRepository {
    * @param noteId - The ID of the clinical note to retrieve.
    * @returns The clinical note draft record and its latest version, or null if not found.
    */
-  async findById(
-    noteId: string,
-  ): Promise<{
+  async findById(noteId: string): Promise<{
     note: ClinicalNoteDraftRecord;
     latestVersion: DraftVersionRecord;
   } | null> {
@@ -160,6 +159,34 @@ export class ClinicalNoteRepository {
     } catch (error) {
       throw new PersistenceFailureError(
         "Failed to persist new clinical note version",
+        error,
+      );
+    }
+  }
+
+  /**
+   * Finalizes a clinical note draft by transitioning status to SIGNED.
+   *
+   * @param noteId - The ID of the clinical note.
+   * @param signedAt - The timestamp for finalization.
+   * @throws PersistenceFailureError if persistence fails.
+   */
+  async finalizeNote(noteId: string, signedAt: string): Promise<void> {
+    try {
+      const note = this.notes.get(noteId);
+      if (!note) {
+        throw new Error(`Clinical note ${noteId} not found`);
+      }
+
+      if (note.status === "SIGNED") {
+        throw new Error(`Clinical note ${noteId} is already signed`);
+      }
+
+      note.status = "SIGNED";
+      note.signedAt = signedAt;
+    } catch (error) {
+      throw new PersistenceFailureError(
+        "Failed to finalize clinical note",
         error,
       );
     }

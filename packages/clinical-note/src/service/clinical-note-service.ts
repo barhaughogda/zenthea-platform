@@ -224,4 +224,97 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
       },
     };
   }
+
+  /**
+   * Finalizes a clinical note draft.
+   *
+   * @param tenantId - The tenant context.
+   * @param authority - The authorized clinician context.
+   * @param clinicalNoteId - The ID of the note to finalize.
+   * @returns A pure domain result object.
+   */
+  async finalizeNote(
+    tenantId: string,
+    authority: TransportAuthorityContext,
+    clinicalNoteId: string,
+  ): Promise<ServiceResult<ClinicalNoteDto>> {
+    // 1. Authorization Boundary: Only the original author may finalize.
+    const existing = await this.repository.findById(clinicalNoteId);
+
+    if (!existing) {
+      return {
+        success: false,
+        error: {
+          type: "NotFoundError",
+          message: `Clinical note ${clinicalNoteId} not found`,
+        },
+      };
+    }
+
+    const { note, latestVersion } = existing;
+
+    // Tenant isolation
+    if (note.tenantId !== tenantId) {
+      return {
+        success: false,
+        error: {
+          type: "AuthorityError",
+          message: "Not authorized",
+        },
+      };
+    }
+
+    // Author ownership
+    if (note.practitionerId !== authority.clinicianId) {
+      return {
+        success: false,
+        error: {
+          type: "AuthorityError",
+          message: "Only the original author may finalize a note",
+        },
+      };
+    }
+
+    // 2. Service Logic: Note must be in DRAFT state.
+    if (note.status !== "DRAFT") {
+      return {
+        success: false,
+        error: {
+          type: "ConflictError",
+          message: "Note is already finalized",
+        },
+      };
+    }
+
+    // 3. Persistence Boundary: Transition status DRAFT -> SIGNED.
+    const now = new Date().toISOString();
+    await this.repository.finalizeNote(clinicalNoteId, now);
+
+    // 4. Audit Boundary: Emit NOTE_FINALIZED event.
+    this.auditSink.emit("NOTE_FINALIZED", {
+      tenantId,
+      clinicianId: authority.clinicianId,
+      noteId: clinicalNoteId,
+      encounterId: note.encounterId,
+      finalVersionNumber: latestVersion.versionNumber,
+      timestamp: now,
+      correlationId: authority.correlationId || "unknown",
+    });
+
+    return {
+      success: true,
+      data: {
+        clinicalNoteId: note.noteId,
+        tenantId: note.tenantId,
+        encounterId: note.encounterId,
+        patientId: note.patientId,
+        practitionerId: note.practitionerId,
+        status: "SIGNED",
+        content: latestVersion.content,
+        createdAt: note.createdAt,
+        updatedAt: now,
+        signedAt: now,
+      },
+    };
+  }
 }
