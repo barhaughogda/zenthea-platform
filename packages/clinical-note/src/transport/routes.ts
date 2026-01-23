@@ -18,6 +18,7 @@ import {
   createValidationErrorResponse,
   createMissingTenantErrorResponse,
   createMissingAuthorityErrorResponse,
+  createNotAuthorizedErrorResponse,
   createInternalErrorResponse,
 } from "./error-mapping.js";
 
@@ -101,6 +102,19 @@ function extractAndValidateContext(
 
   if (!clinicianId || !authorizedAt || !correlationId) {
     return { valid: false, error: createMissingAuthorityErrorResponse() };
+  }
+
+  // Cross-tenant mismatch check
+  const authTenant = getHeaderValue(headers, "x-auth-tenant-id");
+  if (authTenant && authTenant !== tenantId) {
+    return { valid: false, error: createNotAuthorizedErrorResponse() };
+  }
+
+  // ISO 8601 validation for authorizedAt
+  const iso8601Regex =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+  if (!iso8601Regex.test(authorizedAt)) {
+    return { valid: false, error: createNotAuthorizedErrorResponse() };
   }
 
   const authority: TransportAuthorityContext = {

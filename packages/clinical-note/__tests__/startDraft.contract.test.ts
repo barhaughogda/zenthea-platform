@@ -119,4 +119,57 @@ describe("startDraft Contract Tests", () => {
     expect(reply._body.success).toBe(false);
     expect(reply._body.error).toBe("Authority context required");
   });
+
+  /**
+   * S01-FM-02: Invalid AuthorityContext -> 403
+   */
+  test("S01-FM-02", async () => {
+    const reply = mockReply();
+    const request: any = {
+      headers: {
+        [HEADER_KEYS.TENANT_ID]: "tenant-1",
+        [HEADER_KEYS.CLINICIAN_ID]: "clinician-1",
+        [HEADER_KEYS.AUTHORIZED_AT]: "invalid-date",
+        [HEADER_KEYS.CORRELATION_ID]: "corr-123",
+      },
+      body: {
+        encounterId: "enc-123",
+        patientId: "pat-123",
+        content: "Initial content",
+      },
+    };
+
+    await handleStartDraft(request, reply, mockService);
+
+    expect(reply._status).toBe(403);
+    expect(reply._body.success).toBe(false);
+    expect(reply._body.error).toBe("Not authorized");
+  });
+
+  /**
+   * S01-FM-04: Cross-tenant mismatch -> 403
+   */
+  test("S01-FM-04", async () => {
+    const reply = mockReply();
+    const request: any = {
+      headers: {
+        [HEADER_KEYS.TENANT_ID]: "tenant-1",
+        [HEADER_KEYS.CLINICIAN_ID]: "clinician-1",
+        [HEADER_KEYS.AUTHORIZED_AT]: new Date().toISOString(),
+        [HEADER_KEYS.CORRELATION_ID]: "corr-123",
+        "x-auth-tenant-id": "tenant-2", // Mismatch with x-tenant-id
+      },
+      body: {
+        encounterId: "enc-123",
+        patientId: "pat-123",
+        content: "Initial content",
+      },
+    };
+
+    await handleStartDraft(request, reply, mockService);
+
+    expect(reply._status).toBe(403);
+    expect(reply._body.success).toBe(false);
+    expect(reply._body.error).toBe("Not authorized");
+  });
 });

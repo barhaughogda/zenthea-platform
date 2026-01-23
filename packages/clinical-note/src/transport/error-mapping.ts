@@ -28,6 +28,16 @@ const SAFE_ERROR_MESSAGES: Record<ServiceErrorType, string> = {
   PersistenceError: "An unexpected error occurred",
 };
 
+export function createNotAuthorizedErrorResponse(): HttpErrorMapping {
+  return {
+    statusCode: 403,
+    body: {
+      success: false,
+      error: "Not authorized",
+    },
+  };
+}
+
 export interface HttpErrorMapping {
   readonly statusCode: number;
   readonly body: TransportErrorResponse;
