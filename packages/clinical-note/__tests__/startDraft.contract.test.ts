@@ -1,33 +1,14 @@
 import { expect, test, describe, beforeEach } from "vitest";
 import { handleStartDraft } from "../src/transport/routes.js";
-import type {
-  ClinicalNoteAuthoringService,
-  ClinicalNoteDto,
-} from "../src/transport/types.js";
+import { ClinicalNoteService } from "../src/service/clinical-note-service.js";
+import type { ClinicalNoteAuthoringService } from "../src/transport/types.js";
 import { HEADER_KEYS } from "../src/transport/types.js";
 
 describe("startDraft Contract Tests", () => {
-  let mockService: ClinicalNoteAuthoringService;
+  let service: ClinicalNoteAuthoringService;
 
   beforeEach(async () => {
-    mockService = {
-      startDraft: async (tenantId, authority, input) => {
-        return {
-          success: true,
-          data: {
-            clinicalNoteId: "cn_123",
-            tenantId,
-            encounterId: input.encounterId,
-            patientId: input.patientId,
-            practitionerId: authority.clinicianId,
-            status: "DRAFT",
-            content: input.content,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        };
-      },
-    } as ClinicalNoteAuthoringService;
+    service = new ClinicalNoteService();
   });
 
   const mockReply = () => {
@@ -65,7 +46,7 @@ describe("startDraft Contract Tests", () => {
       },
     };
 
-    await handleStartDraft(request, reply, mockService);
+    await handleStartDraft(request, reply, service);
 
     expect(reply._status).toBe(201);
     expect(reply._body.success).toBe(true);
@@ -90,7 +71,7 @@ describe("startDraft Contract Tests", () => {
       },
     };
 
-    await handleStartDraft(request, reply, mockService);
+    await handleStartDraft(request, reply, service);
 
     expect(reply._status).toBe(400);
     expect(reply._body.success).toBe(false);
@@ -113,7 +94,7 @@ describe("startDraft Contract Tests", () => {
       },
     };
 
-    await handleStartDraft(request, reply, mockService);
+    await handleStartDraft(request, reply, service);
 
     expect(reply._status).toBe(400);
     expect(reply._body.success).toBe(false);
@@ -139,7 +120,7 @@ describe("startDraft Contract Tests", () => {
       },
     };
 
-    await handleStartDraft(request, reply, mockService);
+    await handleStartDraft(request, reply, service);
 
     expect(reply._status).toBe(403);
     expect(reply._body.success).toBe(false);
@@ -166,7 +147,7 @@ describe("startDraft Contract Tests", () => {
       },
     };
 
-    await handleStartDraft(request, reply, mockService);
+    await handleStartDraft(request, reply, service);
 
     expect(reply._status).toBe(403);
     expect(reply._body.success).toBe(false);
