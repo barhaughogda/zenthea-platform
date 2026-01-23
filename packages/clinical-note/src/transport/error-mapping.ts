@@ -13,6 +13,7 @@ import type {
 const ERROR_TYPE_TO_STATUS: Record<ServiceErrorType, number> = {
   ValidationError: 400,
   AuthorityError: 403,
+  AuthorMismatchError: 403,
   NotFoundError: 404,
   ConflictError: 409,
   InvariantError: 422,
@@ -22,6 +23,7 @@ const ERROR_TYPE_TO_STATUS: Record<ServiceErrorType, number> = {
 const SAFE_ERROR_MESSAGES: Record<ServiceErrorType, string> = {
   ValidationError: "Invalid input",
   AuthorityError: "Access denied",
+  AuthorMismatchError: "Access denied",
   NotFoundError: "Resource not found",
   ConflictError: "Resource conflict",
   InvariantError: "Operation cannot be completed",

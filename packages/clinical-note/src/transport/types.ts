@@ -92,7 +92,8 @@ export type ServiceErrorType =
   | "NotFoundError"
   | "ConflictError"
   | "InvariantError"
-  | "PersistenceError";
+  | "PersistenceError"
+  | "AuthorMismatchError";
 
 export interface ServiceError {
   readonly type: ServiceErrorType;
