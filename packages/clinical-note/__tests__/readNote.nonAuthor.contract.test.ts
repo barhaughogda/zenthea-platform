@@ -58,6 +58,7 @@ describe("readNote non-author Contract Tests", () => {
         [HEADER_KEYS.CLINICIAN_ID]: "non-author-1",
         [HEADER_KEYS.AUTHORIZED_AT]: new Date().toISOString(),
         [HEADER_KEYS.CORRELATION_ID]: "corr-123",
+        [HEADER_KEYS.CAPABILITIES]: "can_read_clinical_note",
       },
       params: {
         clinicalNoteId: noteId,
@@ -249,6 +250,7 @@ describe("readNote non-author Contract Tests", () => {
         [HEADER_KEYS.CLINICIAN_ID]: "non-author-1",
         [HEADER_KEYS.AUTHORIZED_AT]: new Date().toISOString(),
         [HEADER_KEYS.CORRELATION_ID]: "corr-123",
+        [HEADER_KEYS.CAPABILITIES]: "can_read_clinical_note",
       },
       params: {
         clinicalNoteId: noteId,
@@ -395,6 +397,7 @@ describe("readNote non-author Contract Tests", () => {
         [HEADER_KEYS.CLINICIAN_ID]: "non-author-1",
         [HEADER_KEYS.AUTHORIZED_AT]: new Date().toISOString(),
         [HEADER_KEYS.CORRELATION_ID]: "corr-123",
+        [HEADER_KEYS.CAPABILITIES]: "can_read_clinical_note",
       },
       params: {
         clinicalNoteId: noteId,
@@ -446,6 +449,7 @@ describe("readNote non-author Contract Tests", () => {
         [HEADER_KEYS.CLINICIAN_ID]: "non-author-1",
         [HEADER_KEYS.AUTHORIZED_AT]: new Date().toISOString(),
         [HEADER_KEYS.CORRELATION_ID]: "corr-123",
+        [HEADER_KEYS.CAPABILITIES]: "can_read_clinical_note",
       },
       params: {
         clinicalNoteId: noteId,

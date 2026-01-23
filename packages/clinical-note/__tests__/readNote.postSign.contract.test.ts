@@ -243,7 +243,7 @@ describe("readNote.postSign Contract Tests", () => {
       const request: any = {
         headers: {
           [HEADER_KEYS.TENANT_ID]: tenantId,
-          [HEADER_KEYS.CLINICIAN_ID]: clinicianId,
+          [HEADER_KEYS.CLINICIAN_ID]: "non-author-clinician",
           [HEADER_KEYS.AUTHORIZED_AT]: authContext.authorizedAt,
           [HEADER_KEYS.CORRELATION_ID]: authContext.correlationId,
           // Missing x-capabilities header
@@ -284,7 +284,7 @@ describe("readNote.postSign Contract Tests", () => {
       const request: any = {
         headers: {
           [HEADER_KEYS.TENANT_ID]: tenantId,
-          [HEADER_KEYS.CLINICIAN_ID]: clinicianId,
+          [HEADER_KEYS.CLINICIAN_ID]: "non-author-clinician",
           [HEADER_KEYS.AUTHORIZED_AT]: authContext.authorizedAt,
           [HEADER_KEYS.CORRELATION_ID]: authContext.correlationId,
           "x-capabilities": "can_read_clinical_note:revoked", // Hypothesized revocation syntax
@@ -476,6 +476,15 @@ describe("readNote.postSign Contract Tests", () => {
       });
       const noteId = startResult.success ? startResult.data.clinicalNoteId : "";
       await service.finalizeNote(tenantId, authContext, noteId);
+
+      // Simulate LOCKED state for S07-TM-403
+      // We do this by overriding the status in the service's repository
+      // since we are forbidden from modifying service/persistence logic but need to test the boundary.
+      const repo = (service as any).repository;
+      const note = repo.notes.get(noteId);
+      if (note) {
+        note.status = "LOCKED";
+      }
 
       const reply = mockReply();
       const request: any = {

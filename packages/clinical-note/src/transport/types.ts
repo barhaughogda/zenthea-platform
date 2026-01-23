@@ -151,4 +151,5 @@ export const HEADER_KEYS = {
   CLINICIAN_ID: "x-clinician-id",
   AUTHORIZED_AT: "x-authorized-at",
   CORRELATION_ID: "x-correlation-id",
+  CAPABILITIES: "x-capabilities",
 } as const;
