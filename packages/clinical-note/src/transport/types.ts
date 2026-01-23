@@ -37,6 +37,13 @@ export interface StartDraftClinicalNoteRequest {
   readonly content: string;
 }
 
+/**
+ * DTO for updating an existing draft clinical note.
+ */
+export interface UpdateDraftClinicalNoteRequest {
+  readonly content: string;
+}
+
 // ============================================================
 // Response DTOs
 // ============================================================
@@ -105,6 +112,13 @@ export interface ClinicalNoteAuthoringService {
     tenantId: string,
     authority: TransportAuthorityContext,
     input: StartDraftClinicalNoteRequest,
+  ): Promise<ServiceResult<ClinicalNoteDto>>;
+
+  updateDraft(
+    tenantId: string,
+    authority: TransportAuthorityContext,
+    clinicalNoteId: string,
+    input: UpdateDraftClinicalNoteRequest,
   ): Promise<ServiceResult<ClinicalNoteDto>>;
 }
 

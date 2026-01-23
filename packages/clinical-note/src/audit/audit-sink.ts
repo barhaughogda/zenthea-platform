@@ -23,7 +23,7 @@ export class AuditFailureError extends Error {
 /**
  * Authorized audit event names.
  */
-export type AuditEventName = "NOTE_DRAFT_STARTED";
+export type AuditEventName = "NOTE_DRAFT_STARTED" | "NOTE_DRAFT_UPDATED";
 
 /**
  * Audit event payload for NOTE_DRAFT_STARTED.
@@ -39,9 +39,23 @@ export interface NoteDraftStartedPayload {
 }
 
 /**
+ * Audit event payload for NOTE_DRAFT_UPDATED.
+ * Contains NO PHI or PII.
+ */
+export interface NoteDraftUpdatedPayload {
+  tenantId: string;
+  clinicianId: string;
+  noteId: string;
+  encounterId: string;
+  versionNumber: number;
+  timestamp: string;
+  correlationId: string;
+}
+
+/**
  * Union of all authorized audit event payloads.
  */
-export type AuditPayload = NoteDraftStartedPayload;
+export type AuditPayload = NoteDraftStartedPayload | NoteDraftUpdatedPayload;
 
 /**
  * Audit Sink interface for emitting audit events.

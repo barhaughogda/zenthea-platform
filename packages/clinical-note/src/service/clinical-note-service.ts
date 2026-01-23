@@ -20,6 +20,7 @@ import type {
   ServiceResult,
   TransportAuthorityContext,
   StartDraftClinicalNoteRequest,
+  UpdateDraftClinicalNoteRequest,
 } from "../transport/types.js";
 
 /**
@@ -122,6 +123,105 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
     return {
       success: true,
       data: draft,
+    };
+  }
+
+  /**
+   * Updates an existing clinical note draft.
+   *
+   * @param tenantId - The tenant context.
+   * @param authority - The authorized clinician context.
+   * @param clinicalNoteId - The ID of the note to update.
+   * @param input - The update details (content).
+   * @returns A pure domain result object.
+   */
+  async updateDraft(
+    tenantId: string,
+    authority: TransportAuthorityContext,
+    clinicalNoteId: string,
+    input: UpdateDraftClinicalNoteRequest,
+  ): Promise<ServiceResult<ClinicalNoteDto>> {
+    // 1. Authorization Boundary: Only the original author may update.
+    // AND Cross-tenant isolation (already checked in transport, but enforced here too).
+    const existing = await this.repository.findById(clinicalNoteId);
+
+    if (!existing) {
+      return {
+        success: false,
+        error: {
+          type: "NotFoundError",
+          message: `Clinical note ${clinicalNoteId} not found`,
+        },
+      };
+    }
+
+    const { note, latestVersion } = existing;
+
+    // Tenant isolation
+    if (note.tenantId !== tenantId) {
+      return {
+        success: false,
+        error: {
+          type: "AuthorityError",
+          message: "Not authorized",
+        },
+      };
+    }
+
+    // Author ownership
+    if (note.practitionerId !== authority.clinicianId) {
+      return {
+        success: false,
+        error: {
+          type: "AuthorityError",
+          message: "Only the original author may update a draft",
+        },
+      };
+    }
+
+    // 2. Service Logic: Draft must be in DRAFT state.
+    if (note.status !== "DRAFT") {
+      return {
+        success: false,
+        error: {
+          type: "ConflictError",
+          message: "Signed notes are immutable",
+        },
+      };
+    }
+
+    // 3. Persistence Boundary: Create new immutable DraftVersion.
+    const now = new Date().toISOString();
+    const newVersion = await this.repository.saveNewVersion(
+      clinicalNoteId,
+      input.content,
+      now,
+    );
+
+    // 4. Audit Boundary: Emit NOTE_DRAFT_UPDATED event.
+    this.auditSink.emit("NOTE_DRAFT_UPDATED", {
+      tenantId,
+      clinicianId: authority.clinicianId,
+      noteId: clinicalNoteId,
+      encounterId: note.encounterId,
+      versionNumber: newVersion.versionNumber,
+      timestamp: now,
+      correlationId: authority.correlationId || "unknown",
+    });
+
+    return {
+      success: true,
+      data: {
+        clinicalNoteId: note.noteId,
+        tenantId: note.tenantId,
+        encounterId: note.encounterId,
+        patientId: note.patientId,
+        practitionerId: note.practitionerId,
+        status: note.status,
+        content: newVersion.content,
+        createdAt: note.createdAt,
+        updatedAt: now,
+      },
     };
   }
 }

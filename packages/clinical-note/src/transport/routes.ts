@@ -9,6 +9,7 @@ import type {
   ClinicalNoteAuthoringService,
   ClinicalNoteDto,
   StartDraftClinicalNoteRequest,
+  UpdateDraftClinicalNoteRequest,
   TransportAuthorityContext,
   TransportSuccessResponse,
 } from "./types.js";
@@ -30,6 +31,14 @@ export async function registerClinicalNoteRoutes(
   fastify.post("/api/v1/clinical-notes/draft", async (request, reply) => {
     return handleStartDraft(request, reply, service);
   });
+
+  // PATCH /api/v1/clinical-notes/:clinicalNoteId - Update an existing draft
+  fastify.patch(
+    "/api/v1/clinical-notes/:clinicalNoteId",
+    async (request, reply) => {
+      return handleUpdateDraft(request, reply, service);
+    },
+  );
 }
 
 export async function handleStartDraft(
@@ -196,6 +205,91 @@ function validateStartDraftBody(
     data: {
       encounterId: (data.encounterId as string).trim(),
       patientId: (data.patientId as string).trim(),
+      content: (data.content as string).trim(),
+    },
+  };
+}
+
+export async function handleUpdateDraft(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  service: ClinicalNoteAuthoringService,
+): Promise<void> {
+  // 1. Extract and validate context
+  const contextResult = extractAndValidateContext(request);
+  if (!contextResult.valid) {
+    const { statusCode, body } = contextResult.error;
+    reply.status(statusCode).send(body);
+    return;
+  }
+  const { tenantId, authority } = contextResult;
+
+  // 2. Extract clinicalNoteId from params
+  const { clinicalNoteId } = request.params as { clinicalNoteId: string };
+  if (!clinicalNoteId || clinicalNoteId.trim().length === 0) {
+    const { statusCode, body } = createValidationErrorResponse([
+      "clinicalNoteId is required",
+    ]);
+    reply.status(statusCode).send(body);
+    return;
+  }
+
+  // 3. Validate request body
+  const bodyValidation = validateUpdateDraftBody(request.body);
+  if (!bodyValidation.valid) {
+    const { statusCode, body } = bodyValidation.error;
+    reply.status(statusCode).send(body);
+    return;
+  }
+  const input = bodyValidation.data;
+
+  // 4. Call service
+  try {
+    const result = await service.updateDraft(
+      tenantId,
+      authority,
+      clinicalNoteId,
+      input,
+    );
+
+    if (result.success) {
+      const response: TransportSuccessResponse<ClinicalNoteDto> = {
+        success: true,
+        data: result.data,
+      };
+      reply.status(200).send(response);
+    } else {
+      const { statusCode, body } = mapServiceErrorToHttp(result.error);
+      reply.status(statusCode).send(body);
+    }
+  } catch {
+    const { statusCode, body } = createInternalErrorResponse();
+    reply.status(statusCode).send(body);
+  }
+}
+
+function validateUpdateDraftBody(
+  body: unknown,
+): BodyValidationResult<UpdateDraftClinicalNoteRequest> {
+  if (body === null || body === undefined || typeof body !== "object") {
+    return {
+      valid: false,
+      error: createValidationErrorResponse(["Request body is required"]),
+    };
+  }
+
+  const data = body as Record<string, unknown>;
+
+  if (typeof data.content !== "string" || data.content.trim().length === 0) {
+    return {
+      valid: false,
+      error: createValidationErrorResponse(["content is required"]),
+    };
+  }
+
+  return {
+    valid: true,
+    data: {
       content: (data.content as string).trim(),
     },
   };

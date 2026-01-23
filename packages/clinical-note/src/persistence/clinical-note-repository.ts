@@ -44,6 +44,7 @@ export interface ClinicalNoteDraftRecord {
 export interface DraftVersionRecord {
   versionId: string; // PK
   noteId: string; // FK
+  versionNumber: number;
   content: string;
   createdAt: string;
 }
@@ -82,6 +83,7 @@ export class ClinicalNoteRepository {
       const version: DraftVersionRecord = {
         versionId: `ver_${randomUUID()}`,
         noteId: draft.noteId,
+        versionNumber: 1,
         content,
         createdAt: draft.createdAt,
       };
@@ -96,6 +98,68 @@ export class ClinicalNoteRepository {
       }
       throw new PersistenceFailureError(
         "Failed to persist clinical note draft",
+        error,
+      );
+    }
+  }
+
+  /**
+   * Retrieves a clinical note draft by ID.
+   *
+   * @param noteId - The ID of the clinical note to retrieve.
+   * @returns The clinical note draft record and its latest version, or null if not found.
+   */
+  async findById(
+    noteId: string,
+  ): Promise<{
+    note: ClinicalNoteDraftRecord;
+    latestVersion: DraftVersionRecord;
+  } | null> {
+    const note = this.notes.get(noteId);
+    if (!note) return null;
+
+    const versions = this.versions.get(noteId);
+    if (!versions || versions.length === 0) return null;
+
+    // Latest version is the last one in the append-only list
+    const latestVersion = versions[versions.length - 1];
+    return { note, latestVersion };
+  }
+
+  /**
+   * Persists a new version of an existing clinical note draft.
+   *
+   * @param noteId - The ID of the clinical note.
+   * @param content - The new content for the draft version.
+   * @param createdAt - The timestamp for the new version.
+   * @returns The new version record.
+   * @throws PersistenceFailureError if persistence fails.
+   */
+  async saveNewVersion(
+    noteId: string,
+    content: string,
+    createdAt: string,
+  ): Promise<DraftVersionRecord> {
+    try {
+      const versions = this.versions.get(noteId);
+      if (!versions) {
+        throw new Error(`Clinical note ${noteId} not found`);
+      }
+
+      const nextVersionNumber = versions.length + 1;
+      const version: DraftVersionRecord = {
+        versionId: `ver_${randomUUID()}`,
+        noteId,
+        versionNumber: nextVersionNumber,
+        content,
+        createdAt,
+      };
+
+      versions.push(version);
+      return version;
+    } catch (error) {
+      throw new PersistenceFailureError(
+        "Failed to persist new clinical note version",
         error,
       );
     }
