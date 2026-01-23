@@ -358,8 +358,24 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
       };
     }
 
-    // 3. Business Rules: Only SIGNED notes may be read.
-    // Any attempt to read a DRAFT must fail with ConflictError.
+    // 3. Business Rules:
+    // - Authors may read their own notes in any state (Slice 01 invariant).
+    // - Non-authors may ONLY read SIGNED notes within the same tenant (Slice 02 requirement).
+    // - Non-authors must be denied access to DRAFT notes (Slice 02 requirement).
+
+    const isAuthor = note.practitionerId === authority.clinicianId;
+
+    if (!isAuthor && note.status !== "SIGNED") {
+      return {
+        success: false,
+        error: {
+          type: "AuthorityError",
+          message: "Not authorized to read draft notes",
+        },
+      };
+    }
+
+    // Slice 01 invariant: Only SIGNED notes may be read (for authors too, in Slice 01)
     if (note.status !== "SIGNED") {
       return {
         success: false,
@@ -369,6 +385,8 @@ export class ClinicalNoteService implements ClinicalNoteAuthoringService {
         },
       };
     }
+
+    // 4. Audit Boundary: Emit NOTE_READ event on success.
 
     // 4. Audit Boundary: Emit NOTE_READ event on success.
     // Payload (NON-PHI ONLY)
