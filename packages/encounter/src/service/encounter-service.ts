@@ -27,13 +27,7 @@ export class DefaultEncounterService implements EncounterService {
     }
 
     // Layer 3+ (Persistence, State Machine, Audit) NOT allowed in this slice layer
-    return {
-      success: false,
-      error: {
-        type: "NOT_IMPLEMENTED",
-        message: "Persistence not implemented",
-      },
-    };
+    throw new Error("Layer 3+ not implemented");
   }
 
   async activateEncounter(
@@ -47,13 +41,7 @@ export class DefaultEncounterService implements EncounterService {
     }
 
     // Layer 3+ (Persistence, State Machine, Audit) NOT allowed in this slice layer
-    return {
-      success: false,
-      error: {
-        type: "NOT_IMPLEMENTED",
-        message: "Persistence not implemented",
-      },
-    };
+    throw new Error("Layer 3+ not implemented");
   }
 
   async completeEncounter(
@@ -67,12 +55,6 @@ export class DefaultEncounterService implements EncounterService {
     }
 
     // Layer 3+ (Persistence, State Machine, Audit) NOT allowed in this slice layer
-    return {
-      success: false,
-      error: {
-        type: "NOT_IMPLEMENTED",
-        message: "Persistence not implemented",
-      },
-    };
+    throw new Error("Layer 3+ not implemented");
   }
 }

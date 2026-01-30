@@ -69,54 +69,10 @@ export function mapServiceErrorToHttp(error: {
   type: string;
   message: string;
 }) {
-  switch (error.type) {
-    case "AUTHORIZATION_ERROR":
-      return {
-        statusCode: 403,
-        body: {
-          success: false,
-          error: error.message,
-        } as TransportErrorResponse,
-      };
-    case "FORBIDDEN_ERROR":
-      return {
-        statusCode: 403,
-        body: {
-          success: false,
-          error: error.message,
-        } as TransportErrorResponse,
-      };
-    case "NOT_FOUND":
-      return {
-        statusCode: 404,
-        body: {
-          success: false,
-          error: error.message,
-        } as TransportErrorResponse,
-      };
-    case "CONFLICT":
-      return {
-        statusCode: 409,
-        body: {
-          success: false,
-          error: error.message,
-        } as TransportErrorResponse,
-      };
-    case "PRECONDITION_FAILED":
-      return {
-        statusCode: 412,
-        body: {
-          success: false,
-          error: error.message,
-        } as TransportErrorResponse,
-      };
-    default:
-      return {
-        statusCode: 400,
-        body: {
-          success: false,
-          error: error.message,
-        } as TransportErrorResponse,
-      };
-  }
+  // For Layer 1, we don't have service errors yet, but we'll need this later.
+  // For now, map everything to 400 or 500.
+  return {
+    statusCode: 400,
+    body: { success: false, error: error.message } as TransportErrorResponse,
+  };
 }
