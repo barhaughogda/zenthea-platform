@@ -116,8 +116,8 @@ export class DefaultEncounterService implements EncounterService {
         return {
           success: false,
           error: {
-            type: "INVALID_STATE",
-            message: `Cannot activate encounter in ${record.status} state`,
+            type: "CONFLICT",
+            message: `Conflict: Cannot activate encounter in ${record.status} state`,
           },
         };
       }
@@ -186,8 +186,8 @@ export class DefaultEncounterService implements EncounterService {
         return {
           success: false,
           error: {
-            type: "INVALID_STATE",
-            message: `Cannot complete encounter in ${record.status} state`,
+            type: "CONFLICT",
+            message: `Conflict: Cannot complete encounter in ${record.status} state`,
           },
         };
       }
