@@ -69,10 +69,30 @@ export function mapServiceErrorToHttp(error: {
   type: string;
   message: string;
 }) {
-  // For Layer 1, we don't have service errors yet, but we'll need this later.
-  // For now, map everything to 400 or 500.
+  let statusCode = 400;
+
+  switch (error.type) {
+    case "NOT_FOUND":
+      statusCode = 404;
+      break;
+    case "FORBIDDEN":
+      statusCode = 403;
+      break;
+    case "INVALID_STATE":
+      statusCode = 409;
+      break;
+    case "CONFLICT":
+      statusCode = 409;
+      break;
+    case "INTERNAL_ERROR":
+      statusCode = 500;
+      break;
+    default:
+      statusCode = 400;
+  }
+
   return {
-    statusCode: 400,
+    statusCode,
     body: { success: false, error: error.message } as TransportErrorResponse,
   };
 }
