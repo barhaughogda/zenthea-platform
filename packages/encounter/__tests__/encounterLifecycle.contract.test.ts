@@ -427,13 +427,65 @@ describe("Encounter Lifecycle Contract (Slice 01)", () => {
   it("S01-TM-018 | Persistence Unavailable", async () => {
     // Persistence layer unreachable
     // Expected: 5xx, Zero Emission, Fail-closed
-    throw new Error("RED PHASE: Implementation missing");
+    const failingRepo = {
+      create: async () => {
+        throw new Error("DB Down");
+      },
+      getById: async () => {
+        throw new Error("DB Down");
+      },
+      update: async () => {
+        throw new Error("DB Down");
+      },
+    };
+    const failingService = new DefaultEncounterService(failingRepo as any);
+    const failingServer = createMockServer(
+      registerEncounterRoutes,
+      failingService,
+    );
+
+    const response = await failingServer.inject({
+      method: "POST",
+      url: "/api/v1/encounters",
+      headers: createValidHeaders(),
+      payload: { patientId: "pat-1" },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(JSON.parse(response.payload).error).toContain("Persistence failure");
   });
 
   it("S01-TM-019 | Persistence Timeout", async () => {
     // Persistence operation times out
     // Expected: 5xx, Zero Emission, Fail-closed
-    throw new Error("RED PHASE: Implementation missing");
+    const timeoutRepo = {
+      create: async () => {
+        const err = new Error("Timeout");
+        (err as any).code = "TIMEOUT";
+        throw err;
+      },
+      getById: async () => {
+        throw new Error("Timeout");
+      },
+      update: async () => {
+        throw new Error("Timeout");
+      },
+    };
+    const timeoutService = new DefaultEncounterService(timeoutRepo as any);
+    const timeoutServer = createMockServer(
+      registerEncounterRoutes,
+      timeoutService,
+    );
+
+    const response = await timeoutServer.inject({
+      method: "POST",
+      url: "/api/v1/encounters",
+      headers: createValidHeaders(),
+      payload: { patientId: "pat-1" },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(JSON.parse(response.payload).error).toContain("Persistence failure");
   });
 
   // --- FAILURE SCENARIOS: BUSINESS LOGIC ---

@@ -2,7 +2,18 @@
  * Encounter Error Mapping - Slice 01
  */
 
-import { TransportErrorResponse } from "./types.js";
+import {
+  EncounterService,
+  EncounterServiceResponse,
+  EncounterDto,
+  CreateEncounterRequest,
+  ActivateEncounterRequest,
+  CompleteEncounterRequest,
+  TransportAuthorityContext,
+  EncounterServiceError,
+  TransportErrorResponse,
+} from "./types.js";
+import { ServiceErrorType } from "../service/types.js";
 
 export function createMissingTenantErrorResponse() {
   return {
@@ -65,13 +76,10 @@ export function createInternalErrorResponse() {
   };
 }
 
-export function mapServiceErrorToHttp(error: {
-  type: string;
-  message: string;
-}) {
+export function mapServiceErrorToHttp(error: EncounterServiceError) {
   let statusCode = 400;
 
-  switch (error.type) {
+  switch (error.type as ServiceErrorType | string) {
     case "NOT_FOUND":
       statusCode = 404;
       break;
@@ -84,6 +92,7 @@ export function mapServiceErrorToHttp(error: {
     case "CONFLICT":
       statusCode = 409;
       break;
+    case "SYSTEM_ERROR":
     case "INTERNAL_ERROR":
       statusCode = 500;
       break;

@@ -1,7 +1,7 @@
 /**
  * Encounter Service - Slice 01
  *
- * Layer 3: State Machine Implementation (In-Memory)
+ * Layer 3: State Machine Implementation (Persistence Boundary)
  */
 
 import {
@@ -14,11 +14,17 @@ import {
   TransportAuthorityContext,
 } from "../transport/types.js";
 import { validateAuthorization } from "./authorization.js";
+import { EncounterRepository } from "../persistence/encounter-repository.js";
+import { InMemoryEncounterRepository } from "../persistence/in-memory-encounter-repository.js";
+import { EncounterRecord } from "../persistence/types.js";
 import crypto from "node:crypto";
 
 export class DefaultEncounterService implements EncounterService {
-  // In-memory storage for Slice 01 (No persistence)
-  private encounters = new Map<string, EncounterDto>();
+  private repository: EncounterRepository;
+
+  constructor(repository?: EncounterRepository) {
+    this.repository = repository ?? new InMemoryEncounterRepository();
+  }
 
   async createEncounter(
     tenantId: string,
@@ -33,7 +39,7 @@ export class DefaultEncounterService implements EncounterService {
     const encounterId = `enc-${crypto.randomUUID()}`;
     const now = new Date().toISOString();
 
-    const encounter: EncounterDto = {
+    const record: EncounterRecord = {
       encounterId,
       tenantId,
       patientId: input.patientId,
@@ -42,9 +48,21 @@ export class DefaultEncounterService implements EncounterService {
       updatedAt: now,
     };
 
-    this.encounters.set(encounterId, encounter);
-
-    return { success: true, data: encounter };
+    try {
+      await this.repository.create(record);
+      return { success: true, data: this.mapRecordToDto(record) };
+    } catch (error: any) {
+      if (error.code === "CONFLICT") {
+        return {
+          success: false,
+          error: { type: "CONFLICT", message: error.message },
+        };
+      }
+      return {
+        success: false,
+        error: { type: "SYSTEM_ERROR", message: "Persistence failure" },
+      };
+    }
   }
 
   async activateEncounter(
@@ -57,41 +75,48 @@ export class DefaultEncounterService implements EncounterService {
       return { success: false, error: authError };
     }
 
-    const encounter = this.encounters.get(input.encounterId);
+    try {
+      const record = await this.repository.getById(input.encounterId);
 
-    if (!encounter) {
+      if (!record) {
+        return {
+          success: false,
+          error: { type: "NOT_FOUND", message: "Encounter not found" },
+        };
+      }
+
+      if (record.tenantId !== tenantId) {
+        return {
+          success: false,
+          error: { type: "FORBIDDEN", message: "Cross-tenant access rejected" },
+        };
+      }
+
+      if (record.status !== "CREATED") {
+        return {
+          success: false,
+          error: {
+            type: "INVALID_STATE",
+            message: `Cannot activate encounter in ${record.status} state`,
+          },
+        };
+      }
+
+      const updatedRecord: EncounterRecord = {
+        ...record,
+        status: "ACTIVE",
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.repository.update(updatedRecord);
+
+      return { success: true, data: this.mapRecordToDto(updatedRecord) };
+    } catch (error: any) {
       return {
         success: false,
-        error: { type: "NOT_FOUND", message: "Encounter not found" },
+        error: { type: "SYSTEM_ERROR", message: "Persistence failure" },
       };
     }
-
-    if (encounter.tenantId !== tenantId) {
-      return {
-        success: false,
-        error: { type: "FORBIDDEN", message: "Cross-tenant access rejected" },
-      };
-    }
-
-    if (encounter.status !== "CREATED") {
-      return {
-        success: false,
-        error: {
-          type: "INVALID_STATE",
-          message: `Cannot activate encounter in ${encounter.status} state`,
-        },
-      };
-    }
-
-    const updatedEncounter: EncounterDto = {
-      ...encounter,
-      status: "ACTIVE",
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.encounters.set(input.encounterId, updatedEncounter);
-
-    return { success: true, data: updatedEncounter };
   }
 
   async completeEncounter(
@@ -104,40 +129,58 @@ export class DefaultEncounterService implements EncounterService {
       return { success: false, error: authError };
     }
 
-    const encounter = this.encounters.get(input.encounterId);
+    try {
+      const record = await this.repository.getById(input.encounterId);
 
-    if (!encounter) {
+      if (!record) {
+        return {
+          success: false,
+          error: { type: "NOT_FOUND", message: "Encounter not found" },
+        };
+      }
+
+      if (record.tenantId !== tenantId) {
+        return {
+          success: false,
+          error: { type: "FORBIDDEN", message: "Cross-tenant access rejected" },
+        };
+      }
+
+      if (record.status !== "ACTIVE") {
+        return {
+          success: false,
+          error: {
+            type: "INVALID_STATE",
+            message: `Cannot complete encounter in ${record.status} state`,
+          },
+        };
+      }
+
+      const updatedRecord: EncounterRecord = {
+        ...record,
+        status: "COMPLETED",
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.repository.update(updatedRecord);
+
+      return { success: true, data: this.mapRecordToDto(updatedRecord) };
+    } catch (error: any) {
       return {
         success: false,
-        error: { type: "NOT_FOUND", message: "Encounter not found" },
+        error: { type: "SYSTEM_ERROR", message: "Persistence failure" },
       };
     }
+  }
 
-    if (encounter.tenantId !== tenantId) {
-      return {
-        success: false,
-        error: { type: "FORBIDDEN", message: "Cross-tenant access rejected" },
-      };
-    }
-
-    if (encounter.status !== "ACTIVE") {
-      return {
-        success: false,
-        error: {
-          type: "INVALID_STATE",
-          message: `Cannot complete encounter in ${encounter.status} state`,
-        },
-      };
-    }
-
-    const updatedEncounter: EncounterDto = {
-      ...encounter,
-      status: "COMPLETED",
-      updatedAt: new Date().toISOString(),
+  private mapRecordToDto(record: EncounterRecord): EncounterDto {
+    return {
+      encounterId: record.encounterId,
+      tenantId: record.tenantId,
+      patientId: record.patientId,
+      status: record.status,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
     };
-
-    this.encounters.set(input.encounterId, updatedEncounter);
-
-    return { success: true, data: updatedEncounter };
   }
 }
