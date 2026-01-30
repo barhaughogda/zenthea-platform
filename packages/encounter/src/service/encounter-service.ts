@@ -27,7 +27,7 @@ export class DefaultEncounterService implements EncounterService {
     }
 
     // Layer 3+ (Persistence, State Machine, Audit) NOT allowed in this slice layer
-    throw new Error("Layer 3+ not implemented");
+    throw new Error("RED PHASE: Implementation missing");
   }
 
   async activateEncounter(
@@ -41,7 +41,7 @@ export class DefaultEncounterService implements EncounterService {
     }
 
     // Layer 3+ (Persistence, State Machine, Audit) NOT allowed in this slice layer
-    throw new Error("Layer 3+ not implemented");
+    throw new Error("RED PHASE: Implementation missing");
   }
 
   async completeEncounter(
@@ -55,6 +55,6 @@ export class DefaultEncounterService implements EncounterService {
     }
 
     // Layer 3+ (Persistence, State Machine, Audit) NOT allowed in this slice layer
-    throw new Error("Layer 3+ not implemented");
+    throw new Error("RED PHASE: Implementation missing");
   }
 }

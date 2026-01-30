@@ -86,7 +86,10 @@ async function handleCreateEncounter(
       const { statusCode, body } = mapServiceErrorToHttp(result.error);
       reply.status(statusCode).send(body);
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("RED PHASE")) {
+      throw error;
+    }
     const { statusCode, body } = createInternalErrorResponse();
     reply.status(statusCode).send(body);
   }
@@ -129,7 +132,10 @@ async function handleActivateEncounter(
       const { statusCode, body } = mapServiceErrorToHttp(result.error);
       reply.status(statusCode).send(body);
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("RED PHASE")) {
+      throw error;
+    }
     const { statusCode, body } = createInternalErrorResponse();
     reply.status(statusCode).send(body);
   }
@@ -172,7 +178,10 @@ async function handleCompleteEncounter(
       const { statusCode, body } = mapServiceErrorToHttp(result.error);
       reply.status(statusCode).send(body);
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("RED PHASE")) {
+      throw error;
+    }
     const { statusCode, body } = createInternalErrorResponse();
     reply.status(statusCode).send(body);
   }
