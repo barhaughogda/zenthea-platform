@@ -17,13 +17,17 @@ import { validateAuthorization } from "./authorization.js";
 import { EncounterRepository } from "../persistence/encounter-repository.js";
 import { InMemoryEncounterRepository } from "../persistence/in-memory-encounter-repository.js";
 import { EncounterRecord } from "../persistence/types.js";
+import { AuditSink } from "../audit/audit-sink.js";
+import { InMemoryAuditSink } from "../audit/in-memory-audit-sink.js";
 import crypto from "node:crypto";
 
 export class DefaultEncounterService implements EncounterService {
   private repository: EncounterRepository;
+  private auditSink: AuditSink;
 
-  constructor(repository?: EncounterRepository) {
+  constructor(repository?: EncounterRepository, auditSink?: AuditSink) {
     this.repository = repository ?? new InMemoryEncounterRepository();
+    this.auditSink = auditSink ?? new InMemoryAuditSink();
   }
 
   async createEncounter(
@@ -50,6 +54,16 @@ export class DefaultEncounterService implements EncounterService {
 
     try {
       await this.repository.create(record);
+
+      await this.auditSink.emit({
+        tenantId,
+        encounterId,
+        actorId: authority.actorId,
+        action: "ENCOUNTER_CREATED",
+        timestamp: now,
+        correlationId: authority.correlationId,
+      });
+
       return { success: true, data: this.mapRecordToDto(record) };
     } catch (error: any) {
       if (error.code === "CONFLICT") {
@@ -60,7 +74,13 @@ export class DefaultEncounterService implements EncounterService {
       }
       return {
         success: false,
-        error: { type: "SYSTEM_ERROR", message: "Persistence failure" },
+        error: {
+          type: "SYSTEM_ERROR",
+          message:
+            error.message === "Audit failure"
+              ? "Audit failure"
+              : "Persistence failure",
+        },
       };
     }
   }
@@ -102,19 +122,35 @@ export class DefaultEncounterService implements EncounterService {
         };
       }
 
+      const now = new Date().toISOString();
       const updatedRecord: EncounterRecord = {
         ...record,
         status: "ACTIVE",
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       };
 
       await this.repository.update(updatedRecord);
+
+      await this.auditSink.emit({
+        tenantId,
+        encounterId: record.encounterId,
+        actorId: authority.actorId,
+        action: "ENCOUNTER_ACTIVATED",
+        timestamp: now,
+        correlationId: authority.correlationId,
+      });
 
       return { success: true, data: this.mapRecordToDto(updatedRecord) };
     } catch (error: any) {
       return {
         success: false,
-        error: { type: "SYSTEM_ERROR", message: "Persistence failure" },
+        error: {
+          type: "SYSTEM_ERROR",
+          message:
+            error.message === "Audit failure"
+              ? "Audit failure"
+              : "Persistence failure",
+        },
       };
     }
   }
@@ -156,19 +192,35 @@ export class DefaultEncounterService implements EncounterService {
         };
       }
 
+      const now = new Date().toISOString();
       const updatedRecord: EncounterRecord = {
         ...record,
         status: "COMPLETED",
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       };
 
       await this.repository.update(updatedRecord);
+
+      await this.auditSink.emit({
+        tenantId,
+        encounterId: record.encounterId,
+        actorId: authority.actorId,
+        action: "ENCOUNTER_COMPLETED",
+        timestamp: now,
+        correlationId: authority.correlationId,
+      });
 
       return { success: true, data: this.mapRecordToDto(updatedRecord) };
     } catch (error: any) {
       return {
         success: false,
-        error: { type: "SYSTEM_ERROR", message: "Persistence failure" },
+        error: {
+          type: "SYSTEM_ERROR",
+          message:
+            error.message === "Audit failure"
+              ? "Audit failure"
+              : "Persistence failure",
+        },
       };
     }
   }
